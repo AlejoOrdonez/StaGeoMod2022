@@ -3,6 +3,8 @@ title: "DataExploration_Practical"
 author: '"YOUR NAME HERE"'
 date: "`r Sys.Date()`"
 output: html_document
+editor_options: 
+  chunk_output_type: console
 ---
 
 ```{r setup, include=FALSE}
@@ -44,7 +46,7 @@ The final document will have for classes of boxes
 <div class="alert alert-info">
 <p class="text-center"; style = "font-size: 20px">
 <strong>
-The text in the blue filled box marked as **Your task:** states what you need to do</strong>
+The text in the blue filled box marked as **Your task** states what you need to do</strong>
 </strong>
 </p>
 </div>
@@ -58,7 +60,14 @@ The text in the blue filled box marked as **Your task:** states what you need to
 
 <div class="alert alert-success">
 <p class="text-center"; style = "font-size: 20px">
-<strong>The text in the green filled box marked as **question:** phrases a question.
+<strong>The text in the green filled box marked as **Question** phrases a question.
+</strong>
+</p>
+</div>
+
+<div class="alert alert-success"; style = "background-color:White; color:black">
+<p class="text-center"; style = "font-size: 20px">
+<strong> Here you will place the answer to the **question**.
 </strong>
 </p>
 </div>
@@ -66,11 +75,11 @@ The text in the blue filled box marked as **Your task:** states what you need to
 
 # **Exploring Denmark's biodiversity and environmental data.**
 
-## *Load the Data*
+##*1. Load the Data*
 <div class="alert alert-info">
 **Your task:**
 
-Load the data from **-------.csv*, located in the Web URL <https://raw.githubusercontent.com/AlejoOrdonez/StaGeoMod2022/-------/-------.csv>. For this:
+Load the data in *Biowide_With_EnvDta.csv*, located in the Web URL <https://raw.githubusercontent.com/AlejoOrdonez/StaGeoMod2022/main/Week%201%20-%20Data%20Exploration/Practical/Data/Biowide_With_EnvDta.csv>. For this:
 
 * Define an object named URL.Loc with the string of the Web URL.
 
@@ -79,21 +88,18 @@ Load the data from **-------.csv*, located in the Web URL <https://raw.githubuse
 * Save the object as `DK.Biodiv`.
 </div>
 
-```{r}
+```{r LoadData}
 # Define an object named URL.Loc with the string of the Web URL.
 
-
+URL.Loc <- "https://raw.githubusercontent.com/AlejoOrdonez/StaGeoMod2022/main/Week%201%20-%20Data%20Exploration/Practical/Data/Biowide_With_EnvDta.csv"
 
 # Read the file and save it as an object named `DK.Biodiv`
-
-
-
+DK.Biodiv <-  read.csv(URL.Loc)
 
 #
-
 ```
 
-## *What is in the Table?*
+##*2. What is in the Table?*
 
 <div class="alert alert-info">
 **Your task:**
@@ -102,65 +108,771 @@ Based on the data stored in the object `DK.Biodiv`, write code to answer the flo
 
 * What is the object class of `DK.Biodiv` data set?
 
+</div>
+```{r TableIn1}
+# What is the object class of `DK.Biodiv` data set?
+class(DK.Biodiv)
+
+#
+```
+
+<div class="alert alert-info">
+**Your task:**
+
+Based on the data stored in the object `DK.Biodiv`, write code to answer the flowing questions:
+
 * Which are the variable names in the `DK.Biodiv` data set?
+
+</div>
+```{r TableIn2}
+#Which are the variable names in the `DK.Biodiv` data set?
+names(DK.Biodiv)
+
+#
+```
+
+<div class="alert alert-info">
+**Your task:**
+
+Based on the data stored in the object `DK.Biodiv`, write code to answer the flowing questions:
 
 * How many observations are in  the `DK.Biodiv` data set?
 
-* List the variables that are `numeric`, `factors`, and `strings`.
+</div>
+```{r TableIn3}
+#How many observations are in  the `DK.Biodiv` data set?
+dim(DK.Biodiv)[1]
+
+#
+```
+
+<div class="alert alert-info">
+**Your task:**
+
+Based on the data stored in the object `DK.Biodiv`, write code to answer the flowing questions:
+
+* How many variables are in  the `DK.Biodiv` data set?
 
 </div>
-
-```{r}
-# What is the object class of `DK.Biodiv` data set?
-
-
-#
-```
-
-```{r}
-#Which are the variable names in the `DK.Biodiv` data set?
-
+```{r TableIn4}
+#How many variables are in  the `DK.Biodiv` data set?
+dim(DK.Biodiv)[2]
+#or
+length(names(DK.Biodiv))
 
 #
 ```
 
-```{r}
-#How many observations are in  the `DK.Biodiv` data set?
+<div class="alert alert-info">
+**Your task:**
 
+Based on the data stored in the object `DK.Biodiv`, write code to answer the flowing questions:
 
-#
+* List the variables that are `numeric`, and `character`.
+
+</div>
+```{r TableIn5}
+#List the variables that are `numeric` and `character`.
+
+# Numeric variables
+NumVar <- names(DK.Biodiv)[(sapply(DK.Biodiv,class)%in%c("numeric","integer"))]
+NumVar
+
+# Character variables
+CharVar <- names(DK.Biodiv)[(sapply(DK.Biodiv,class)%in%c("character"))]
+CharVar
+
 ```
 
-```{r}
-#List the variables that are `numeric`, `factors`, and `strings`.
+<div class="alert alert-success">
+**Question:** What is the Difference between `numeric` and `integer` objects?
 
+</div>
+    
+<div class="alert alert-success"; style = "background-color : White; color: black">
 
-#
-```
+**Numeric** data consists of numbers with decimals points. **Integer** data consists of whole numbers.
 
-## *Summary statistics*
+Operational they are the same, but in `R` **integers** are subsets of **numeric**.
+</div>
+
+##*3. Summary statistics*
 
 <div class="alert alert-info">
 **Your task:**
 
 Based on the data stored in the object `DK.Biodiv`, you will estimate.
 
-* The mean of all `numerical` variables.
+* The mean of all `numerical` variables. You **MUST** use an `apply()` function in this task.
+</div>
+```{r SummStat1}
+# mean of all `numerical` variables.
+Mean.DK.Biodiv <- apply(X = DK.Biodiv[,NumVar], # Data frame with the Data
+                        MARGIN = 2, # Dimension on which the function will be applied over
+                        FUN = mean, # Function to be applied over
+                        na.rm = T # Do not consider NA values
+                        )
+Mean.DK.Biodiv
+#
+```
 
-* The median of all `numerical` variables.
+<div class="alert alert-info">
+**Your task:**
 
-* The standard deviation of all `numerical` variables.
+Based on the data stored in the object `DK.Biodiv`, you will estimate.
+
+* The standard deviation of all `numerical` variables. You **MUST** use a `sapply()` or `lapply()` function in this task.
+</div>
+```{r SummStat2}
+# The standard deviation of all `numerical` variables.
+SD.DK.Biodiv <- sapply(X = NumVar, # a vector defining the looping space
+                       function(x){ # Function to be applied over
+                         sd(x = DK.Biodiv[,x], # a numeric vector 
+                            na.rm = T # Do not consider NA values
+                            )
+                         })
+
+SD.DK.Biodiv
+#
+```
+
+<div class="alert alert-info">
+**Your task:**
+
+Based on the data stored in the object `DK.Biodiv`, you will estimate.
+
+* The [coefficient of variation](https://en.wikipedia.org/wiki/Coefficient_of_variation) for all `numerical` variables.
+</div>
+```{r SummStat3}
+# The coefficient of variation for all `numerical` variables.
+CV.DK.Biodiv <- Mean.DK.Biodiv/SD.DK.Biodiv
+CV.DK.Biodiv
+# OR
+CV.DK.Biodiv <- apply(X = DK.Biodiv[,NumVar], # Data frame with the Data
+                        MARGIN = 2, # Dimension on which the function will be applied over
+                        FUN = function(x){mean(x,na.rm = T)/sd(x,na.rm = T)} # Function to be applied over
+                        )
+CV.DK.Biodiv
+#
+```
+
+<div class="alert alert-success">
+**Question:** Can you compare the coefficient of variations of different variables? is yes/no, explain why?
+</div>
+    
+<div class="alert alert-success"; style = "background-color : White; color: black">
+**Yes** you can compare the coefficient of variations (CV) of different variables as these are are measurements of relative variability in data sets.
+
+The CV scales the variability measured by the standard deviation by the mean, so it show proportional changes which are comparable between groups.
+</div>
 
 
+<div class="alert alert-info">
+**Your task:**
+
+Based on the data stored in the object `DK.Biodiv`, you will estimate.
+
+* The mean of all `numerical` variables per region. You **MUST** use a combination of `apply()` and `tapply()` function in this task. 
+</div>
+```{r SummStat4}
+# The mean of all `numerical` variables per region. 
+RegMean.DK.Biodiv <-  apply(X = DK.Biodiv[,NumVar], # Data frame with the Data
+                        MARGIN = 2, # Dimension on which the function will be applied over
+                        FUN = function(x){# Function to be applied over
+                          tapply(X = x, # vector to aggregate
+                                 INDEX = DK.Biodiv$landsdele, # The grouping factor
+                                 FUN = mean, # Function to be applied over
+                                 na.rm = T # Do not consider NA values
+                                 )
+                        })
+RegMean.DK.Biodiv
+
+```
+
+##*3. Graphical representations*
+
+<div class="alert alert-info">
+**Your task:**
+
+Based on the data stored in the object `DK.Biodiv`, you will write code to plot:
+
+*  A bar-plot that summarises the mean *Nature density* (`NatDensBasMp`) across observations in each region (`landsdele`).
+
+*Add to this bar plot the [95% CI error bars](https://en.wikipedia.org/wiki/Confidence_interval) using the function `arrows()`.
+
+* You **MUST** use a `tapply()` function to generate the necessary summaries (i.e., Means, SD, and Number of observations).
 
 </div>
 
-## *Graphical representations*
+```{r Graphical1}
+#A bar-plot that summarises the mean *Nature density* (`NatDensBasMp`) across observations in each region (`landsdele`).
+# Add to this bar plot the 95% CI error bars using the function `arrows()`
 
-## *Normality tests*
+## Estimate the mean Nature density per region
+NatDen.Mean <- tapply(X = DK.Biodiv$NatDensBasMp, # Data frame with the Data
+                      INDEX = DK.Biodiv$landsdele, # The grouping factor
+                      FUN = mean, # Function to be applied over
+                      na.rm = T # Do not consider NA values
+                      )
+NatDen.Mean
 
-## *Transformations*
+## Estimate the Nature density sd per region
+NatDen.SD <- tapply(X = DK.Biodiv$NatDensBasMp, # Data frame with the Data
+                      INDEX = DK.Biodiv$landsdele, # The grouping factor
+                      FUN = sd, # Function to be applied over
+                      na.rm = T # Do not consider NA values
+                      )
+NatDen.SD
 
-## *Modelling*
+## Estimate the number of observation  per region                      
+NatDen.n <- table(DK.Biodiv$landsdele)
+NatDen.n
 
-## *Defining your hypotheses*
+## Determine the Low an high value of the 95% CI
+LowCI <- NatDen.Mean - qnorm(0.976)*(NatDen.SD/sqrt(NatDen.n))
+HighCI <- NatDen.Mean + qnorm(0.976)*(NatDen.SD/sqrt(NatDen.n))
+
+## Plot the barplot
+BarsNat <- barplot(height = NatDen.Mean, # Variable to plot
+                   main = "Nature density", # Add the variable name as title
+                   ylim = c(0,max(HighCI)) # Determine the range of the y-axis
+                   )
+
+## Plot the Arrows with the 96%CI
+arrows(x0 = BarsNat, #coordinates of points from which to draw
+       y0 = LowCI, #coordinates of points from which to draw
+       y1 = HighCI, #coordinates of points from which to draw
+       angle = 90, # angle of the arrow (90 is flat)
+       length = 0.05, # length of the edges of the arrow head 
+       code = 3, # Arrowhead in on or both ends
+       )
+#
+```
+
+<div class="alert alert-success">
+**Question:** DO you see differences in *Nature density* of the sampled sites between regions? Explain why yes/no.
+</div>
+    
+<div class="alert alert-success"; style = "background-color : White; color: black">
+Yes, there are differences between **GROUP** of regions.
+
+On group is composed by Hovedstaden, Midtjylland, and Nordjylland; and a higher Nature density.
+
+The second group is composed by Sjælland and Syddanmark, and has comparative lower Nature density.
+</div>
+
+<div class="alert alert-info">
+
+**Your task:**
+
+Based on the data stored in the object `DK.Biodiv`, you will write code to plot:
+
+*  A bar-plot that summarises the mean and error bars of *Human Impact* (`HII`) per [quantile](https://en.wikipedia.org/wiki/Quantile) of *total species richness* (`S.AllGrp`).
+
+* You **MUST** use the `quantile()` and `findInterval()` functions to determine tow wich *total species richness* quantile each observation belongs.
+
+* You **MUST** use a `tapply()` function to generate the necessary summaries (i.e., Means, SD, and Number of observations).
+
+</div>
+
+```{r Graphical2}
+# A bar-plot that summarises the mean and error bars of *Human Impact* (`HII`) per quantile of species richness (`S.AllGrp`). 
+
+## Estimate the quantiles for S.AllGrp 
+RichQuant <- quantile(x = DK.Biodiv$S.AllGrp, # Vector to quantify
+                      na.rm = T # Do not consider NA values
+                      )
+
+# Determine to which quantile each observation belongs
+RichQuantSumm <- findInterval(x = DK.Biodiv$S.AllGrp, # Vector to classify
+                              vec = RichQuant, # A vector with the intervals
+                              rightmost.closed = T, # Determine if the max value correspond to clas N or N-1
+                              )
+
+## Estimate the mean Human Impact per quantile
+HII.Mean <- tapply(X = DK.Biodiv$HII, # Data frame with the Data
+                   INDEX = RichQuantSumm, # The grouping factor
+                   FUN = mean, # Function to be applied over
+                   na.rm = T # Do not consider NA values
+                   )
+HII.Mean
+
+## Estimate Human Impact sd per quantile
+HII.SD <- tapply(X = DK.Biodiv$HII, # Data frame with the Data
+                      INDEX = RichQuantSumm, # The grouping factor
+                      FUN = sd, # Function to be applied over
+                      na.rm = T # Do not consider NA values
+                      )
+HII.SD
+
+## Estimate the number of observation  per quantile                      
+HII.n <- table(RichQuantSumm)
+HII.n
+
+## Determine the Low an high value of the 95% CI
+LowCI <- HII.Mean - qnorm(0.976)*(HII.SD/sqrt(HII.n))
+HighCI <- HII.Mean + qnorm(0.976)*(HII.SD/sqrt(HII.n))
+
+## Plot the barplot
+BarsHII <- barplot(height = HII.Mean, # Variable to plot
+                   main = "Nature density", # Add the variable name as title
+                   ylim = c(0,max(HighCI)), # Determine the range of the y-axis
+                   names.arg = paste(1:4,"- quantile") # Names under each bar
+                     )
+
+## Plot the Arrows with the 96%CI
+arrows(x0 = BarsHII, #coordinates of points from which to draw
+       y0 = LowCI, #coordinates of points from which to draw
+       y1 = HighCI, #coordinates of points from which to draw
+       angle = 90, # angle of the arrow (90 is flat)
+       length = 0.05, # length of the edges of the arrow head 
+       code = 3, # Arrowhead in on or both ends
+       )
+#
+```
+
+<div class="alert alert-success">
+**Question:** Do you see differences in *human Impact* between quantiles of species richness? What is the implication of the existence or not of diferecnes?
+</div>
+    
+<div class="alert alert-success"; style = "background-color : White; color: black">
+There are not differences in *human impact* between quantiles of species richness.
+
+This pattern indicates no relation between *human impact* and changes in species richness.
+</div>
+
+<div class="alert alert-info">
+**Your task:**
+
+Based on the data stored in the object `DK.Biodiv`, you will write code to plot:
+
+* A box-plot that summarises the variation in *Slopes* (`Slope30mAgg`) across observations in each region (`landsdele`). In this figure you will colour code each box-plot using a [hcl diverging pallets](https://blog.r-project.org/2019/04/01/hcl-based-color-palettes-in-grdevices/index.html).
+</div>
+
+```{r Graphical3}
+# A box-plot that summarises the variation in *Slopes* (`Slope30mAgg`) across observations in each region (`landsdele`).
+# colour code each box-plot using a hcl diverging pallet.
+
+
+## Set the colour per Region
+ClPerReg <- hcl.colors(n = length(unique(DK.Biodiv$landsdele)),# the number of colours
+                       palette = 'RdYlBu' # palette name, Here a red to yellow to blue
+                       ) 
+## Draw the Boxplot
+
+boxplot(Slope30mAgg ~ landsdele, # formula defining the variable to summarize and the grouping
+        data = DK.Biodiv, # the Data frame with the Data
+        col = ClPerReg # Thw color of each box.plot
+        )
+```
+
+<div class="alert alert-success">
+**Question:** What is the box plot of *SLopes* per region show?
+</div>
+    
+<div class="alert alert-success"; style = "background-color : White; color: black">
+The box-plot shows that wile the median level of variation (the horizontal thick line) is the same accords regions, samples in Midtjylland and Sjælland have a broader range of variability (1st and 2nd quantiles shown in the boxes) and extremes (the whiskers).
+</div>
+
+##*4. Normality tests*
+
+For the rest of the practical you will use a subset of the data stored in the object `DK.Biodiv`. The subset will include the flowing variables:
+
+1) *Richness of all sampled species* [`S.AllGrp`]
+2) *Region* [`landsdele`]
+3) *Parental material* [`Geology`]
+4) *Nature Density* [`NatDensBasMp`]
+5) *Distance to coast* [`Dis2Cost`]
+6) *Human Impact Index* [`HII`]
+7) *Slope* [`Slope30mAgg`]
+8) *Precipitation Seasonality* [`PrecSea`]
+
+To make things easy you will now bundle these into a new object called 
+
+<div class="alert alert-info">
+**Your task:**
+
+Based on the data stored in the `DK.Biodiv` object, you will write code to subset the main data object into a `data.frame` named `DK.Biodiv.Smpl` that **ONLY** includes the eigth key variables to evaluate.
+ 
+</div>
+
+```{r Normality1}
+## Variable to use
+VarUse <- c("S.AllGrp", "landsdele", "Geology", "NatDensBasMp", "Dis2Cost", "HII", "Slope30mAgg", "PrecSea")
+
+# Sub sample the the `DK.Biodiv` object
+DK.Biodiv.Smpl <- DK.Biodiv[,VarUse]
+  
+# check the new data.frame  
+head(DK.Biodiv.Smpl)
+```
+
+<div class="alert alert-info">
+**Your task:**
+
+* Based on the data stored in the `DK.Biodiv.Smpl` object, you will write code to make a series of histograms for *Distance to coast* [`Dis2Cost`] where you will change the number of brakes to:
+  1) "Sturges" intervals.
+  2) The 1st, 2nd, 3rd, and 4th quantiles.
+  3) 15 intervals
+  2) 30 intervals
+
+</div>
+
+```{r Normality2}
+# Histograms for Distance to coast
+
+## Sturges" intervals
+hist(x = DK.Biodiv.Smpl$Dis2Cost, # Vector to summarize
+     breaks = "Sturges" # how the brakes in the histogram are defined
+     )
+
+## quantile intervals
+hist(x = DK.Biodiv.Smpl$Dis2Cost, # Vector to summarize
+     breaks = quantile(na.omit(DK.Biodiv.Smpl$Dis2Cost)) # how the brakes in the histogram are defined
+     )
+
+## 15 intervals
+hist(x = DK.Biodiv.Smpl$Dis2Cost, # Vector to summarize
+     breaks = 15 # how the brakes in the histogram are defined
+     )
+
+## 30 intervals
+hist(x = DK.Biodiv.Smpl$Dis2Cost, # Vector to summarize
+     breaks = 30 # how the brakes in the histogram are defined
+     )
+```
+
+<div class="alert alert-success">
+**Question:** Based on these histograms, does *Distance to coast* appear to be normally distributed, left-skewed, or right-skewed?
+</div>
+    
+<div class="alert alert-success"; style = "background-color : White; color: black">
+Based on all histograms is clear that *Distance to coast* is left-skewed (most values are small). 
+</div>
+
+
+<div class="alert alert-info">
+**Your task:**
+
+* Based on the data stored in the `DK.Biodiv.Smpl` object, you will write code to make a density plot for *Nature Density* [`NatDensBasMp`], *Distance to coast* [`Dis2Cost`], *Human Impact Index* [`HII`], *Slope* [`Slope30mAgg`],  and *Precipitation Seasonality* [`PrecSea`].
+
+  * The function `density()` **MUST* be used to build the kernel density estimates.
+
+  * You **MUST** use a `for()` loop** for making this series of plots.
+
+  * All density plots need to be placed in the same plotting space divided into two (2) rows and three (3) columns.
+ </div>
+ 
+```{r Normality3}
+# plot a density plots for env predictors in a 2x3 plotting space
+
+## set the ploting space to a 2x3 space
+par(mfrow = c(2,3))
+
+# the loop
+for (i in names(DK.Biodiv.Smpl)[4:8]){ # Loop over all the selected variables
+  DensityTmp <- density(x = na.omit(DK.Biodiv.Smpl[,i]) #data from which the estimate is to be computed
+                        )
+  plot(DensityTmp, # Plot the kernel density estimates
+       main = i # Add the name of the variable as a main title
+  )
+}  
+```
+
+<div class="alert alert-success">
+**Question:** Based on these density plots, which variables **LOOK** normally distributed, left-skewed, or right-skewed?
+</div>
+    
+<div class="alert alert-success"; style = "background-color : White; color: black">
+**Normally distributed:** HII, Slope30mAgg, and PrecSea
+**Left-skewed:** Dis2Cost
+**Right-skewed:** NatDensBasMp
+</div>
+
+
+<div class="alert alert-info">
+**Your task:**
+
+* Based on the data stored in the `DK.Biodiv.Smpl` object, you will test the normality of *Nature Density* [`NatDensBasMp`], *Distance to coast* [`Dis2Cost`], *Human Impact Index* [`HII`], *Slope* [`Slope30mAgg`],  and *Precipitation Seasonality* [`PrecSea`].
+
+  * You will use **Q_Q plots** test for normality using the `qqnorm()` and `qqline()` functions.
+
+  * You **MUST** use a `for()` loop to make all the tests.
+
+  * All **Q_Q plots** need to be placed in the same plotting space divided into two (2) rows and three (3)
+
+ </div>
+
+```{r Normality4}
+## set the ploting space to a 2x3 space
+par(mfrow = c(2,3))
+
+# the loop
+for (i in names(DK.Biodiv.Smpl)[4:8]){ # Loop over all the selected variables
+  qqnorm(na.omit(DK.Biodiv.Smpl[,i]), # Plot the QQ-plot
+         main = paste("Normal Q-Q plot - ", i) # add a title with the variable name
+         )
+  qqline(na.omit(DK.Biodiv.Smpl[,i])) # add the trend line
+}
+```
+
+<div class="alert alert-success">
+**Question:** Based on these QQ-plots, which variables **LOOK** normally distributed?
+</div>
+    
+<div class="alert alert-success"; style = "background-color : White; color: black">
+Both `HII` and `Slope30mAgg` LOOK normally distributed, as the theoretical quantiles and observed quantiles almost fall along the 1:1 line (solid diagonal line in the plot).
+</div>
+
+<div class="alert alert-info">
+**Your task:**
+
+* Based on the data stored in the `DK.Biodiv.Smpl` object, you will test the normality of *Nature Density* [`NatDensBasMp`], *Distance to coast* [`Dis2Cost`], *Human Impact Index* [`HII`], *Slope* [`Slope30mAgg`],  and *Precipitation Seasonality* [`PrecSea`].
+
+  * You will use the `shapiro.test()` function to test for normality
+
+  * You **MUST** use a `sapply()` function to make all the tests.
+
+  * For each test you will summarize the Variable evaluated (`VarUsed`), the statistic value (`W`) with three (3) decimal points, and the p-value (`p.value`) with three (3) decimal points into one table.
+ </div>
+ 
+```{r Normality5}
+# test the normality for evaluated variables using a shapiro.test()
+ShapTest <- sapply(X = names(DK.Biodiv.Smpl)[4:8], # Vector defining the loop
+                    FUN = function(x){ # Function to be applied over
+                      # Shapiro test
+                      ShpTestTmp <- shapiro.test(na.omit(DK.Biodiv.Smpl[,x]) # vector of data values
+                                                 )
+                      # Summary of Shapiro test
+                      ShpTestOut <- data.frame(VarUsed = x, # Variable evaluated
+                                               W = round(ShpTestTmp$statistic,3), # statistic value
+                                               p.value = round(ShpTestTmp$p.value,3) # p-value
+                                               )
+                      return(ShpTestOut)
+                    }
+                    )
+ShapTest
+```
+<div class="alert alert-success">
+**Question:** Based on these density plots, which variables **ARE**  normally distributed?
+</div>
+    
+<div class="alert alert-success"; style = "background-color : White; color: black">
+NONE of the evaluated variables is normaly distributed according to the Shapiro-test, as all these have p-values below 0.05; indicating a significant difference from a normal distribution. 
+</div>
+
+## *5. Transformations*
+
+<div class="alert alert-info">
+**Your task:**
+
+* Based on the data stored in the `DK.Biodiv.Smpl` object, you will try different transformations for  *Nature Density* [`NatDensBasMp`] and test if these linearize the Q-Q plots.
+
+  1) A `log10()` transformation.
+  2) A squared-root (`sqrt()`) transformation.
+  3) An Arc-sin (`asin()`) transformation.
+  4) a Logit (`log(p/1-p)`) transformation.
+</div>
+
+```{r Trans1}
+# Try different transformations for  *Nature Density
+## set the ploting space to a 2x3 space
+par(mfrow = c(2,3))
+
+## NO transformation.
+## plot the qq-pot and qqline
+qqnorm(na.omit(DK.Biodiv.Smpl$NatDensBasMp), # Plot the QQ-plot
+         main = "Normal Q-Q plot - NatDensBasMp" # add a title with the variable name
+         )
+qqline(na.omit(DK.Biodiv.Smpl$NatDensBasMp)) # add the trend line
+
+## A `log10()` transformation.
+log10.NatDensBasMp <- log10(DK.Biodiv.Smpl$NatDensBasMp)
+## plot the qq-pot and qqline
+qqnorm(na.omit(log10.NatDensBasMp), # Plot the QQ-plot
+         main = "Normal Q-Q plot - log10.NatDensBasMp" # add a title with the variable name
+         )
+qqline(na.omit(log10.NatDensBasMp)) # add the trend line
+
+## A squared-root (`sqrt()`) transformation.
+Sqrt.NatDensBasMp <- sqrt(DK.Biodiv.Smpl$NatDensBasMp)
+## plot the qq-pot and qqline
+qqnorm(na.omit(Sqrt.NatDensBasMp), # Plot the QQ-plot
+         main = "Normal Q-Q plot - Sqrt.NatDensBasMp" # add a title with the variable name
+         )
+qqline(na.omit(Sqrt.NatDensBasMp)) # add the trend line
+
+## An Arc-sin (`asin()`) transformation.
+Asin.NatDensBasMp <- asin(DK.Biodiv.Smpl$NatDensBasMp)
+## plot the qq-pot and qqline
+qqnorm(na.omit(Asin.NatDensBasMp), # Plot the QQ-plot
+         main = "Normal Q-Q plot - Asin.NatDensBasMp" # add a title with the variable name
+         )
+qqline(na.omit(Asin.NatDensBasMp)) # add the trend line
+
+## A Logit (`log(p/1-p)`) transformation.
+Logit.NatDensBasMp <- log(DK.Biodiv.Smpl$NatDensBasMp/(1-DK.Biodiv.Smpl$NatDensBasMp))
+## plot the qq-pot and qqline
+qqnorm(na.omit(Logit.NatDensBasMp), # Plot the QQ-plot
+         main = "Normal Q-Q plot - Asin.NatDensBasMp" # add a title with the variable name
+         )
+qqline(na.omit(Logit.NatDensBasMp)) # add the trend line
+
+DK.Biodiv.Smpl$Logit.NatDensBasMp <- Logit.NatDensBasMp
+
+```
+
+<div class="alert alert-success">
+**Question:** Based on these Q-Q plots, which transformation makes Nature Density more normally distributed?
+</div>
+    
+<div class="alert alert-success"; style = "background-color : White; color: black">
+A Logit transformation makes Nature Density more normally distributed, as it is closer to the 1:1 line
+</div>
+
+<div class="alert alert-info">
+**Your task:**
+
+* Based on the data stored in the `DK.Biodiv.Smpl` object, you will try different transformations for  *Distance to coast* [`Dis2Cost`] and test if these linearise the Q-Q plots.
+
+  1) A `log10()` transformation.
+  2) A squared-root (`sqrt()`) transformation.
+  
+</div>
+
+```{r Trans2}
+# Try different transformations for  Distance to coast
+## set the ploting space to a 2x3 space
+par(mfrow = c(2,2))
+
+## NO transformation.
+## plot the qq-pot and qqline
+qqnorm(na.omit(DK.Biodiv.Smpl$Dis2Cost), # Plot the QQ-plot
+         main = "Normal Q-Q plot - Dis2Cost" # add a title with the variable name
+         )
+qqline(na.omit(DK.Biodiv.Smpl$Dis2Cost)) # add the trend line
+
+## A `log10()` transformation.
+log10.Dis2Cost <- log10(DK.Biodiv.Smpl$Dis2Cost)
+## plot the qq-pot and qqline
+qqnorm(na.omit(log10.Dis2Cost), # Plot the QQ-plot
+         main = "Normal Q-Q plot - log10.Dis2Cost" # add a title with the variable name
+         )
+qqline(na.omit(log10.Dis2Cost)) # add the trend line
+
+DK.Biodiv.Smpl$log10.Dis2Cost <- log10.Dis2Cost
+## A squared-root (`sqrt()`) transformation.
+Sqrt.Dis2Cost <- sqrt(DK.Biodiv.Smpl$Dis2Cost)
+## plot the qq-pot and qqline
+qqnorm(na.omit(Sqrt.Dis2Cost), # Plot the QQ-plot
+         main = "Normal Q-Q plot - Sqrt.Dis2Cost" # add a title with the variable name
+         )
+qqline(na.omit(Sqrt.Dis2Cost)) # add the trend line
+
+```
+
+<div class="alert alert-success">
+**Question:** Based on these Q-Q plots, which transformation makes Distance to coast more normally distributed?
+</div>
+    
+<div class="alert alert-success"; style = "background-color : White; color: black">
+A Log transformation makes Distance to coast more normally distributed, as it is closer to the 1:1 line
+</div>
+
+## *6. Modelling*
+
+<div class="alert alert-info">
+**Your task:**
+
+* Based on the data stored in the `DK.Biodiv.Smpl` object, you will evaluate the correlations between *Nature Density* [`NatDensBasMp`], *Distance to coast* [`Dis2Cost`], *Human Impact Index* [`HII`], *Slope* [`Slope30mAgg`],  and *Precipitation Seasonality* [`PrecSea`]. **Remember to use the appropriate correlation coefficient**.
+
+</div>
+```{r Model1}
+# Evaluate the correlations between predictors
+cor(x= na.omit(DK.Biodiv.Smpl[,names(DK.Biodiv.Smpl)[4:8]]), # matrix with values
+    method = "spearman" # correlation coefficient to use
+    )
+
+```
+
+<div class="alert alert-info">
+**Your task:**
+
+* Based on the data stored in the `DK.Biodiv.Smpl` object, you will visualize a series of scatter-plots showing the asociations between *Nature Density* [`NatDensBasMp`], *Distance to coast* [`Dis2Cost`], *Human Impact Index* [`HII`], *Slope* [`Slope30mAgg`],  and *Precipitation Seasonality* [`PrecSea`]. . 
+  * For this you **MUST** use the function `pairs()` and try to add a smoothed line in each panel
+
+</div>
+
+```{r Model2}
+# visualize the correlations between
+pairs(DK.Biodiv.Smpl[,names(DK.Biodiv.Smpl)[4:8]], # What to plot
+      panel = panel.smooth, # add a smoothed line in each panel
+      cex = 1.5, pch = 19, bg = "black", # Set the point to filled, black and large points
+      cex.labels = 2, font.labels = 2 # Set the size and boldface for the labels
+      )
+
+```
+
+<div class="alert alert-success">
+**Question:** DO you see strong associations between predictors? is yes/no, What does that indicate?
+</div>
+    
+<div class="alert alert-success"; style = "background-color : White; color: black">
+There are only weak to moderate associations between predictors (most between -0.7 and 0.7). 
+</div>
+
+
+<div class="alert alert-info">
+**Your task:**
+
+* Based on the data stored in the `DK.Biodiv.Smpl` object, you will visualize the scatter plot showing the association between *Richness of all sampled species* [`S.AllGrp`] as the response variable (y-axis) and *Nature Density* [`NatDensBasMp`], *Distance to coast* [`Dis2Cost`], *Human Impact Index* [`HII`], *Slope* [`Slope30mAgg`],  and *Precipitation Seasonality* [`PrecSea`] as predictors (x-axis). 
+
+  * All **scatter-plots** need to be placed in the same plotting space divided into two (2) rows and three (3)
+  * Need to add the correlation coefficient with three (3) decimal points as a text insert on the top-right of each panel.
+  * You most use a `for()` loop to make this plot.
+
+</div>
+
+```{r Model}
+# Visualize the scatter plot showing the association between *Richness (y-axis) and all predictors (x-axis)
+## set the ploting space to a 2x3 space
+par(mfrow = c(2,3))
+
+## Loop
+for (i in names(DK.Biodiv.Smpl)[4:8]){ # Loop over all the selected variables
+## Plot the scatter plot
+  plot(DK.Biodiv.Smpl[,c(i,"S.AllGrp")], # data to plot
+       pch = 19, # make filled circles
+       main = i # add the variable name as a Title
+       )
+  ## Define the trend line regression
+  LineTrnd <- line(DK.Biodiv.Smpl[,c(i,"S.AllGrp")]) # data to define the liner relation
+  ## plot the trend line
+  abline(coef(LineTrnd), # Coefficnets of the trend line
+         lwd = 2, col ="red" # Parameter for the line (thick line and red)
+         )
+  ## Estimate the correlation 
+  CorTest <- cor(na.omit(DK.Biodiv.Smpl[,c(i,"S.AllGrp")]),method="spearman")
+  ## Add the correlation as a text insert
+  legend("topright", # Put the legend in the top right corner
+         legend = round(CorTest[2,1],3), # add the correlation coefficient
+        bty = "n",
+        cex=1.5)
+}
+```
+
+
+<div class="alert alert-success">
+**Question:** Based on this figure, which is the best predictor of species richness in the dataset?
+</div>
+    
+<div class="alert alert-success"; style = "background-color : White; color: black">
+Figure points to *Slope* and *Precipitation seasonality as the best predictors for species richness as these have the strongest correlations. 
+</div>
+
+
+## *7. Final Thoughts*
+
+Exploratory data analysis is when a person used different approaches to learn about general patterns or tendencies in the data and find specific occurrences that deviate from the general patterns. Much like a detective explores a crime scene, collects evidence and draws conclusions, a statistician explores data using graphical displays and suitable summaries to draw conclusions about the main message of the data.
+
+Here you have taken the first steps in this direction by describing the variation in the data, assessing the differences between groups, and establishing the relations between variables.
