@@ -1,0 +1,184 @@
+obj1 <- c(7.3, 6.8, 0.005, 9, 12, 2.4, 18.9, 0.9)
+obj1.mean <- mean(obj1)
+obj1.minus.mean <- obj1  - mean(obj1)	#
+obj1.minus.mean <- obj1  - mean
+obj1.mean <- mean(obj1)
+obj1.minus.mean <- obj1  - mean(obj1)	#
+obj1.minus.mean <- obj1  - mean
+obj1.minus.mean <- obj1  - obj1.mean
+sqrt.obj1.minus.mean	 <- sqrt(obj1.minus.mean	)
+obj1.minus.mean <- obj1  - obj1.mean
+sqrt.obj1.minus.mean	 <- sqrt(obj1.minus.mean	)
+minus.mean
+obj1.minus.mean
+obj1[obj1>sqrt.obj1.minus.mean]
+rep(seq(1:4),4)
+rep(seq(1,4,1),4)
+rep(1:4,4)
+10:7
+rep(10:7,each=3)
+seq(10,7,1)
+seq(seq(7,10,1))
+sort(seq(7,10,1))
+rep(sort(seq(7,10,1)),each=3)
+rep(1:5,each=1:5)
+seq(1:5,each=1:5)
+seq(1:5,by=1:5)
+? seq
+seq(1:5, length.out =1:5)
+1:5
+?rep
+rep(1:5, times=1:5)
+rep(seq(1,9,by=2), 2)
+seq(1,9,by=2),
+seq(1,9,2)
+rep(seq(1,9,2), 2)
+rep(seq(1,9,2),each=-2)
+rep(seq(1,9,2),each=2)
+seq(1,4)
+rep(rep(1,4),4)
+a<-rep(rep(1,4),4)
+1:4
+a[1:4]
+a[1:4]<-3
+a
+a<-rep(rep(1,4),4)
+length(a)
+seq(1,length(a),5)
+seq(1,length(a),4)
+a[seq(1,length(a),4)]<-3
+a
+matrix(a,nrow=4,ncol=4)
+a<-rep(rep(1,4),4)#
+a[seq(1,length(a),4)]<-3#
+matrix(a,nrow=4,ncol=4)
+a
+matrix(a,nrow=4,ncol=4,byrow=T)
+a
+matrix(a,nrow=4,byrow=T)
+matrix(a,ncol=4,byrow=T)
+matrix(a,ncol=4,byrow=F)
+a
+seq(1,length(a),4)
+seq(1,length(a),5)
+a<-rep(rep(1,4),4)#
+a[seq(1,length(a),5)]<-3#
+matrix(a,ncol=4,byrow=F)
+out.matrix<-matrix(a,ncol=4,byrow=F)
+out.matrix*out.matrix
+a<-rep(rep(1,4),4)
+diag(a)
+diag(out.matrix)
+out.matrix<-matrix(rep(1,16),ncol=4,byrow=F)
+out.matrix<-matrix(rep(1,16),ncol=4,byrow=F)#
+diag(out.matrix)<-3#
+out.matrix
+nb1 <- 1:5	#
+	B.	numbers 1 to 50 by 0.375 steps. call it nb3#
+nb3<- seq(1,5,0.375)	#
+	C.	the string "My mummy told me". call it char1#
+char1<-	"My mummy told me"#
+	D.	A vector made of the strings "apples", "bananas", "pears". call it char2#
+char2 <- c( "apples", "bananas", "pears")#
+#
+	E.	The boolean vector FALSE,FALSE,FALSE,TRUE,TRUE,TRUE,FALSE,FALSE,FALSE,TRUE,TRUE,TRUE . #
+bol1<- c(FALSE,FALSE,FALSE,TRUE,TRUE,TRUE,FALSE,FALSE,FALSE,TRUE,TRUE,TRUE)#
+#
+list.out<-list(nb1,nb3,char1,char2,bol1)
+list.out
+length(list.out)
+mean(list.out[1:2])
+mean(list.out[[2]])
+list.out[1:2]
+unlist(list.out[1:2])
+mean(unlist(list.out[1:2]))
+list.out[[1]]
+mean(c(list.out[[1]]:list.out[[2]]))
+c(list.out[[1]]:list.out[[2]])
+mean(c(list.out[[1]],list.out[[2]]))
+paste(list[["char1"]])
+list[["char1"]]
+paste(list.out[["char1"]])
+list.out
+list.out[[3]]
+paste(list.out[[4]],collapse=" ")
+paste(list.out[[3]],paste(list.out[[4]],collapse=" "))
+paste(list.out[[3]],paste(list.out[[4]],collapse=" "),sep=": ")
+treering               # Display the whole data f
+treering[1:5, 1:10]    # Display only 5 lines and 10 columns
+head(treering)
+head(airquality)
+A <- matrix(1:9,nrow=3,ncol=3)#
+B <- matrix(4:15,nrow=3,ncol=3)#
+C <- matrix(8:10,nrow=3,ncol=2)#
+MyList <- list(A, B, C)#
+lapply(MyList,"[",,2)#
+lapply(MyList,"[",1,)
+y = 10:1#
+dev.new()#
+plot(x,y,#
+	main = "A plot\npch = '1'",#
+	xlab = "Temperature",#
+	ylab = "Pirates",#
+	type="p",#
+	pch=1,
+cex=2,cex.axis=1.5,cex.lab=1.5,cex.main=2)
+x = 1:10#
+y = 10:1#
+dev.new()#
+plot(x,y,#
+	main = "A plot\npch = '1'",#
+	xlab = "Temperature",#
+	ylab = "Pirates",#
+	type="p",#
+	pch=1,#
+	cex=2,cex.axis=1.5,cex.lab=1.5,cex.main=2)#
+dev.new(width = 10,height = 7)#
+par(mfrow=c(2,3))#
+x = 1:10#
+y = 10:1#
+plot(x,y,#
+	main = "A plot\npch = '2'",#
+	xlab = "Temperature",#
+	ylab = "Pirates",#
+	type="p",#
+	pch=2,#
+	cex=2,cex.axis=1.5,cex.lab=1.5,cex.main=2)#
+plot(x,y,#
+	main = "A plot\npch = '4'",#
+	xlab = "Temperature",#
+	ylab = "Pirates",#
+	type="p",#
+	pch=4,#
+	cex=2,cex.axis=1.5,cex.lab=1.5,cex.main=2)#
+plot(x,y,#
+	main = "A plot\npch = '6'",#
+	xlab = "Temperature",#
+	ylab = "Pirates",#
+	type="p",#
+	pch=6,#
+	cex=2,cex.axis=1.5,cex.lab=1.5,cex.main=2)#
+plot(x,y,#
+	main = "A plot\npch = '18'",#
+	xlab = "Temperature",#
+	ylab = "Pirates",#
+	type="p",#
+	pch=18,#
+	cex=2,cex.axis=1.5,cex.lab=1.5,cex.main=2)#
+plot(x,y,#
+	main = "A plot\npch = '19'",#
+	xlab = "Temperature",#
+	ylab = "Pirates",#
+	type="p",#
+	pch=19,#
+	cex=2,cex.axis=1.5,cex.lab=1.5,cex.main=2)
+x = rep(1:25,3)#
+y = rep(1:3,each=25)#
+plot(x,#
+	  jitter(y),#
+	  pch = 1:25,#
+	  col = y,#
+	  cex = 1.5,#
+	  cex.axis = 1.5,#
+	  cex.lab = 1.5,#
+	  cex.main = 2)
