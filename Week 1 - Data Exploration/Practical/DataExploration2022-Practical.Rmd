@@ -1,0 +1,166 @@
+---
+title: "DataExploration_Practical"
+author: '"YOUR NAME HERE"'
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# **The Set-up**
+
+## *Learning objectives.*
+1.	Load tables into `R` and explore their content.
+2.  Execute basic looping routines using the `*apply()` and `for()` functions.
+3.  Graphically explore the variability in the variables in a data set based.  
+4.	Graphically compare the variables values between categorical groups  
+5.	Establish the normality of a variable and evaluate different transformations to achieve normality.
+6.	Determine the correlation between two random variables and the significance of such correlation.  
+
+
+## *Before you start*
+The practical will be run using *RStudio cloud* to avoid individual machine troubleshooting. This means you **need** to have an account for *RStudio cloud*.
+
+However, remember to have [`R`](https://cran.r-project.org) and [R-studio](http://www.rstudio.com/) in your/room computer so you can work on the project after class.
+
+**You should have also **
+1. Read chapter 2 of Borcard et al. Numerical ecology with R. Springer, 2018.
+2. Done the Tutorial for this week.
+
+## *The way it's going to be run*
+
+In this 3h practical you will to implement what you have learned in the class about Exploratory Data Analysis in `R`.
+
+You will be building and **R-Markdown** document during the class. **R-Markdown** documents allows you to combine your code, its results, and your prose commentary into a single document. If you manage to produce a document your code works. The resulting file (a html) is what you will hand-in at the end of the practical.
+
+This 3h practical is divided into two parts. **DO NOT COPY AND PASTE THE CODE!** 
+
+Also try to write your own `R`-code and run it **DO NOT COPY THE CODE OF SOMEONE ELSE**. Writing your code and figuring out why it does not work is the best way to understand the dynamics of the `R` language and the tasks you are doing. Also, you have an excellent teaching assistant resource - ask him and/or me all the questions you have.
+
+The final document will have for classes of boxes
+
+<div class="alert alert-info">
+<p class="text-center"; style = "font-size: 20px">
+<strong>
+The text in the blue filled box marked as **Your task:** states what you need to do</strong>
+</strong>
+</p>
+</div>
+
+```{r }
+#
+# The code in the window marked like this shows where you need to write your code
+#
+
+```
+
+<div class="alert alert-success">
+<p class="text-center"; style = "font-size: 20px">
+<strong>The text in the green filled box marked as **question:** phrases a question.
+</strong>
+</p>
+</div>
+
+
+# **Exploring Denmark's biodiversity and environmental data.**
+
+## *Load the Data*
+<div class="alert alert-info">
+**Your task:**
+
+Load the data from **-------.csv*, located in the Web URL <https://raw.githubusercontent.com/AlejoOrdonez/StaGeoMod2022/-------/-------.csv>. For this:
+
+* Define an object named URL.Loc with the string of the Web URL.
+
+* Use `read.csv` to load the file -  The file is comma-separated 
+
+* Save the object as `DK.Biodiv`.
+</div>
+
+```{r}
+# Define an object named URL.Loc with the string of the Web URL.
+
+
+
+# Read the file and save it as an object named `DK.Biodiv`
+
+
+
+
+#
+
+```
+
+## *What is in the Table?*
+
+<div class="alert alert-info">
+**Your task:**
+
+Based on the data stored in the object `DK.Biodiv`, write code to answer the flowing questions:
+
+* What is the object class of `DK.Biodiv` data set?
+
+* Which are the variable names in the `DK.Biodiv` data set?
+
+* How many observations are in  the `DK.Biodiv` data set?
+
+* List the variables that are `numeric`, `factors`, and `strings`.
+
+</div>
+
+```{r}
+# What is the object class of `DK.Biodiv` data set?
+
+
+#
+```
+
+```{r}
+#Which are the variable names in the `DK.Biodiv` data set?
+
+
+#
+```
+
+```{r}
+#How many observations are in  the `DK.Biodiv` data set?
+
+
+#
+```
+
+```{r}
+#List the variables that are `numeric`, `factors`, and `strings`.
+
+
+#
+```
+
+## *Summary statistics*
+
+<div class="alert alert-info">
+**Your task:**
+
+Based on the data stored in the object `DK.Biodiv`, you will estimate.
+
+* The mean of all `numerical` variables.
+
+* The median of all `numerical` variables.
+
+* The standard deviation of all `numerical` variables.
+
+
+
+</div>
+
+## *Graphical representations*
+
+## *Normality tests*
+
+## *Transformations*
+
+## *Modelling*
+
+## *Defining your hypotheses*

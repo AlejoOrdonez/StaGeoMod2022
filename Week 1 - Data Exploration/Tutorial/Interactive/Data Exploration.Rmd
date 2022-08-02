@@ -1,0 +1,895 @@
+---
+title: "Exploratory Data Analysis"
+subtitle: "Statistical and Geospatial Modelling"
+output:
+  learnr::tutorial:
+  progressive: true
+runtime: shiny_prerendered
+---
+
+```{r setup, include=FALSE}
+# Load packages
+library(learnr)
+library(tidyverse)
+gradethis::gradethis_setup()
+
+# options
+knitr::opts_chunk$set(echo = FALSE)
+
+# Load the Base information
+green <- read.csv(file = "https://raw.githubusercontent.com/AlejoOrdonez/StaGeoMod2021/main/green.csv")
+```
+
+## Before you start.
+
+Exploratory data analysis (EDA) is when a person manipulates data to learn about general patterns or tendencies and find specific occurrences that deviate from the general patterns. Many statisticians have devised a collection of methods helpful in exploring data. However, specific data analysis techniques are helpful. Exploratory data analysis is more than the methods – it represents an attitude or philosophy about exploring data.
+
+EDA is an iterative cycle that helps you understand what your data says. When you do EDA, you:
+
+1. Generate questions about your data
+2. Search for answers by visualizing, transforming, and/or modelling your data
+3. Use what you learn to refine your questions and/or generate new questions
+
+EDA is an essential part of any data analysis. You can use EDA to make discoveries about the world, or you can use EDA to ensure the quality of your data, asking questions about whether the data meets your standards or not.
+
+Your goal during EDA is to develop an understanding of your data. The easiest way to do this is to use questions as tools to guide your investigation. When you ask a question, the question focuses your attention on a specific part of your dataset. It helps you decide which graphs, models, or transformations to make.
+
+EDA is, fundamentally, a creative process. Like most creative processes, the key to asking quality questions is to generate a large number of questions. It is challenging to ask revealing questions at the start of your analysis because you do not know what insights are contained in your dataset. On the other hand, each new question that you ask will highlight a new aspect of your data and increase your chance of making a discovery. You can quickly drill down into the most exciting parts of your data—and develop a set of thought-provoking questions—if you follow up each question with a new question based on what you find.
+
+## Exploring a Christmas Island Crab and Burrow Density dataset
+*[Green, PT (1997) Red crabs in a rain forest on Christmas Island, Indian Ocean: activity patterns, density and biomass. Journal of Tropical Ecology 13: 17-38.]* 
+
+The data at hand comes from Green (1997), who studied the ecology of red land crabs on Christmas Island and examined the relationship between the total biomass of red land crabs and the density of their burrows within 25m^2^ quadrants (sampling units) at five forested sites on the island. For simplicity, you will look at two of these sites. The database includes information on total biomass (`TOTMASS`) and density of burrows (`BURROWS`) for ten quadrants (`QUADNUM`) at Lower Site (`LS`) and eight quadrants (`QUADNUM`) at Drum site (`DS`). 
+
+## The first step: Loading the data - 1 
+
+The first step you will have to take when making any data analysis is to load your data. `R` can load data in many different formats, but the two most common are: CSV files and Text files.
+
+CSV means Comma Separated Values. You can export CSV files from many data-carrying applications. For instance, you can export CSV files from data in an Excel spreadsheet. A text file is typically similar to a CSV file. However, instead of using commas as separators between values, text files often use other characters (like a Tab character).
+
+The easiest way to load data into memory in `R` is by using the R Studio menu items. Instead, you will use a second option. In `R` there are three different functions to import data. You will use these functions, as the objective is to get familiar with the "coding" of your analyses.
+
+As said before, `R` has three different functions that can import tabular data (table with *columns* for individual variables, *rows* for observations, and *cells* for vlaues). These are:
+
+* `read.table()` loads data from a file into a tabular data set (table) in memory. 
+
+* `read.csv()` that reads a CSV file into the memory.
+
+* `read.delim()` that reads a CSV file into the memory, just like the `read.csv()` function, but define the character separating the columns.
+
+These functions are very similar, so if you master one of them, you will soon master the others. You can probably just use the `read.table()` function for all your data imports.
+
+The `read.table()` function takes a minimum of three parameters:
+
+* The filename of the file to load (which can be a location in your hard drive or a Web URL).
+
+* A flag telling if the file contains a header line.
+
+* The separator character is used inside the file to separate the values of each row.
+
+For example, `read.table('./data/file_name.txt', header = T, sep = '\t')` will import the information in `file_name.txt`, assuming that the first row has the variable names, and that the columns are separated by TAB.
+
+By comparison, `read.csv()` and `read.delim()` assume that there is a header, and `read.csv()` assumes that the separator is a coma (`,`).
+
+## The first step: Loading the data - 2
+
+To load Load the data from *green.csv*, located in the Web URL <https://raw.githubusercontent.com/AlejoOrdonez/StaGeoMod2022/main/Week%201/Tutorial/Data/green.csv>, You need to:
+
+* Define an object named URL.Loc with the string of the Web URL.
+
+* Use `read.table` to load the file -  The file is comma-separated.
+
+For this remember that you need to specify the location of the table using the `file` argument, if the table has headers in the `header` argument, and how are columns separated in the `sep` argument.
+
+The data is already loaded in in this tutorial.
+
+But once the data is is, you want to make sure it loaded correctly. For this, you will now do some exploration of the data loaded. One way to do this is to look at the structure of the data.
+
+<div class="alert alert-info">
+**Your task:**
+
+Run the code below and see what is printed out
+</div>
+
+```{r ReadData, exercise=TRUE}
+## Define an object named URL.Loc with the string of the Web URL.
+URL.Loc <- "https://raw.githubusercontent.com/AlejoOrdonez/StaGeoMod2022/main/Week%201/Tutorial/Data/green.csv"
+  
+## Use `read.table` to load the file and save it as an object named green.
+## The file green.csv is a Comma-separated file.
+
+green <- read.table(file = URL.Loc, # The URL string.
+                    header = T, # Does the table have headers?
+                    sep = ",") # How are columns separated?
+# check what is the green
+str(green)
+```
+
+```{r ReadData_Q, echo=FALSE}
+quiz(caption = "Answer the next questions based on what is in the table:",
+  question("How many integer variables are in the database?",
+    answer("5"),
+    answer("1"),
+    answer("3", correct = TRUE),
+    answer("none"),
+    incorrect = "Incorrect. There are three numeric values of the class `int`"
+    ),
+  question("Is `SITE` a factor variable?",
+    answer("FALSE", correct = TRUE),
+    answer("TRUE"),
+    incorrect = "Site is loded as a character string variable.",
+    correct = "You got this!, Site is loded as a character string variable."
+  )
+)
+```
+
+OK, but what is in the table, for this you will need to print the table. But you don't need to print the full table but just a small section. For example the first five rows, or the last five rows. 
+
+<div class="alert alert-info">
+**Your task:**
+
+Modify the following code to limit the number of rows printed to 5.
+</div>
+
+```{r  print-limit, exercise=TRUE}
+green
+```
+
+```{r  print-limit-hint}
+head(mtcars)
+```
+
+```{r print-limit-check}
+grade_result(
+  pass_if(~identical(.result, head(green)))
+)
+```
+
+## What is in the Table?
+
+To make the discussion easier, let’s define some terms. 
+
+A **variable** is a quantity, quality, or property that you can measure. You can look at the names of these using the functions `names` or `colnames`.
+
+A **value** is the state of a variable when you measure it. The value of a variable may change from measurement to measurement. You can extract specific values by addressing the specific row within the variable of interest for a given observation.
+
+An **observation** or case is a set of measurements made under similar conditions (you usually make all of the measurements in an observation simultaneously and on the same object). An observation will contain several values, each associated with a different variable. I’ll sometimes refer to an observation as a case or data point. You can extract the observation by addressing the respective row number.
+
+**Tabular data** is a table of values, each associated with a variable and an observation. Tabular data is tidy if each value is Placed in its' cell, each variable in its' column, and each observation in its' row.
+
+<div class="alert alert-info">
+**Your task:**
+
+Based on the data stored in the object `green`, answer the following questions:
+
+* Which are the variable names in the `green` data set?
+</div>
+
+```{r DataNames1, exercise=TRUE}
+# Which are the variable names in the `green` data set?
+```
+
+```{r  DataNames1-hint}
+names(mtcars)
+colnames(mtcars)
+```
+
+```{r DataNames1-solution}
+names(green)
+```
+
+```{r DataNames1-check}
+grade_result(
+  pass_if(~identical(.result, names(green)))
+)
+```
+
+<div class="alert alert-info">
+**Your task:**
+
+Based on the data stored in the object `green`, answer the following questions:
+
+* Which value has the **third** Drum site quadrant **observation** for the `TOTMASS` variable.
+</div>
+
+```{r DataNames2, exercise=TRUE}
+# Which value in the dataset has the third Drum site quadrant observation for the `TOTMASS` variable?
+
+```
+```{r DataNames2-solution}
+green$TOTMASS[c(green$SITE == "DS" & green$QUADNUM == 3)]
+```
+
+```{r  DataNames2-hint}
+mtcars[c(mtcars$am ==1),"mpg"]
+mtcars$mpg[c(mtcars$am ==1),]
+```
+
+
+```{r DataNames2-check}
+grade_result(
+  pass_if(~identical(.result, green$TOTMASS[c(green$SITE == "DS" & green$QUADNUM == 3)]))
+)
+```
+
+<div class="alert alert-info">
+**Your task:**
+
+Based on the data stored in the object `green`, answer the following questions:
+
+* Which is the **second observation** for the Lower site (`LS`)?
+</div>
+
+```{r DataNames3, exercise=TRUE}
+# Which is the second observation for the Lower Site site on the `green` data set?
+
+```
+```{r DataNames3-solution}
+# Which is the second observation for the Lower Site site on the `green` data set?
+green[c(green$SITE == "LS" & green$QUADNUM == 2), ]
+```
+
+```{r  DataNames3-hint}
+mtcars[c(mtcars$am ==1),"mpg"]
+mtcars$mpg[c(mtcars$am ==1),]
+```
+
+```{r DataNames3-check}
+grade_result(
+  pass_if(~identical(.result, green[c(green$SITE == "LS" & green$QUADNUM == 2), ]))
+)
+```
+
+## Two practical questions
+
+There is no rule about which questions you should ask to guide your research. However, two types of questions will always be helpful for making discoveries within your data. You can loosely word these questions as:
+
+* What type of **variation** occurs **within** my variables?
+
+* What type of **covariation** occurs **between** my variables?
+
+*But what is meant by "the variation"?*, variation is the values of a variable tendency to change from measurement to measurement. You can see variation easily in real life. If you measure any continuous variable twice—and precisely enough—you will get two different results. This is true even if you measure constant quantities, like the speed of light. Each of your measurements will include a small amount of error that varies from measurement to measurement. Categorical variables can also vary if you measure across different objects (e.g. the eye colours of different people) or different times (e.g. the energy levels of an electron at different moments).
+
+Every variable has its' pattern of variation, which can reveal helpful information. The best way to understand that pattern is to visualize the distribution of the variable’s values. How you visualize the distribution of a variable will depend on whether the variable is categorical or continuous.
+
+**Categorical variables**: A variable is categorical if it can take only one of a small set of values. In `R`, categorical variables are usually saved as factors or character vectors. You can visualize the distribution of a categorical variable with a bar chart using the `barplot()` function.
+
+**Continuous variables** A variable is continuous if it can take any of an infinite set of smooth, ordered values. Here, smooth means that if you order the values on a line, an infinite number of values would exist between any two points on the line. For example, an infinite number of values exists between 0 and 1, e.g. 0.9, 0.99, 0.999, and so on. You can visualize the distribution of a continuous variable with a histogram using the `hist()` function.
+
+<div class="alert alert-info">
+**Your task:**
+
+Based on the data stored in the object `green`, you will plot:
+
+* A bar-plot that summarises the number of Quadrants per site.
+
+* A histogram for total biomass for **all** Sites.
+</div>
+
+```{r Variation1, exercise=TRUE}
+# Plot a bar-plot summarizing the number of Quadrants per site.
+# Create a object named TotSite that contains the count of observations for each site.
+TotSite <- 
+
+# Create a figure with the number of quadrants per site.
+------(TotSite)
+```
+
+```{r Variation1-solution}
+## Plot a barplot summarizing the number of Quadrants per site.
+### Create a object named TotSite that contains the count of observations for each site
+TotSite <- table(green$SITE)
+### use barplot to create a figure with the number of Quadrants per site.
+barplot(TotSite)
+```
+
+```{r  Variation1-hint}
+table(mtcars) # to tabulate
+barplot(mtcars$mpg) # to make a box-plot
+```
+
+```{r Variation1-check}
+grade_code()
+```
+
+<div class="alert alert-info">
+**Your task:**
+
+Based on the data stored in the object `green`, you will plot:
+
+* A histogram for the density of burrows for **Lower side** Sites.
+</div>
+
+```{r Variation2, exercise=TRUE}
+# Plot a histogram for total biomass for **all** Sites.
+
+```
+
+```{r Variation2-solution}
+## Plot a histogram for total biomass for **all** Sites.
+hist(green$TOTMASS)
+```
+
+```{r  Variation2-hint}
+hist(mtcars$mpg) # to make a histogram
+```
+
+```{r Variation2-check}
+grade_code()
+```
+
+<div class="alert alert-info">
+**Your task:**
+
+Based on the data stored in the object `green`, you will plot:
+
+* A histogram for the density of burrows for **Lower side** Sites.
+* Add over it a density plot for the density of burrows for **Lower side** Sites.
+</div>
+
+```{r Variation3, exercise=TRUE}
+# Plot a histogram for the density of burrows for **Lower side** Sites. For this 
+# Create a object named BiomassLS that has the information on biomass for Lower side sites
+BiomassLS <- -------------------
+
+# Plot a histogram of probability densities using BiomassLS
+
+
+# Now use the function density on BiomassLS to create an object call DensityLS
+DensityLS <- -------------------
+
+### plot DensityLS
+
+```
+
+```{r Variation3-solution}
+## Plot a histogram for the density of burrows for **Lower side** Sites. For this
+### Create a object named BiomassLS that has the information on biomass for Lower side sites
+BiomassLS <- green$TOTMASS[green$SITE == "LS"]
+
+# Plot a histogram of probability densities using BiomassLS
+hist(BiomassLS, freq = F)
+
+### Now use the function density on BiomassLS to create an object call DensityLS
+DensityLS <- density(BiomassLS)
+### plot DensityLS
+lines(DensityLS)
+```
+
+```{r  Variation3-hint}
+hist(mtcars$mpg , freq = T) # plots a histogram, the freq argument states if frequencies or densities should be ploted
+Dens <- density(mtcars$mpg) # to make a density estimation
+lines(Dens) # plot a Density estimation over the histogram
+```
+
+```{r Variation3-check}
+grade_code()
+```
+
+```{r Variation-Q, echo=FALSE}
+quiz(caption = "Based on what you see in the histogram and density plot",
+  question("Do the histograms look normally distributed/skewed?",
+    answer("Yes"),
+    answer("No", correct = TRUE),
+    incorrect = "No, they don't. They look bimodal - Two Peaks.",
+    correct = "Correct!, They look bimodal - Two Peaks."
+  ),
+  question("Can you detect the presence of outlines?",
+    answer("Yes"),
+    answer("No", correct = TRUE),
+    incorrect = "No, there are no outliers, That is, there are no extrely large or low values.",
+    correct = "Perfect!, there are no extrely large or low values."
+  ),
+  question("Select the best definition for Histograms AND Density plots [need to make two selections].",
+    answer("Histograms and density plots are the same."),
+    answer("Histograms count the number of observations.", correct = TRUE),
+    answer("Density is a smoothed function of the expected kernel density estimates.", correct = TRUE),
+    answer("Histograms are a smoothed function of the expected kernel density estimates.."),
+    answer("Density count the number of observations."),
+    incorrect = "Histograms count the number of observations on predefined classes, density is a smoothed function of the expected kernel density estimates."
+  )
+)
+```
+
+## Beyond Frequencies
+
+In both bar-charts and histograms/density plots, tall bars show the common values of a variable, i.e. the values that appear frequently. Shorter bars show less common values, i.e. values that appear infrequently. Places that do not have bars reveal values that were not seen in your data. To turn this information into valuable questions, look for anything unexpected:
+
+* Which values are the most common? Why?
+
+* Which values are rare? Why? Does that match your expectations?
+
+* Can you see any unusual patterns? What might explain them?
+
+* Are there any outliers, or which points don’t fit the pattern or fall far away from the rest of the data?
+
+* Are outliers the result of data entry errors or something else?
+
+Many of the questions above will prompt you to explore the differences between groups to see if the values of one group are larger/smaller than that of the group(s). 
+
+<div class="alert alert-info">
+**Your task:**
+
+Based on the data stored in the object `green`, you will plot:
+
+* A boxplot that summarises the total biomass per site.
+
+</div>
+
+```{r Boxplot, exercise=TRUE}
+# Plot a box-plot summarizing the total biomass per site.
+-------- (-------- ~ --------, 
+          data = --------) # Name of the object with the data.
+```
+
+```{r Boxplot-hint}
+# REMEMBER: box-plot illustrate the Min-Max values (lower/upper whisker), inter-quantile range (Box lower/upper edges), and the median (thick centre line).
+boxplot (mpg ~ am, # Place what you want to plot here as a formula VarToPlot ~ GroupingVar.
+        data = mtcars ) # Name of the object with the data.
+```
+
+```{r Boxplot-solution}
+# Plot a box-plot summarizing the total biomass per site.
+boxplot (TOTMASS ~ SITE, # Place what you want to plot here as a formula VarToPlot ~ GroupingVar.
+        data = green ) # Name of the object with the data.
+```
+
+```{r Boxplot-check}
+grade_code()
+```
+
+```{r Boxplot-Q, echo=FALSE}
+  question("Do you see any difference between the `DS` and `LS` sites?",
+    answer("Yes", correct = TRUE),
+    answer("No"),
+    incorrect = "DS sites have, on average lower biomass.",
+    correct = "Correct!, DS sites have, on average lower biomass."
+  )
+```
+
+## Relationships Between Variables
+
+Another question that emerges from assessing the frequencies of two continuous variables is the possibility of a relationship between variables. The objective here is to determine if the values of one variable can explain the values of another variable by assess the covariation between two variables. Covariation is the tendency for the values of two or more variables to vary together in a related way. The best way to spot covariation is to visualize the relationship between two or more variables using a **scatter-plot** and a **resistant line**.
+
+A scatter-plot (aka scatter chart, scatter graph) uses dots to represent values for two different numeric variables and display the relationships between variables. The position of each dot on the horizontal and vertical axis indicates values for an individual data point. A scatter plot can be plotted using the `plot` function.
+
+For exploratory work, it is helpful to fit a line that is resistant or not sensitive to outlying points - a **resistant line**. The resistant line procedure divides the scatter plot into left, middle, and right regions, compute resistant summary points for each region, and finds a line from the summary points. A resistance line can be build using the `line()` function and plotted using the `abline()` function.
+
+Remember that clusters and outliers are also a type of pattern. Two-dimensional scatter plots can reveal clusters and outliers that would not be visible in a one-dimensional plot. If you spot either, ask yourself: what they imply?
+
+<div class="alert alert-info">
+**Your task:**
+
+Based on the data stored in the object `green`, you will:
+
+* Build a scatter-plot showing the relation between total biomass (y-axis) per site and burrows density (x-axis) for all the observations.
+
+* Add a resistance line to the scatter plot
+
+</div>
+
+```{r ScattPlt1, exercise=TRUE}
+# Build a scatter-plot showing the relation between total biomass (y-axis) per site and burrows density (x-axis).
+------ (------ ~ ------, # Place what you want to plot here as a formula y-var ~ x-var.
+     data = ------) # Name of the object with the data.
+
+# Add a resistance line to the scatter plot.
+# Create a resistance line object.
+ResLn <- line(x = green$------, ## The x-axis variable.
+              y = green$------) ## The y-axis variable.
+# Plot the resistance line
+------ (coef(------))
+```
+
+```{r ScattPlt1-solution}
+# Build a scatter-plot showing the relation between total biomass (y-axis) per site and burrows density (x-axis).
+plot(TOTMASS ~ BURROWS, # Place what you want to plot here as a formula y-var ~ x-var.
+     data = green) # Name of the object with the data.
+
+# Add a resistance line to the scatter plot.
+# Create a resistance line object.
+ResLn <- line(x = green$BURROWS, ## The x-axis variable.
+              y = green$TOTMASS) ## The y-axis variable.
+
+# Plot the resistance line
+abline(coef(ResLn))
+
+```
+
+```{r ScattPlt1-hint}
+# Scatter-plots are build using the plot function
+plot(mpg ~ wt, # Place what you want to plot here as a formula y-var ~ x-var.
+     data = mtcars) # Name of the object with the data.
+# Create a resistance line object.
+ResLn <- line(x = mtcars$wt, ## The x-axis variable.
+              y = mtcars$mpg) ## The y-axis variable.
+abline(coef(ResLn))
+```
+
+```{r ScattPlt1-check}
+grade_code()
+```
+
+```{r ScattPlt1-Q, echo=FALSE}
+  question("Do you see a relation between total biomass and burrows density?",
+    answer("Yes", correct = TRUE),
+    answer("No"),
+    incorrect = "The plot indicates a negative relationship between these. ",
+    correct = "Correct!, The plot indicates a negative relationship between these."
+  )
+```
+
+<div class="alert alert-info">
+**Your task:**
+
+Based on the data stored in the object `green`, you will:
+
+* Build a scatter-plot showing the relation between total biomass (y-axis) per site and burrows density (x-axis) for `DS` and `LS` sites independently.
+
+* Both relations **SHOULD** be in the same plotting space.
+
+</div>
+
+```{r ScattPlt2, exercise=TRUE}
+# Now do the same, but for Drum site [DS]  
+### create an object with the observations for Drum site
+greenDS <- ------[------$SITE == "------",]
+
+## Build a scatter-plot
+------(------ ~ ------, # Place what you what to plot here as a formula y-var ~ x-var
+     data = greenDS, # name of the Object with the data 
+     pch=19,  # makes the points to be plotted a filled dot
+     col="red", # Setv the color of the Points to red
+     xlim = range(green$BURROWS), # Sets the y-axes range of values
+     ylim = range(green$TOTMASS)) # Sets the x-axes range of values
+## Create a resistance line object
+ResLn <- ------(x = greenDS$------, ## The x-axis variable
+                y = greenDS$------) ## The y-axis variable
+# Plot the resistance line
+------(------ (------),
+       col="red")
+
+# Now do the same, but for Lower site [LS]  
+# create an object with the observations for Lower site
+greenLS <- ------[------$------ == "------",]
+
+# Add this to the existing plot 
+points (------ ~ ------, # Place what you what to plot here as a formula y-var ~ x-var
+        data = ------, # name of the Object with the data 
+        pch=17,  # makes the points to be plotted a filled triangles
+        col="blue") # Set the color of the Points to blue
+# Create a resistance line object
+ResLn <- ------(x = ------$------, ## The x-axis variable
+                y = ------$------) ## The y-axis variable
+# Plot the resistance line
+------(------ (------),
+       col="blue")
+```
+
+```{r ScattPlt2-hint}
+# Scatter-plots are build using the plot function
+plot(mpg ~ wt, # Place what you want to plot here as a formula y-var ~ x-var.
+     data = mtcars) # Name of the object with the data.
+# Create a resistance line object.
+ResLn <- line(x = mtcars$wt, ## The x-axis variable.
+              y = mtcars$mpg) ## The y-axis variable.
+abline(coef(ResLn))
+```
+```{r ScattPlt2-solution}
+# Now do the same, but for Drum site [DS]  
+### create an object with the observations for Drum site
+greenDS <- green[green$SITE == "DS",]
+
+## Build a scatter-plot
+plot(TOTMASS ~ BURROWS, # Place what you what to plot here as a formula y-var ~ x-var
+     data = greenDS, # name of the Object with the data 
+     pch=19,  # makes the points to be plotted a filled dot
+     col="red", # Setv the color of the Points to red
+     xlim = range(green$BURROWS), # Sets the y-axes range of values
+     ylim = range(green$TOTMASS)) # Sets the x-axes range of values
+## Create a resistance line object
+ResLn <- line(x = greenDS$BURROWS, ## The x-axis variable
+              y = greenDS$TOTMASS) ## The y-axis variable
+# Plot the resistance line
+abline(coef (ResLn),
+       col="red")
+
+# Now do the same, but for Lower site [LS]  
+# create an object with the observations for Lower site
+greenLS <- green[green$SITE=="LS",]
+
+# Add this to the existing plot 
+points (TOTMASS ~ BURROWS, # Place what you what to plot here as a formula y-var ~ x-var
+     data = greenLS, # name of the Object with the data 
+     pch=17,  # makes the points to be plotted a filled triangles
+     col="blue") # Setv the color of the Points to blue
+# Create a resistance line object
+ResLn <- line(x = greenLS$BURROWS, ## The x-axis variable
+              y = greenLS$TOTMASS) ## The y-axis variable
+# Plot the resistance line
+abline(coef (ResLn),
+       col="blue")
+```
+
+```{r ScattPlt2-check}
+grade_code()
+```
+
+```{r ScattPlt2-Q, echo=FALSE}
+  question("How does the relation between total biomass and burrows density change when each site is compared to all sites?",
+    answer("LS sites change SLOWER than DS sites"),
+    answer("LS sites change FASTER than DS sites", correct = TRUE),
+    answer("LS sites change AS fast than DS sites"),
+    answer("No"),
+    incorrect = "When the relation between total biomass and burrows density is evaluated for individual sites, the trend shifts from negative (Biomass decreases as density increases) to positive (biomass increases as density increases), with a steeper change for Drum site.",
+    correct = "Correct!, When the relation between total biomass and burrows density is evaluated for individual sites, the trend shifts from negative (Biomass decreases as density increases) to positive (biomass increases as density increases), with a steeper change for Drum site."
+  )
+```
+
+## How "strong" is the covariation? - 1
+
+Patterns in your data provide clues about relationships. If a systematic relationship exists between two variables, it will appear as a pattern in the data. If you spot a pattern, ask yourself:
+
+* Could this pattern be due to coincidence (i.e. random chance)?
+
+* How can you describe the relationship implied by the pattern?
+
+* How strong is the relationship implied by the pattern?
+
+* What other variables might affect the relationship?
+
+* Does the relationship change if you look at individual subgroups of the data?
+
+One way to answer these questions is to assess how "strong" is the covariation between the evaluated variables. A correlation coefficient is the statistical measure of covariation. It expresses the extent to which two variables are linearly related (meaning they change together at a constant rate). Correlation coefficients are a standard tool for describing simple relationships without making a statement about cause and effect. They do so by quantifying the strength of the linear relationship between two variables.
+
+The correlation coefficient is a unit-free value between -1 and 1. Statistical significance is indicated with a p-value. Therefore, correlations are typically written with two key numbers: *Value* and *Significance*.
+
+## How "strong" is the covariation? - 2
+
+The three most common correlation coefficients are Pearson (*r*) and Spearman (*rho*). **Pearson correlation** evaluates the linear relationship between two continuous variables (assumes normality and monotonic relations). **Spearman correlation** evaluates only the monotonic relationship (data can be non-normal). The Spearman correlation coefficient is based on the ranked values for each variable rather than the raw data. 
+
+You need to know that monotonic relationships are those where the variables move in the same/opposite direction but not necessarily at a constant rate. In contrast, the rate is constant in a linear relationship.
+
+<div class="alert alert-info">
+**Your task:**
+
+Based on the data stored in the object `greenDS`, you will:
+
+* How strong is the relationship between total biomass and burrows density changes for the Drum site?
+</div>
+
+```{r Correlation_Setup, echo=FALSE}
+# create an object with the observations for Drum site
+greenDS <- green[green$SITE=="DS",]
+```
+
+```{r Correlation1, exercise=TRUE, exercise.setup = "Correlation_Setup"}
+## Pearson Correlation 
+-----(x = -----$-----, # Sets the x-axes range of values
+      y = -----$-----, # Sets the y-axes range of values
+      method = "-----") # Sets the correlation coefficient to use
+```
+```{r Correlation1-solution}
+## Pearson Correlation 
+cor(x = greenDS$BURROWS, # Sets the x-axes range of values
+    y = greenDS$TOTMASS, # Sets the y-axes range of values
+    method = "pearson") # Sets the correlation coefficient to use
+```
+
+```{r Correlation1-hint}
+
+## Pearson Correlation 
+cor(x = mtcars$mpg, # Sets the x-axes range of values
+    y = mtcars$wt, # Sets the y-axes range of values
+    method = "spearman") # Sets the correlation coefficient to use
+```
+
+```{r Correlation1-check}
+grade_result(
+  pass_if(~identical(.result, cor(x = greenDS$BURROWS,y = greenDS$TOTMASS,method = "pearson")))
+)
+```
+## How "strong" is the covariation? - 3
+
+Perhaps things went a bit to fast, you might what to test for the correlation assumptions before you do anything. The figute tells us that the relations are monotonic, but what about normality? here two assumptions are checked, which need to be fulfilled before performing the correlation.
+
+ Shapiro test, is a test to check the input variable is following the normal distribution or not. It can then be used to check whether the variables to be assessed are normally distributed or not.
+
+<div class="alert alert-info">
+**Your task:**
+
+Based on the data stored in the object `greenDS`, you will:
+
+* Assess if in Drum site total biomass and burrows density are normality distributed.
+</div>
+
+
+
+```{r Correlation2, exercise=TRUE, exercise.setup = "Correlation_Setup"}
+# assess normality for TOTMASS
+shapiro.test(------$------) 
+# assess normality for BURROWS
+shapiro.test(------$------)
+```
+
+```{r Correlation2-hint}
+# assess normality for mpg
+shapiro.test(mtcars$mpg) 
+```
+
+```{r Correlation2-solution}
+# assess normality for TOTMASS
+shapiro.test(greenDS$TOTMASS) 
+# assess normality for BURROWS
+shapiro.test(greenDS$BURROWS)
+```
+
+```{r Correlation2-check}
+grade_code()
+```
+
+## How "strong" is the covariation? - 4
+
+Another way to assess for normality are `qqplots.` Here, you compare the observed quantiles to those of a theoretical normal distribution. Run the code below to see how they look.
+
+```{r Correlation4, exercise=TRUE, exercise.setup = "Correlation_Setup"}
+qqnorm(greenDS$BURROWS) # assess observed/theoretical quantities for BURROWS
+qqline(greenDS$BURROWS) # add the trend line.
+```
+
+If the values fall in a straight line, you could say that the values are normal. This is a more subjective way to assess normality. 
+
+```{r Correlation4-Q, echo=FALSE}
+quiz(caption = "Based on your asssesments of normality",
+  question("Are the variables normally distributed?",
+    answer("`Only `TOTMASS` is normaly distributed."),
+    answer("Only `BURROWS` is normaly distributed."),
+    answer("Both `TOTMASS` and BURROWS` is normaly distributed.", correct = TRUE),
+    answer("Neither is  normaly distributed."),
+    incorrect = "Both are normaly distributed beacuse the p-value is greater than 0.05. **Why?** because the null-hypothesis tested is if the observed distribution is the same as normal; and if they are the same should be p-value is greater than 0.05.",
+    correct = "Correct!, p-value is greater than 0.05, so you can assume the normality for both variables."
+  ),
+  question("Is it ok to use a Person correlation?",
+    answer("Yes.", correct = TRUE),
+    answer("No"),
+    incorrect = "As both `BURROWS` and `TOTMASS` are normal for the Drum site, Person correlations can be used",
+    correct = "Correct!, both `BURROWS` and `TOTMASS` are normal."
+  )
+)
+```
+
+## Is the covariation significant?
+
+The test you have done so far only estimates the relation's strength, but what about the significance of the relation? For this, you will use the `cor.test` function. 
+
+By using this approach, you can now say more than if there is a positive/negative correlation between the variables. Now you can say if this relation is larger or smaller than you would expect based on a theoretical distribution.
+
+<div class="alert alert-info">
+**Your task:**
+
+Based on the data stored in the object `greenDS`, you will:
+
+* Assess the significance of the correlation between total biomass (y-axis) per site and burrows density (x-axis) for `DS` site.
+</div>
+
+```{r Correlation5, exercise=TRUE, exercise.setup = "Correlation_Setup"}
+# Estimate the Pearson/Spearman correlations and it's significance - USE THE RIGTH TEST
+cor.test(x = greenDS$-----, # Sets the x-axes range of values
+         y = greenDS$-----, # Sets the y-axes range of values
+         method = "-----") # Sets the correlation coefficient to use
+```
+
+```{r Correlation5-solution}
+# Estimate the Pearson/Spearman correlations and it's significance - USE THE RIGTH TEST
+cor.test(x = greenDS$BURROWS, # Sets the x-axes range of values
+         y = greenDS$TOTMASS, # Sets the y-axes range of values
+         method = "pearson") # Sets the correlation coefficient to use
+
+```
+
+```{r Correlation5-hint}
+cor.test(x = mtcars$mpg, # Sets the x-axes range of values
+         y = mtcars$wt, # Sets the y-axes range of values
+         method = "spearman") # Sets the correlation coefficient to use
+```
+
+```{r Correlation5-check}
+grade_result(
+  pass_if(~identical(.result, cor.test(x = greenDS$BURROWS,y = greenDS$TOTMASS)))
+)
+```
+
+```{r Correlation5-Q, echo=FALSE}
+question("Is the relation between `BURROWS` and `TOTMASS` significant for the `DS` site?",
+    answer("Yes."),
+    answer("No.", correct = TRUE),
+    answer("Neither is  normaly distributed."),
+    incorrect = "Because the p-value is larger than 0.05.",
+    correct = "Correct!, because the p-value is larger than 0.05."
+  )
+```
+
+## Plotting residuals and identifying outliers
+
+In exploratory work, you want to look beyond the obvious relationship between variables by examining the observations deviating from the general straight-line pattern. You can look into this by considering the **residuals**, which are the differences between the observed biomass and the values predicted from the fitted resistant line - More on these next week.
+
+Positive residual values correspond to observed values larger than the values predicted from the straight-line relation, and negative residuals correspond to observed values smaller than the predicted rates.
+
+The residuals are stored in the list element `ResLn$residuals` that you created when building the scatter plots. The `plot` function can then be used to construct a scatter plot of residuals against the burrows density. Adding a horizontal line to this plot makes it easy to assess trends in the residual variation and possible outliers.
+
+
+<div class="alert alert-info">
+**Your task:**
+
+Based on the data stored in the object `greenDS`, you will:
+
+* Plot the residuals of the `TOTMASS` vs. `BURROWS` relation for the Drum (`DS`) site only.
+
+</div>
+
+
+```{r Residuals, exercise=TRUE, exercise.setup = "Correlation_Setup"}
+# Create a resistance line object
+ResLn <- line(x = greenDS$------, ## The x-axis variable
+              y = greenDS$------) ## The y-axis variable
+
+# Plot the Residuals vs BURROWS
+plot(x = ------$------, # The BURROWS values for the DS site
+     y = ------$------, # the residuals of the TOTMASS ~ BURROWS relations for DS sites
+     pch = 19, # Make the points a fill circle
+     col = 'red') # Make The points red
+
+# Add a horizontal dashed line 
+abline(h=0, # set the value for the horizontal line
+       lty = 2) # make the line dashed
+
+# Add the quadrant number to each dot
+text(x = ------$------, # The BURROWS values for the DS site
+     y = ------$------ - 0.1, # the residuals of the TOTMASS ~ BURROWS relations for DS sites
+                                # substract 0.1 so the name is below each point
+     labels = ------$------) # Set the Quadrant number for the Names
+```
+
+```{r Residuals-solution}
+
+# Create a resistance line object
+ResLn <- line(x = greenDS$BURROWS, ## The x-axis variable
+              y = greenDS$TOTMASS) ## The y-axis variable
+
+# Plot the Residuals vs BURROWS
+plot(x = greenDS$BURROWS, # The BURROWS values for the DS site
+     y = ResLn$residuals, # the residuals of the TOTMASS ~ BURROWS relations for DS sites
+     pch = 19, # Make the points a fill circle
+     col = 'red') # Make The points red
+
+# Add a horizontal dashed line 
+abline(h=0, # set the value for the horizontal line
+       lty = 2) # make the line dashed
+
+# Add the quadrant number to each dot
+text(x = greenDS$BURROWS, # The BURROWS values for the DS site
+     y = ResLn$residuals - 0.1, # the residuals of the TOTMASS ~ BURROWS relations for DS sites
+                                # substract 0.1 so the name is below each point
+     labels = greenDS$QUADNUM)
+```
+
+```{r Residuals-check}
+grade_code()
+```
+
+
+```{r Residuals-Q, echo=FALSE}
+question("Are there outliers?",
+    answer("No."),
+    answer("Yes.", correct = TRUE),
+    answer("Is not posible to determine that based on the figure."),
+    incorrect = "Quadrants 5 and 3 are possible outliers as these show a large deviation from the Zero line.",
+    correct = "Correct!, Quadrants 5 and 3 are possible outliers as these show a large deviation from the Zero line."
+  )
+```
+
+## Final Thoughts
+
+Exploratory data analysis is when a person used different approaches to learn about general patterns or tendencies in the data and find specific occurrences that deviate from the general patterns. Much like a detective explores a crime scene, collects evidence and draws conclusions, a statistician explores data using graphical displays and suitable summaries to draw conclusions about the main message of the data.
+
+Here you have taken the first steps in this direction by describing the variation in the data, assessing the differences between groups, and establishing the relations between variables.
