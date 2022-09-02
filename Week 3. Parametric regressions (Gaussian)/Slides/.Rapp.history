@@ -1,0 +1,204 @@
+x <- seq(0,10,0.1)y1 <- 2+5*x-0.2*xˆ2
+plot(x,y1,type="l")
+x <- seq(0,10,0.1)y1 <- 2+5*x-0.2*xˆ2#
+plot(x,y1,type="l")
+x <- seq(0,10,0.1)
+y1 <- 2+5*x-0.2*xˆ2
+y1 <- 2+5*x-0.2*x^2
+plot(x,y1,type="l")
+plot(x,y1,type="l", main="decelerating\nY~X=X^2" )
+y2 <- 2+5*x-0.4*xˆ2#
+plot(x,y2,type="l", main="Hump\nY~X-X^2" )
+y2 <- 2+5*x-0.4*x^2#
+plot(x,y2,type="l", main="Hump\nY~X-X^2" )
+y3 <- 2+4*x-0.6*x^2+0.04*x^3#
+plot(x,y3,type="l", main="Inflection\nY~X+X^2+X^3" )
+# Slide 9 - Linear vs non linear modles#
+par(mfrow=c(2,2))#
+x <- seq(0,10,0.1)y1 <- 2+5*x-0.2*x^2#
+plot(x,y1,type="l", ylab="y",  main="decelerating\nY~X+X^2" )#
+y2 <- 2+5*x-0.4*x^2#
+plot(x,y2,type="l", ylab="y",  main="Hump\nY~X-X^2" )#
+y3 <- 2+4*x-0.6*x^2+0.04*x^3#
+plot(x,y3,type="l", ylab="y",  main="Inflection\nY~X+X^2+X^3" )#
+#
+y4 <- 2+4*x+2*x^2-0.6*x^3+0.04*x^4#
+plot(x,y4,type="l", ylab="y", main="local maxima\nY~X+X^2-X^3+X^4" )
+x <- seq(0,10,0.1)#
+y1 <- exp(x)#
+plot(x,y1,type="l", ylab="y",  main="decelerating\nY~X+X^2" )
+par(mfrow=c(2,2))#
+x <- seq(0,10,0.1)#
+y1 <- exp(x)#
+plot(x,y1,type="l", ylab="y",  main="Exponential\nY~X+X^2" )
+y1 <- log(x)#
+plot(x,y1,type="l", ylab="y",  main="Logarithmic\nY~log(X)" )
+y1 <- 0.5*(1-enc(0.5*x))
+plot(x,y1,type="l", ylab="y",  main="Asymptotic\nY~log(X)" )
+y1 <- 0.5*(1-exp(0.5*x))#
+plot(x,y1,type="l", ylab="y",  main="Asymptotic\nY~log(X)" )
+y1 <- 0.5*(1-exp(2*x))#
+plot(x,y1,type="l", ylab="y",  main="Asymptotic\nY~log(X)" )
+y1 <- 0.5*(1-exp(-2*x))#
+plot(x,y1,type="l", ylab="y",  main="Asymptotic\nY~a(1-exp(-bx))" )
+y1 <- (2*X)/(1=0.5*x)
+plot(x,y1,type="l", ylab="y",  main="Asymptotic\nY~log(X)" )
+y1 <- (2*X)/(1=3*x)#
+plot(x,y1,type="l", ylab="y",  main="Asymptotic\nY~log(X)" )
+y1 <- (0.5*X)/(1=3*x)#
+plot(x,y1,type="l", ylab="y",  main="Asymptotic\nY~log(X)" )
+y1 <- (0.5*X)/(1+3*x)#
+plot(x,y1,type="l", ylab="y",  main="Asymptotic\nY~log(X)" )
+y1 <- (3*X)/(1+0.5*x)#
+plot(x,y1,type="l", ylab="y",  main="Asymptotic\nY~log(X)" )
+par(mfrow=c(2,2))#
+x <- seq(0,10,0.1)#
+y1 <- exp(x)#
+plot(x,y1,type="l", ylab="y",  main="Exponential\nY~exp(X)" )
+par(mfrow=c(3,2))#
+x <- seq(0,10,0.1)#
+y1 <- exp(x)#
+plot(x,y1,type="l", ylab="y",  main="Exponential\nY~exp(X)" )
+y1 <- log(x)#
+plot(x,y1,type="l", ylab="y",  main="Logarithmic\nY~log(X)" )
+y1 <- 0.5*(1-exp(-2*x))#
+plot(x,y1,type="l", ylab="y",  main="Asymptotic\nY~a(1-exp(-bx))" )
+y1 <- (3*X)/(1+0.5*x)#
+plot(x,y1,type="l", ylab="y",  main="Michaelis–Menten\nY~log(X)" )
+y1 <- (0.6*X)/(1+0.5*x)#
+plot(x,y1,type="l", ylab="y",  main="Michaelis–Menten\nY~(ax/(1+bx))" )
+x <- seq(0,1,0.01)#
+y1 <- sin(x)#
+plot(x,y1,type="l", ylab="y",  main="Michaelis–Menten\nY~(ax/(1+bx))" )
+x <- seq(0,1,0.01)#
+y1 <- sine(x)#
+plot(x,y1,type="l", ylab="y",  main="Michaelis–Menten\nY~(ax/(1+bx))" )
+x <- seq(0,pi(),0.01)#
+y1 <- sine(x)#
+plot(x,y1,type="l", ylab="y",  main="Michaelis–Menten\nY~(ax/(1+bx))" )
+x <- seq(0,2*pi,2*pi/100)y1 <- cos(x)y2 <- sin(x)#
+plot(x,y1,type="l", ylab="y",  main="Sine\nY~sine(x)" )#
+plot(x,y2,type="l", ylab="y",  main="Sine\nY~cosine(x)" )
+par(mfrow=c(3,2))#
+x <- seq(0,10,0.1)#
+y1 <- exp(x)#
+plot(x,y1,type="l", ylab="y",  main="Exponential\nY~exp(X)" )#
+#
+y1 <- log(x)#
+plot(x,y1,type="l", ylab="y",  main="Logarithmic\nY~log(X)" )#
+#
+y1 <- 0.5*(1-exp(-2*x))#
+plot(x,y1,type="l", ylab="y",  main="Asymptotic\nY~a(1-exp(-bx))" )#
+x <- seq(0,2*pi,2*pi/100)y1 <- cos(x)y2 <- sin(x)#
+plot(x,y1,type="l", ylab="y",  main="Sine\nY~sine(x)" )#
+plot(x,y2,type="l", ylab="y",  main="Sine\nY~cosine(x)" )
+par(mfrow=c(3,2))#
+x <- seq(0,10,0.1)#
+y1 <- exp(x)#
+plot(x,y1,type="l", ylab="y",  main="Exponential\nY~exp(X)" )#
+#
+y1 <- log(x)#
+plot(x,y1,type="l", ylab="y",  main="Logarithmic\nY~log(X)" )#
+#
+y1 <- 0.5*(1-exp(-2*x))#
+plot(x,y1,type="l", ylab="y",  main="Asymptotic\nY~a(1-exp(-bx))" )#
+#
+y1 <- (0.6*X)/(1+0.5*x)#
+plot(x,y1,type="l", ylab="y",  main="Michaelis–Menten\nY~(ax/(1+bx))" )#
+x <- seq(0,2*pi,2*pi/100)#
+y1 <- cos(x)#
+y2 <- sin(x)#
+plot(x,y1,type="l", ylab="y",  main="Sine\nY~sine(x)" )#
+plot(x,y2,type="l", ylab="y",  main="Sine\nY~cosine(x)" )
+plot(x,y2,type="l", ylab="y",  main="Sine\nY~cosine(x)",cex.main=2 )
+plot(x,y1,type="l", ylab="y",  main="Sine\nY~sine(x)" ,cex.main=2,cex.lab=1.5)
+plot(x,y1,type="l", ylab="y",  main="Sine\nY~sine(x)" ,cex.main=2,cex.axis=1.5)
+plot(x,y2,type="l", ylab="y",  main="Sine\nY~cosine(x)",cex.main=2,cex.axis=1.5,cex.lab=1.5)
+plot(x,y2,type="l", ylab="y",  main="Sine\nY~cosine(x)",cex.main=2,cex.axis=1.5,cex.lab=2)
+par(mfrow=c(3,2))#
+x <- seq(0,10,0.1)#
+y1 <- exp(x)#
+plot(x,y1,type="l", ylab="y",  main="Exponential\nY~exp(X)",cex.main=2,cex.axis=1.5,cex.lab=2)#
+#
+y1 <- log(x)#
+plot(x,y1,type="l", ylab="y",  main="Logarithmic\nY~log(X)",cex.main=2,cex.axis=1.5,cex.lab=2)#
+#
+y1 <- 0.5*(1-exp(-2*x))#
+plot(x,y1,type="l", ylab="y",  main="Asymptotic\nY~a(1-exp(-bx))",cex.main=2,cex.axis=1.5,cex.lab=2)#
+#
+y1 <- (0.6*X)/(1+0.5*x)#
+plot(x,y1,type="l", ylab="y",  main="Michaelis–Menten\nY~(ax/(1+bx))",cex.main=2,cex.axis=1.5,cex.lab=2)#
+x <- seq(0,2*pi,2*pi/100)#
+y1 <- cos(x)#
+y2 <- sin(x)#
+plot(x,y1,type="l", ylab="y",  main="Sine\nY~sine(x)" ,cex.main=2,cex.axis=1.5,cex.lab=2)#
+plot(x,y2,type="l", ylab="y",  main="Sine\nY~cosine(x)",cex.main=2,cex.axis=1.5,cex.lab=2)
+par(mfrow=c(3,2),oma=rep(0.2,4))#
+x <- seq(0,10,0.1)#
+y1 <- exp(x)#
+plot(x,y1,type="l", ylab="y",  main="Exponential\nY~exp(X)",cex.main=2,cex.axis=1.5,cex.lab=2)#
+#
+y1 <- log(x)#
+plot(x,y1,type="l", ylab="y",  main="Logarithmic\nY~log(X)",cex.main=2,cex.axis=1.5,cex.lab=2)#
+#
+y1 <- 0.5*(1-exp(-2*x))#
+plot(x,y1,type="l", ylab="y",  main="Asymptotic\nY~a(1-exp(-bx))",cex.main=2,cex.axis=1.5,cex.lab=2)#
+#
+y1 <- (0.6*X)/(1+0.5*x)#
+plot(x,y1,type="l", ylab="y",  main="Michaelis–Menten\nY~(ax/(1+bx))",cex.main=2,cex.axis=1.5,cex.lab=2)#
+x <- seq(0,2*pi,2*pi/100)#
+y1 <- cos(x)#
+y2 <- sin(x)#
+plot(x,y1,type="l", ylab="y",  main="Sine\nY~sine(x)" ,cex.main=2,cex.axis=1.5,cex.lab=2)#
+plot(x,y2,type="l", ylab="y",  main="Sine\nY~cosine(x)",cex.main=2,cex.axis=1.5,cex.lab=2)
+par(mfrow=c(2,2))#
+x <- seq(0,10,0.1)y1 <- 2+5*x-0.2*x^2#
+plot(x,y1,type="l", ylab="y",  main="decelerating\nY~X+X^2",cex.main=2,cex.axis=1.5,cex.lab=2 )#
+y2 <- 2+5*x-0.4*x^2#
+plot(x,y2,type="l", ylab="y",  main="Hump\nY~X-X^2",cex.main=2,cex.axis=1.5,cex.lab=2)#
+y3 <- 2+4*x-0.6*x^2+0.04*x^3#
+plot(x,y3,type="l", ylab="y",  main="Inflection\nY~X+X^2+X^3",cex.main=2,cex.axis=1.5,cex.lab=2)#
+#
+y4 <- 2+4*x+2*x^2-0.6*x^3+0.04*x^4#
+plot(x,y4,type="l", ylab="y", main="local maxima\nY~X+X^2-X^3+X^4",cex.main=2,cex.axis=1.5,cex.lab=2)
+par(mfrow=c(2,2),width=6,height=6)
+dev.new(width=6,height=6)
+dev.new(width=10,height=10)
+par(mfrow=c(2,2))#
+x <- seq(0,10,0.1)y1 <- 2+5*x-0.2*x^2#
+plot(x,y1,type="l", ylab="y",  main="decelerating\nY~X+X^2",cex.main=2,cex.axis=1.5,cex.lab=2 )#
+y2 <- 2+5*x-0.4*x^2#
+plot(x,y2,type="l", ylab="y",  main="Hump\nY~X-X^2",cex.main=2,cex.axis=1.5,cex.lab=2)#
+y3 <- 2+4*x-0.6*x^2+0.04*x^3#
+plot(x,y3,type="l", ylab="y",  main="Inflection\nY~X+X^2+X^3",cex.main=2,cex.axis=1.5,cex.lab=2)#
+#
+y4 <- 2+4*x+2*x^2-0.6*x^3+0.04*x^4#
+plot(x,y4,type="l", ylab="y", main="local maxima\nY~X+X^2-X^3+X^4",cex.main=2,cex.axis=1.5,cex.lab=2)
+dev.new(width=10,height=12)#
+par(mfrow=c(3,2),oma=rep(0.2,4))#
+x <- seq(0,10,0.1)#
+y1 <- exp(x)#
+plot(x,y1,type="l", ylab="y",  main="Exponential\nY~exp(X)",cex.main=2,cex.axis=1.5,cex.lab=2)#
+#
+y1 <- log(x)#
+plot(x,y1,type="l", ylab="y",  main="Logarithmic\nY~log(X)",cex.main=2,cex.axis=1.5,cex.lab=2)#
+#
+y1 <- 0.5*(1-exp(-2*x))#
+plot(x,y1,type="l", ylab="y",  main="Asymptotic\nY~a(1-exp(-bx))",cex.main=2,cex.axis=1.5,cex.lab=2)#
+#
+y1 <- (0.6*X)/(1+0.5*x)#
+plot(x,y1,type="l", ylab="y",  main="Michaelis–Menten\nY~(ax/(1+bx))",cex.main=2,cex.axis=1.5,cex.lab=2)
+dev.new(width=9,height=12)#
+par(mfrow=c(3,2),oma=rep(0.2,4))#
+x <- seq(0,10,0.1)#
+y1 <- exp(x)#
+plot(x,y1,type="l", ylab="y",  main="Exponential\nY~exp(X)",cex.main=2,cex.axis=1.5,cex.lab=2)#
+#
+y1 <- log(x)#
+plot(x,y1,type="l", ylab="y",  main="Logarithmic\nY~log(X)",cex.main=2,cex.axis=1.5,cex.lab=2)#
+#
+y1 <- 0.5*(1-exp(-2*x))#
+plot(x,y1,type="l", ylab="y",  main="Asymptotic\nY~a(1-exp(-bx))",cex.main=2,cex.axis=1.5,cex.lab=2)#
+#
+y1 <- (0.6*X)/(1+0.5*x)#
+plot(x,y1,type="l", ylab="y",  main="Michaelis–Menten\nY~(ax/(1+bx))",cex.main=2,cex.axis=1.5,cex.lab=2)

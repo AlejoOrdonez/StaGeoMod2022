@@ -1,0 +1,14 @@
+name: RegressionsBasic
+title: RegressionsBasic
+username:
+account: alejandro-ordonez
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 6901471
+bundleId: 6262757
+url: https://alejandro-ordonez.shinyapps.io/RegressionsBasic/
+when: 1662125155.19894
+lastSyncTime: 1662125155.19895
+asMultiple: FALSE
+asStatic: FALSE
+ignoredFiles: RegressionsBasic_files/figure-html/Collin2-1.png|RegressionsBasic.html

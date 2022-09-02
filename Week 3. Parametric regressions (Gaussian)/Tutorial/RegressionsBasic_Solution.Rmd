@@ -1,0 +1,727 @@
+---
+title: "Multiple Linear Regressions (GLMs)"
+author: "Alejandro Ordonez"
+subtitle: "Statistical and Geospatial Modelling"
+output:
+  rmdformats::material:
+    self_contained: TRUE
+---
+
+```{r setup, include=FALSE}
+# Load packages
+library(car)
+
+# options
+knitr::opts_chunk$set(echo = FALSE,
+                      message = FALSE,
+                      warning = FALSE)
+# Load Data
+paruelo <- read.table(file = "https://raw.githubusercontent.com/AlejoOrdonez/StaGeoMod2021/main/paruelo.csv",
+                      header = T,
+                      sep = ,",")
+
+FullMod <- lm(LC3 ~ MAT + MAP + JJAMAP + DJFMAP + LONG + LAT,
+              data = paruelo)
+Lm.Resid <- residuals(FullMod)
+Lm.Fitt <- predict(FullMod)
+PredNames <- c("MAP","MAT","JJAMAP", "DJFMAP", "LONG","LAT")
+Stdz.paruelo <- scale(paruelo[,c("LC3","MAP","MAT","JJAMAP", "DJFMAP", "LONG","LAT")])
+Stdz.Model <- lm(LC3 ~ MAT + MAP + JJAMAP + DJFMAP + LONG + LAT,
+              data = as.data.frame(Stdz.paruelo))
+
+```
+# Before you start.
+
+Paruelo & Lauenroth (1996) analysed the geographic distribution and the effects of climate variables on the relative abundance of a number of plant functional types (PFTs), including shrubs, forbs, succulents (e.g. cacti), C3 grasses and C4 grasses. The latter two PFTs represent grasses that utilise the C from the atmosphere differently in photosynthesis and are expected to respond differently to CO~2~ and climate change. They used data from 73 sites across temperate central North America and calculated the relative abundance of a series of plant functional types (PFTs), including C3 grasses and C4 grasses.
+
+They analysed the geographic distribution and the effects of climate variables on the relative abundance of C3 and C4 grasses. **Here, you will only focus on C3 plants** and you will use the log-transformed variable (`LC3`). Why use the log-transformed relative abundance?, the relative abundances were positively skewed hence needed to be transformed using a log~10~(x+0.1) transformation (log~10~(C3+0.1)), so you can do a least-squares regression (a more detailed explanation for this will come in the next class).
+
+Predictor variables used to describe each evaluated site included the latitude in centesimal degrees (`LAT`), the longitude in centesimal degrees (`LONG`), the mean annual precipitation in mm (`MAP`), the mean annual temperature in C (`MAT`), the proportion of `MAP` that fell in June, July and August (`JJAMAP`) and the proportion of `MAP` that fell in December, January and February (`DJFMAP`).
+
+# Data Exploration: Assessing the information at hand
+
+Now that you have the data on relative abundance and climate variables contained in the paruelo.csv file, it is time to explore the dataset.
+
+In the context of linear regression (that, to be clear, refers to the way parameters are used in the model and not to the type of relationships that are modelled), you need to know whether there are linear or non-linear patterns between response and explanatory variables.
+
+You also need to know whether the data are balanced before including interactions. By balanced, I mean that the number of observations for all possible combinations of interacting variables (e.g., Sex X Age) is similar.
+
+Although data exploration is an essential part of any analysis, it must be separated from hypothesis testing. Decisions about what models to test should be made a priori based on the researcher’s biological understanding of the system. However, data exploration can be used as a hypothesis-generating exercise (i.e., data mining/dredging).
+
+The process you will now take focuses on describing patterns in the data (i.e., outliers and distributions of the response and predictor variables); and assessing eight (8) patterns linked to the five assumptions on a 'linear' regression:
+
+1) **The relation between the response and predictors is linear**. 
+
+2) **The residuals have constant variance at every level of x**.
+
+3) **The residuals of the model are normally distributed**.
+
+4) **No or little multicollinearity between predictors**.
+
+5) **The observations are independent**.
+
+With that in mind, you are now ready to start your data exploration.
+
+# Data Exploration: oultiers in X and Y - 1
+
+In most statistical regression techniques, the results are dominated by outliers. Consequently, the researcher must understand how a particular approach responds to the presence of outliers. As a reminder, an *outlier* is an observation with a relatively large or small value compared to most observations.
+
+A graphical tool typically used for outlier detection is the box-plot (implemented in `R` using the `boxplot ()` function). It visualises the median and the spread of the data.
+
+<div class="alert alert-info">
+**Your task:**
+
+Using the `paruelo` data, you will now build a box plot for each predictor variable described in the **Before you start** section. You will also add a "title" to each plot using the `main` argument.
+
+</div>
+
+
+```{r Outlier1}
+# Build 3x2 plotting space filled row-wise 
+par(mfrow = c(3,2), mar=rep(2,4)) 
+
+# Make a box-plot for MAP
+boxplot(paruelo$MAP,
+        main = "MAP") # adds a "title" to the figure with the name of the plotted variable 
+
+# Make a box-plot for MAT
+boxplot(paruelo$MAT,
+        main = "MAT") # adds a "title" to the figure with the name of the plotted variable 
+
+# Make a box-plot for JJAMAP
+boxplot(paruelo$JJAMAP,
+        main = "JJAMAP") # adds a "title" to the figure with the name of the plotted variable 
+
+# Make a box-plot for DJFMAP
+boxplot(paruelo$DJFMAP,
+        main = "DJFMAP") # adds a "title" to the figure with the name of the plotted variable 
+
+# Make a box-plot for LONG
+boxplot(paruelo$LONG,
+        main = "LONG") # adds a "title" to the figure with the name of the plotted variable 
+
+# Make a box-plot for LAT
+boxplot(paruelo$LAT,
+        main = "LAT") # adds a "title" to the figure with the name of the plotted variable 
+```
+<div class="alert alert-success">
+**Question: For which variable can you detect outlier observation**
+When you check the box-plots for all evaluated variables, you do not see any outlieres,
+</div>
+
+# Data Exploration: oultiers in X and Y - 2
+
+Another very useful but highly neglected graphical tool to
+visualise outliers is the Cleveland dot-plot - a graph in which the row of an observation is plotted against the observation value. Cleveland dot-plots provide much more detailed information than a box-plot. Points that stick out on the right-hand side or the left-hand side are observed values that are considerably larger or smaller than most of the observations and require further investigation.
+
+<div class="alert alert-info">
+**Your task:**
+
+Using the data from the `paruelo`, you will build a Cleveland dot plot for each predictor variable. But this time you will use a `for()` loop to create the figure.
+
+A key feature of Cleveland dot-plots is that the data is sorted (for this, you need to use the `sort()` function). So you will need to create an ordered object with observations before creating the plot.
+
+</div>
+
+
+```{r Outlier3}
+# Build 3x2 plotting space filled row-wise 
+par(mfrow = c(3,2), mar=rep(4,4)) # here you define the 'margins" - blank space between plotting areas)
+
+# Create an object named PredNames that has the names of the variables you want to plot.
+PredNames <- c("MAP","MAT","JJAMAP", "DJFMAP", "LONG","LAT")  
+
+# initialize your loop using i as an iterator and cycling through PredNames (which is in the memory)
+for (i in PredNames){ # Here you need specify a object `in` range of values 
+# Create and object names EvalVar with the variables of interest
+  EvalVar <- paruelo[,i]
+# Sort the EvalVar object in increasing order for this you need to use the function sort() and the decreasing argument
+  EvalVar <- sort(x = EvalVar, # Variable to sort
+                  decreasing = F) # increasing or decreasing?
+#plot the Sorted variable of interest
+   plot(EvalVar, # Variable to plot
+        pch = 19,cex=0.5, # Filled circles of half size
+        main = i ) # add a title to the plot
+}
+```
+
+<div class="alert alert-success">
+**Question: For which variable can you detect outlier observation?**
+There are no outliers. All fall within the trend of the variable."
+</div>
+
+# Data Exploration: Is there homogeneity of variances - 1?
+
+Homogeneity of variance is an essential assumption in the analysis of variance (ANOVA), other regression-related models and multivariate techniques like discriminant analysis. In the **paruelo** dataset case, assessing if the relative abundance of C3 is affected by environmental conditions and/or spatial gradients variation in the relative abundance of C3 observations is similar across the range of the evaluated predictor variables (that is what *homoscedasticity* means).
+
+The problem is that in regression-type analyses, verification of homogeneity of variances is done after you build the regression model by using the model's residuals. For this, you will plot the residuals vs. the fitted values or vs. predictors (in the case of categorical predictors, these plots will be conditional box-plots).
+
+<div class="alert alert-info">
+**Your task:**
+
+Here you will evaluate if the variance in the relative abundance of C3 observations is homogeneous across all predictors. **Remember that the response variable here is `LC3`**. For this, you will assess this assumption for each of the six predictors individually. Like before, use a loop to determine homoscedasticity of C3 relative abundance across predictors.
+
+* Is the variance of relative abundance of C3 observations homoscedastic for individual variables?
+</div>
+
+```{r HomVar2}
+# Build 3x2 plotting space filled row-wise 
+par(mfrow = c(3,2),# you need to specify two values here the number of rows an the number of columns
+    mar=rep(4,4)) # here you define the 'margins" - blank space between plotting areas)
+
+# initialise your loop using i as an iterator and cycle through PredNames (which is in the memory)
+for (i in PredNames){ # Here, you need to specify an object `in` range of values 
+# Create a new subset data.frame named DF.Reg that only contains ONLY the relative abundance of C3 and the evaluated predictors as variables
+  DF.Reg <- paruelo[,c("LC3",i)]
+# Build a regression model, using the lm() function, and store it as an object named Lm.Mod 
+  Lm.Mod <- lm(LC3 ~ ., # This is a special way to define a regression in R, where the variable defined as a response is regressed against ALL other variables in the data.frame referred to in the next argument.
+               data = DF.Reg) # specify the data.frame object with ONLY the transformed relative abundance of C3 [LC3] and the evaluated predictors data 
+# Extract the residuals from the Lm.Mod object created above using the residuals() function.
+# Save the result into an object named Lm.Resid
+  Lm.Resid <- residuals(Lm.Mod)
+# Extract the fitted/predicted values from the Lm.Mod object created above using the predict() function.
+# Save the result into an object named Lm.Fitt
+  Lm.Fitt <- predict(Lm.Mod)
+# Plot the Residuals vs Predicted values
+  plot(Lm.Resid ~ Lm.Fitt,
+       pch=19, # This argument as defined sets the plotting point to a filled dot.
+       xlab = "Fitted values", # This argument define the text to be added as the x-axis label
+       ylab = "Residuals", # This argument define the text to be added as the y-axis label
+       main = i) # This argument define the text to be added figure title
+# Add a horizontal line using the abline() function at zero for reference
+  abline(h=0)
+}
+```
+<div class="alert alert-success">
+**Question: For which variables is the variance of the transformed relative abundance of C3 observations [LC3] homoscedastic?**
+For MAP, MAT, and LAT, the residual variation is not similar across fitted values."
+</div>
+
+# Data Exploration: Is there homogeneity of variances - 2?
+
+Homogeneity of variance is an essential assumption in the analysis of variance (ANOVA), other regression-related models and multivariate techniques like discriminant analysis. In the **paruelo** dataset case, assessing if the relative abundance of C3 is affected by environmental conditions and/or spatial gradients variation in the relative abundance of C3 observations is similar across the range of the evaluated predictor variables (that is what *homoscedasticity* means).
+
+<div class="alert alert-info">
+**Your task:**
+
+Now you will evaluate the variance in the relative abundance of C3 observations is homogeneous across all predictors. For this, you will build a multiple regression where all six predictors are combined into a single additive model **with no interactions**. **Again, remember that your response variable is `LC3`**. Is the variance of relative abundance of C3 observations homoscedastic when considered across multiple predictors?
+</div>
+
+```{r HomVar1}
+# Build a regression model using the lm() function where all six variables predict the relative abundance of C3 observations. # save the model as an object named FullMod
+FullMod <- lm(LC3 ~ MAT + MAP + JJAMAP + DJFMAP + LONG + LAT,
+              data = paruelo)
+FullMod
+# Now extract the residuals and save them into an object named Lm.Resid. For this, use the residuals() function
+Lm.Resid <- residuals(FullMod)
+# Now extract the fitted values and save them into an object named Lm.Fitt.  For this, use the predict() function
+Lm.Fitt <- predict(FullMod)
+# Plot the Residuals vs Predicted values
+par(mfrow =c(1,1))
+  plot(Lm.Resid ~ Lm.Fitt,
+       pch=19, # This argument, as defined, sets the plotting point to a filled dot.
+       xlab = "Fitted values", # This argument defines the text to be added as the x-axis label
+       ylab = "Residuals", # This argument define the text to be added as the y-axis label
+       main = "All variables", # This argument define the text to be added figure title
+      ylim = c(-max(abs(Lm.Resid)), # a new argument you will use here is ylim to set the lower and upper limits of the y-axes. For this, you will specify a vector of two-element with the lower and upper limits. This will allow you to make the y-axis symmetric.
+               max(abs(Lm.Resid)))) 
+# Add a horizontal line using the abline() function at zero for reference  
+  abline(h=0)
+```
+
+<div class="alert alert-success">
+**Is the variance of relative abundance of C3 observations homoscedastic?**
+The residual variation is not similar across all levels of fitted values (the spread increases as fitted values increase.
+</div>
+
+# Data Exploration: Are the residuals normally distributed?
+
+Various statistical techniques assume normality. A blind read of this assumption can lead to the production of histogram after histogram of the evaluated data. However,what is essential to know is *what exactly is assumed to be normally distributed on a given statistical technique*. In linear regression, what is assumed is the normality of all the replicate observations at a particular covariate value. Still, the technique is reasonably robust against violation of the assumption. In the case of comparison text like ANOVAs and simple t-tests, the observations in each group need to be normally distributed; hence you should examine histograms for the raw data of every group.
+
+Now let's go back to the linear regression. You cannot verify the normality assumption unless one has many replicates at each sampled covariate value. However, *normality of the raw data implies normality of the residuals*. Therefore, you can make histograms of residuals (using the `hist()` or `density()` functions) to get some impression of normality even though you cannot fully test the assumption. 
+
+<div class="alert alert-info">
+**Your task:**
+
+Using a simple multivariate additive model (that is and additive combination of the used predictors) build in the section above (that is the `Lm.Resid` object), you will now assess if the residuals are normally distributed. For this, you will:
+
+* Generate a histogram (using the `hist()` function) of the residuals of the simple multivariate additive model.
+</div>
+```{r NormRes2}
+# Use the hist() function to display the distribution of the residuals
+hist(Lm.Resid)
+#
+```
+<div class="alert alert-success">
+**Based on this histogram, is the residual variation normally distributed?**
+The histogram would appear to be normal
+</div>
+
+<div class="alert alert-info">
+**Your task:**
+
+Using a simple multivariate additive model, you will build before you will:Using a simple multivariate additive model (that is and additive combination of the used predictors) build in the section above (that is the `Lm.Resid` object), you will now assess if the residuals are normally distributed. For this, you will:
+
+* Plot a q-q plot of the residuals, using the `qqnorm()` and `qqline()` functions.
+
+</div>
+
+```{r NormRes3}
+# use the qqnorm() and qqline() functions to plot a qqplot
+qqnorm(Lm.Resid) # use the qqnorm() on the object containing the residuals to make a q-q plot
+qqline(Lm.Resid) # use the qqline in the object containing the residuals to add the expectation line
+```
+<div class="alert alert-success">
+**Based on the q-q plot, is the residual variation normally distributed?**
+Although there is variability in the theoretical-observed trend, the residuals appear normally distributed
+</div>
+
+<div class="alert alert-info">
+**Your task:**
+
+Using a simple multivariate additive model, you will build before you will:Using a simple multivariate additive model (that is and additive combination of the used predictors) build in the section above (that is the `Lm.Resid` object), you will now assess if the residuals are normally distributed. For this, you will:
+
+* Use the Shapiro–Wilk test (executed using the `shapiro.test()` function) to assess the normality of the residuals.
+</div>
+
+```{r NormRes4}
+# Implement the shapiro.test() function to assess normality of the residuals. Remember that a non-significant test (p>0.05) means that the observed and expected distribution (in this case, normal) are the same.
+shapiro.test(Lm.Resid)
+```
+
+<div class="alert alert-success">
+**Based on this Shapiro–Wilk test, is the residual variation normally distributed?**
+The residual variation is normally distributed because the p-value (0.2301) is larger than 0.05."
+</div>
+
+# Data Exploration: Is there collinearity among the covariates? - 1
+
+Suppose the underlying question in a study is which predictors (also named covariates in a multiple regression framework) determine the changes in a response variable. In that case, the biggest problem to overcome is often **collinearity** - the existence of a correlation between covariates. Typical examples are covariates like weight and length or water depth and distance to the shoreline.
+
+If collinearity is ignored, one is likely to end up with a confusing statistical analysis in which nothing is significant, but were dropping one covariate can make the others significant or even change the sign of estimated parameters.
+
+Although here I discussed the effect of collinearity in the context of multiple linear regression,  similar problems exist in other statistical analyses linking multiple predictors (e.g., analysis of variance, mixed-effects models, RDA, CCA, GLMs or GAMs). Two important points of clarification are:
+
+1) Collinearity **ONLY** considers the **predictors/covariates**.
+2) Collinearity analyses try to assess the information in one predictors/covariates is is already contained in the sample data for another(s).
+
+*How to assess the level of collinearity between variables?* One way is to assess the correlations between predictors/covariates, as it provides a first approximation to the level of redundancy. This means assessing all pairwise correlations between predictors/covariates, which in simple models is feasible, but becomes complicated as the number of predictors/covariates increases. 
+
+<div class="alert alert-info">
+**Your task:**
+
+Estimate all the pairwise correlations and their significance) between all six predictors in the `paruelo` object for this, you will:
+
+* Estimate the pairwise Pearson correlation coefficients between predictors, presenting these in a table.
+
+</div>
+
+```{r Collin1}
+# Estimate the pairwise Pearson correlation coefficients between predictors and present these as a table. For this you will use the cor() function 
+cor(paruelo[,PredNames])
+```
+
+<div class="alert alert-info">
+**Your task:**
+
+Estimate all the pairwise correlations and their significance) between all six predictors in the `paruelo` object for this, you will:
+
+* Using the `plot()` function, build a figure where all pairwise combinations between predictors are visualised as scatter-plots.
+
+</div>
+
+```{r Collin2}
+# using the function `plot()` build a figure where all pairwise combinations between predictors (use predictors here).
+plot(paruelo[,PredNames])
+```
+
+<div class="alert alert-success">
+**Is there collinearity between preditors?**
+Yes, for pair such as MAP-Long, MAT-LAT, and DJFMAP-LONG, the correltions are rather high (>0.7)
+</div>
+
+# Data Exploration: Is there collinearity among the covariates? - 2
+
+The issue with the methods above is that they become cumbersome when you have many predictors and can only evaluate pairs of these at a time. A more robust and objective way to assess collinearity is to estimate the tolerance (or its' inverse, the variance inflation index or VIF). You can think of these indexes as the measurement of the "redundancy" of predictors, given the information contained in the other predictors.
+
+The tolerance and variance inflation index are assessed with the model R^2^, where all the other covariates explain a given predictor. The term R~j~^2^ is the R^2^ from a linear regression model in which covariate X~j~ is used as a response variable and all other covariates as explanatory variables. A high R^2^ in such a model means that most of the variation in covariate X~j~ is explained by all other covariates, which means there is collinearity.
+
+The tolerance for a predictor X~j~ is simply 1 - R^2^ from the regression of X~j~ against the remaining predictor variables. The VIF merely is the inverse of the tolerance (1 / (1 - R^2^)). An approximate guide is to worry is a tolerance value of less than 0.1 (that is, a VIF > than 10). That means 90% of the variation in X~j~ is explained by the other variables. A more stringent approach is considered tolerance problematic for values lower than 0.3 (VIF values larger than thee).
+
+One strategy for addressing the collinearity problem is to sequentially drop the covariate with the lowest tolerance, recalculate the tolerance and repeat this process until all Tolerances are larger than a preselected threshold (0.1 or 0.33).
+
+
+<div class="alert alert-info">
+**Your task:**
+
+Estimate the tolerance and VIF for all six predictors in the `paruelo` object. Use a Loop to estimate the tolerances for all variables.
+
+</div>
+
+```{r Collin3}
+# Create a vector with only NA values named Tol.Summ to store the tolerance values
+Tol.Summ <- rep(x = NA,
+                times = length(PredNames))
+# give names to each place in the vector using PredNames
+names(Tol.Summ) <- PredNames
+
+# Use a for loop across predictors (remember the names are in PredNames) to estimate the tolerance.
+for (i in PredNames){
+# Create new data.frame named Tol.DF was the first variable tested.
+  Tol.DF <- data.frame(Pred = paruelo[,i], # the data of the predictor variable being tested should be included here  - call it using the i iterator.
+                       paruelo[,PredNames[!PredNames%in%i]])# Add the other predictor variables here. For this, use the logical test !PredNames%in%i (each select all predictors variable EXECEPT i). 
+  
+  # Build an lm model to predict the predictor of interest as a function of all other predictors. Save this model as Tol.LM.
+    Tol.LM <- lm(Pred~.,
+                 data = Tol.DF) 
+# To estimate the tolerance for the predictor of interest, the first step is to extract the R2 from the regression model and store it as an object name Tol.R2
+    Tol.R2 <- summary(Tol.LM)$r.squared #
+
+# estimate the tolerance (1-R2) and save it in the corresponding position of the Tol.Summ you created before the loop. 
+    Tol.Summ[i] <- 1 - Tol.R2
+}    
+
+# now Call the vector Tol.Summ you created before the loop 
+Tol.Summ
+```
+
+<div class="alert alert-success">
+**Which variable should be removed due to high collinearity variable?**
+While DJFMAP is the most collinear variable with a tolerance value of 0.18 (VIF = 5.7), based on the normally used tolerance threshold of 0.1, there is no collinearity."
+</div>
+
+# Data Exploration: What are the relationships between `Y` and `X` variables?
+
+Another essential part of data exploration, especially in univariate analysis, is plotting the response variable vs. each predictor. *Why do this?* mainly to assess the possible patterns between the response and explanatory variables. However, it is essential to note that the absence of clear patterns does not mean any relationships! It means that there are no clear two-way (response to one predictor) relationships. A model with multiple explanatory variables may still provide a good fit.
+
+Besides visualising relationships between variables, scatter plots are also useful to detect observations that do not comply with the general pattern between two variables. Here notice any observation that sticks out from the cloud of observations - these need(s) further investigation. Such "odd" values might indicate, for example, different species, measurement errors, typing mistakes, or they may be correct values after all.
+
+<div class="alert alert-info">
+**Your task:**
+
+Make multi-panel scatter-plots showing the relation between the relative abundance of C3 grasses and each covariate.
+
+For each panel add the regression line (using the `abline()` function) and the Pearson correlation coefficient (using the `legend()` function).
+
+</div>
+
+```{r BivarRel}
+# Build 3x2 plotting space filled row-wise 
+par(mfrow = c(3,2), # you need to specify two values here the number of rows and the number of columns
+    mar=c(4,4,2,2)) # here you define the 'margins" - blank space between plotting areas)
+
+# Now lets loop across predictors to estimate the Tolerance.
+for (i in PredNames){
+# Subset paruelo to create a new data.frame named Temp.DF that has LC3 and the predictor evaluated
+  Temp.DF <- paruelo[,c(i,"LC3")]
+# Plot the bivariate relation
+  plot(x = Temp.DF[,i], # Call the predictor
+       y = Temp.DF$LC3, # Call the response (LC3)
+       pch = 19, # Set the points to a filled dot
+       xlab = i, # Set the Name for the X-axis
+       ylab = "LC3") # Set the Name for the Y-axis
+# Add the regression line - using the abline function
+# First create a regression object named Reg.Temp that has the regression between LC3 and the predictor
+Reg.Temp <- lm(paruelo$LC3 ~ paruelo[,i])
+# Using the abline function plot the object with the regression object
+abline(Reg.Temp, # The regression object
+       col="red", # Set the line colour to "red"
+       lwd=1.5) # make the plotted line thicker
+}
+```
+
+<div class="alert alert-success">
+**Which variables show a relation with LC3?**
+Of the predictors, only MAT and latitude show a significant correlation with LC3.
+</div> 
+
+# Data Exploration: Are observations of the response variable independent?
+
+A crucial assumption of most statistical techniques is that observations are independent of one another, meaning that information from anyone observation should not provide information on another after the effects of other variables have been accounted for.
+
+Examples of when you do not have independence in the observation are when samples are taken "to close" to each other - locations close to each other have characteristics that are more similar to each other than those from locations separated by larger distances. This "similarity" is a violation of the independence assumption. Another example is when multiple individuals of the same family (e.g. all of the young from one nest) are sampled; these individuals might be more similar to each other than random individuals in the population because they share a similar genetic make-up and similar parental provisioning history.
+
+When such dependence arises, the statistical model used to analyse the data needs to account for it via modelling any spatial or temporal relationships or by nesting data in a hierarchical structure - *something I will talk about later in the course*.
+
+Testing for independence, however, is not always easy. The best and simplest way is to assess if the model residuals contain any dependence structure (if you see **heteroscedasticity**, then there is likely a dependence structure). Quite often, a residual correlation structure is caused by an important covariate that was not measured. If this is the case, it may not be possible to resolve the problem.
+
+You can use space to assess independence by plotting the response variable vs. spatial coordinates (`LAT` and `LON`). If you had a time series, you con them plot the response variable vs. time. These plots are called variograms (for irregularly spaced time series and spatial data) or auto-correlation functions (ACF) for regularly spaced time series/spatial data.
+
+<div class="alert alert-info">
+**Your task:**
+
+Now you will evaluate if the independence of the Observations. For this, plot the residuals (`Lm.Resid`a`) vs. the response variable (`LC3`).
+</div>
+
+```{r Independ1}
+# Plot the Residuals vs response variable
+  plot(Lm.Resid ~ LC3,
+       data = paruelo,
+       pch=19, # This argument, as defined, sets the plotting point to a filled dot.
+       xlab = "LC3", # This argument defines the text to be added as the x-axis label
+       ylab = "Residuals", # This argument define the text to be added as the y-axis label
+       main = "All variables", # This argument define the text to be added figure title
+      ylim = c(-max(abs(Lm.Resid)), # a new argument you will use here is ylim to set the lower and upper limits of the y-axes. For this, you will specify a vector of two-element with the lower and upper limits. This will allow you to make the y-axis symmetric.
+               max(abs(Lm.Resid)))) 
+# Add a horizontal line using the abline() function at zero for reference
+  abline(h=0)
+```
+
+<div class="alert alert-success">
+**Do you see any patterns in the residuals?**
+There is a consistent upward trend in the residuals. This means the observations are not independent of each other - something you can expect if you consider that this is spatial data
+</div> 
+
+# Multiple Linear Regressions - first implementation
+
+The essence of regression analysis is using sample data to estimate parameter values and their standard errors. The thing to understand is that there is nothing difficult or mysterious about estimating the regression parameters. In `R` using the `lm()` function  (which stands for ‘linear model’; note that the first letter of the function name `lm` is a lower case L, not a number one) is the simplest way to do this. All you need do is tell `R` which of the variables is the response variable and which is (are) the explanatory variable(s). The response variable goes on the left of the tilde `∼`, and the explanatory variable(s) go on the right, like this: `y ∼ x1 + x2 + x3`. When you execute the `lm()` function, you can also specify where the data is coming from using the `data` argument.
+
+*So where does `R` get its coefficients from?* you need to do some calculations to find this out. However, the important thing is to remember that what you want are the maximum likelihood estimates of the parameters. That is to say that, given the data and having selected a linear model, and you want to find the values of the slope(s) and intercept that make the data most likely. 
+
+The difference between each data point and the value predicted by the model at the same value of x is called a residual. Some residuals are positive (above the line), and others are negative (below the line). These residuals describe the goodness of fit of the regression line. Your maximum likelihood model is defined as *the model that minimises the sum of the squares of these residuals*.
+
+<div class="alert alert-info">
+**Your task:**
+
+You have a regression object (`FullMod`). Plot the regression object to see what is shown.
+</div>
+
+```{r Reg2}
+# Build 2x2 plotting space filled row-wise 
+par(mfrow = c(2,2), # you need to specify two values here the number of rows and the number of columns
+    mar=c(4,4,2,2)) # here you define the 'margins" - blank space between plotting areas)
+# use the plot function on the lm object named FullMod
+plot(FullMod)
+```
+
+<div class="alert alert-success">
+**What is represented in this figure?**",
+  * The upper/lower left panel shows if there is homogeneity in the variances.
+  * The upper right panel show that the residuals are mostly normally distributed.
+  * The lower right panel show that no value has large leverage (has a strong influence on the regression parameters.
+  * The lower right panel show that no value has large leverage (has a strong influence on the regression parameters - but observation 31 has some influence as it has large leverage but is not a problem as it has a low residual), or can be considered an outlier.
+</div>
+
+# Multiple Linear Regressions - standardised regression coefficients
+
+Standardised (regression) coefficients, also called beta coefficients or beta weights, are the estimates resulting from a regression analysis where the underlying data have been standardised so that the variances of dependent and independent variables are equal to 1. Therefore, ** standardised coefficients are unit-less and refer to how many standard deviations a dependent variable will change, per standard deviation increase in the predictor variable**.
+
+*Why do you need to do this?* Standardisation of the coefficient is usually done to answer the question of which of the independent variables have a greater effect on the dependent variable in a multiple regression analysis where the variables are measured in different units of measurement (for example, income measured in dollars and family size measured in the number of individuals). It may also be considered a general measure of effect size, quantifying the "magnitude" of the effect of one variable on another. The standardised regression coefficient equals the correlation between the independent and dependent variables for simple linear regression with orthogonal predictors.
+
+There are two ways of generating standardised regression coefficients:
+
+1) A regression carried out on standardised variables produces standardised coefficients.
+
+2) Rescale the un-standardised coefficients ($\beta_{x}$) obtained from a regression carried out on original (un-standardised) variables by dividing the coefficient by the ratio between the predictor ($S{x}$) and  response ($S{y}$) standard deviation ($\beta_{x-std}=\frac{S{x}}{S{x}}*\beta_{x}$).
+
+<div class="alert alert-info">
+**Your task:**
+Create a new `data.frame` including `LC3` and all six predictors, and use the `scale()` function to standardise both the response and the predictor variables.
+</div>
+
+```{r StdzPred1}
+# For ease, generate an object named Stdz.paruelo where you will store `LC3` and the used of predictors
+Stdz.paruelo <- paruelo[,c("LC3", # the name of the response
+                            PredNames)]# the name of the predictors
+# Use the scale() function on Stdz.paruelo to scale the predictors
+Stdz.paruelo <- scale(Stdz.paruelo)
+
+# Print the Five first rows of Stdz.paruelo
+head(Stdz.paruelo)
+
+```
+<div class="alert alert-info">
+**Your task:**
+
+Estimate the standardised regression coefficients using the standardised `data.frame` you just created (`Stdz.paruelo`).
+
+</div>
+
+```{r StdzPred2}
+# use the Stdz.paruelo object to generate a regression object named Stdz.Model1
+Stdz.Model <- lm(LC3 ~ MAT + MAP + JJAMAP + DJFMAP + LONG + LAT,# the regression formula
+              data = as.data.frame(Stdz.paruelo)) # Call the object with the Scaled data
+
+# use the summary() function to see the regression coefficients
+summary(Stdz.Model)
+
+```
+
+<div class="alert alert-info">
+**Your task:**
+
+Estimate the standardised regression coefficients using the coefficient standardization formula: ($\beta_{x-std}=\frac{S{x}}{S{x}}*\beta_{x}$)
+</div>
+
+
+```{r StdzPred3}
+# Estimate the SD of all the variables - use the apply function for this. Save this in an object named SD.Vars
+SD.Vars <- apply(paruelo[,c("LC3", # the name of the response
+                            "MAT", "MAP", "JJAMAP", "DJFMAP", "LONG", "LAT")],# the name of the predictors])
+                 MARGIN = 2, # On what margin to do the operation (1=rows, 2= columns)
+                 sd) # the function to be applied
+
+# estimate the ratio between each predictor SD and the response SD. Save this as SDrto
+SDrto <- SD.Vars[-1] / SD.Vars[1]# the SD of ALL the predictors / SD of the response
+        
+# using the coef() function, extract the coefficients from the regression carried out on original variables (FullMod). Save this as UnStdz.Coef
+UnStdz.Coef <- coef(FullMod)
+# Use the formula to standardise the regression coefficients. YOU WILL OMIT THE (Intercept) - > multiply the un-standardised coefficients by the sd ratio (SDrto)
+UnStdz.Coef[-1] * SDrto
+```
+
+<div class="alert alert-success">
+**How do the standardized coefficients estimates using each approach compare to each other?**
+They are the same.
+</div>
+
+# Multiple Linear Regressions - Summary of the Results
+
+Once you have done both the regressions on original and standardised variables, a table summarises the results. 
+
+<div class="alert alert-info">
+**Your task:**
+
+Build a `data.frame` that contains the points in the table below. Do this by extracting information of the objects you have created beforehand, **NOT BY TYPING THE VALUES!**
+
++-------------+----------+----------------+--------------------------+-----------+---+---+
+| Coefficient | Estimate | Standard Error | Standardised Coefficient | Tolerance | t |$p$|
++=============+==========+================+==========================+===========+===+===+
+| Intercept   |          |                |                          |           |   |   |
++-------------+----------+----------------+--------------------------+-----------+---+---+
+| LAT         |          |                |                          |           |   |   |
++-------------+----------+----------------+--------------------------+-----------+---+---+
+| LONG        |          |                |                          |           |   |   |
++-------------+----------+----------------+--------------------------+-----------+---+---+
+| MAP         |          |                |                          |           |   |   |
++-------------+----------+----------------+--------------------------+-----------+---+---+
+| MAT         |          |                |                          |           |   |   |
++-------------+----------+----------------+--------------------------+-----------+---+---+
+| JJAMAP      |          |                |                          |           |   |   |
++-------------+----------+----------------+--------------------------+-----------+---+---+
+| DJFMAP      |          |                |                          |           |   |   |
++-------------+----------+----------------+--------------------------+-----------+---+---+
+
+</div>
+
+```{r SummTbl}
+# Generate three objects 
+# 1. Store the summary of the regression carried out on original data (FullMod). name this sum.par.lm 
+sum.par.lm <- summary(FullMod)
+
+#2.  Store the summary of the regression carried out on standardised data (Stdz.Model). name this sum.par.lm.scaled 
+sum.par.lm.scaled <- summary(Stdz.Model)
+
+#3. Create a vector called tolerances with the tolerance for each variable - use the function vif() for this
+tolerances <- vif(Stdz.Model)
+
+# Merge all the elements into a single data.frame
+par.table <- cbind(sum.par.lm$coefficients[, 1:2], # un-standardised coefficients and SD
+                   sum.par.lm.scaled$coefficients[, 1], # standardized coefficients
+                   c(NA, tolerances), # Tolerances
+                   sum.par.lm$coefficients[, 3:4]) # un-standardised coefficients T value and P value
+
+colnames(par.table) <- c("Estimate", "Standard error", "Stdandard coefficient", "Tolerance", "t", "p")
+round(par.table,3)
+```
+
+# Multiple Linear Regressions - How good is my model
+
+In statistics, the coefficient of determination denoted R^2^ or r^2^ and pronounced *R squared* is the proportion of the variation in the dependent variable that is predictable from the independent variable(s). **In a general form, R^2^ can be seen to be related to the fraction of variance explained by the model**.
+
+It is a statistic used in the context of statistical models whose main purpose is to either predict future outcomes or test hypotheses based on other related information. It measures how well-observed outcomes are replicated by the model, based on the proportion of total variation of outcomes explained by the model.
+
+For a simple linear regression, r^2^ is used instead of R^2^. When an intercept is included, then r^2^ is simply the square of the sample correlation coefficient (i.e., Pearson correlation) between the observed outcomes and the observed predictor values. If multiple predictors are included, R^2^ is the square of the coefficient of multiple correlations. In both such cases, the coefficient of determination normally ranges from 0 to 1.
+
+The use of an adjusted R^2^ (one common notation is $\overline{R^2}$, pronounced "R bar squared"; another is R^2^~adj~) is an attempt to account for the phenomenon of the R^2^ automatically and spuriously increasing when extra explanatory variables are added to the model.
+
+The adjusted R^2^ can be negative, and its value will always be less than or equal to that of R^2^. Unlike R^2^, the adjusted R^2^ increases only when the increase in R^2^ (due to the inclusion of a new explanatory variable) is more than one would expect to see by chance.
+
+Adjusted R^2^ can be interpreted as a less biased estimator of the population R^2^, whereas the observed sample R^2^ is a positively biased estimate of the population value. Adjusted R^2^ is more appropriate when evaluating model fit (the variance in the dependent variable accounted for by the independent variables) and comparing alternative models in the feature selection stage of model building.
+
+<div class="alert alert-info">
+**Your task:**
+
+Extract the model coefficient of determination and adjusted-coefficient of determination for both the modes.
+Do this for both the original model and the one run with standardised data.
+  
+Does the fit of the model change if you use standardised or the original data?
+</div>
+
+```{r Rsqrd}
+# To extract the R^2 and adjusted-R^2 you need to use the `adj.r.squared` and `r.squared` subscripts on an object that builds the summary of an object created with the function `lm`
+# r.squared for a regression carried out on original data 
+summary(FullMod)$r.squared
+
+# adj.r.squared for a regression carried out on original data 
+summary(FullMod)$adj.r.squared
+
+# r.squared for a regression carried out on standardised data 
+summary(Stdz.Model)$r.squared
+
+# adj.r.squared for a regression carried out on standardised data 
+summary(Stdz.Model)$adj.r.squared
+
+```
+
+<div class="alert alert-success">
+**Does the fit of the model change if you use standardised or the original data?**
+The fit is not affected by theuse of standarized predictors.
+</div>
+
+# Multiple Linear Regressions - Minimum Adequate Model
+
+Fitting models to data is the central function of R. The process is essentially one of exploration; there are no fixed rules and no absolutes. The object is to determine a minimal adequate model from the large set of potential models that might be used to describe the given set of data.
+
+The stepwise progression from the saturated/maximal model (one with all variables and interactions ) through a series of simplifications to the minimal adequate model is made based on deletion/addition tests. These are F-tests or chi-squared tests that assess the significance of the increase in fit due to a given term being removed/added from the current model. This process is named **stepwise selection**, with forward stepwise selection when variables are added sequentially to a model; and backwards stepwise selection when variables are sequentially removed.
+
+<div class="alert alert-info">
+**Your task:**
+
+Run a forward selection procedure. For each process, extract the regression coefficients of the reduced model.
+</div>
+
+```{r MAM1}
+# Using the step() function, make a forward stepwise selection on the model with standardised regression coefficients. Save this into a object call FrwdSel
+FrwdSel <- step(Stdz.Model, # an object representing a model to simplify
+                direction = "forward") # forward or backward
+#extract the regression coefficients using the function coef()
+coef(FrwdSel)
+#Get the adjusted R-squared
+summary(FrwdSel)$adj.r.squared
+```
+<div class="alert alert-info">
+**Your task:**
+
+Run a backward selection procedure. For each process, extract the regression coefficients of the reduced model.
+</div>
+
+```{r MAM2}
+# Using the step() function, make a Backwards stepwise selection on the model with standardised regression coefficients. Save this into a object call BackSel
+BackSel <- step(Stdz.Model, # an object representing a model to simplify
+                direction = "backward") # forward or backward
+#extract the regression coefficients using the function coef()
+coef(BackSel)
+#Get the adjusted R-squared
+summary(BackSel)$adj.r.squared
+```
+
+<div class="alert alert-success">
+**Are the same variables selected by the backwards and forward selection procedures?**
+The backwards stepwise selection selects a shorter list of variables (JJAMAP, DJFMAP, LAT), while the forward selection includes all variables."
+</div>
+<div class="alert alert-success">
+**Based on the adjusted R-squared, which selection procedure resulted in a better fitting model?**
+Based on the adjusted R-squared, the backwards stepwise selection results in a better model.
+</div>
+
+# Multiple Linear Regressions - Last points
+
+Here, you started by considering the main points to consider when doing regression analyses. This is important as it assesses fundamental questions: is the underlying data appropriate for a given analysis. By assessing this, you can avoid the problems that can lead to statistical
+models that are wrong. The systematic data exploration presented here is necessary before embarking on the analysis stage of your project.
+
+Once you know what you can do, it is important to know that there is no simple formula for finding the minimal adequate model, but there are steps to take:
+1) Create a full factorial model of your data.
+2) Begin to look for the best model that fits the data.
+3) Confirm ’s choices with your stepwise deletion procedure.
+4) When you have found the best fit, check the model’s normality and constant variances assumptions.
