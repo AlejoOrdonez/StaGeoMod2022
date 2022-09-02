@@ -1,0 +1,35 @@
+﻿Code,Name
+110000,Building
+121000,Low built up
+121110,Low built up; Building
+122000,High built up
+122110,High built up; Building
+123000,City centre
+123110,City centre; Building
+124000,Other built up
+124110,Other built up; Building
+125000,Industry/business
+125110,Industry/business; Building
+126000,Airport/runway
+126110,Airport/runway; Building
+130000,Recreation area/sports ground
+130110,Recreation area/sports ground; Building
+141000,"Road, paved"
+142000,"Road, not paved"
+150000,Railway
+150110,Railway; Building
+160000,Resource extraction
+211000,"Agriculture, intensive, temporary crops"
+212000,"Agriculture, intensive, permanent crops"
+220000,"Agriculture, extensive"
+230000,"Agriculture, not classified"
+311000,Forest
+312000,"Forest, wet"
+321000,"Nature, dry"
+321220,"Nature, dry; Agriculture, extensive"
+322000,"Nature, wet"
+322220,"Nature, wet; Agriculture, extensive"
+411000,Lake
+412000,Stream
+420000,Sea
+800000,Unmapped

@@ -1,0 +1,1150 @@
+---
+title: "Using `Spatial*` and `Raster` Data in R"
+author: "Alejandro Ordonez"
+documentclass: "report"
+output: 
+  learnr::tutorial:
+  progressive: true
+runtime: shiny_prerendered
+---
+
+
+```{r setup, include=FALSE}
+# Load packages
+library(learnr)
+library(tidyverse)
+library(raster)
+library(rgdal)
+library(sp)
+library(maptools)
+library(mapview)
+
+# options
+knitr::opts_chunk$set(echo = FALSE)
+gradethis::gradethis_setup()
+
+# Load the Base information
+CRS.String <- "+proj=aea +lat_1=20 +lat_2=60 +lat_0=40 +lon_0=-96 +x_0=0 +y_0=0 +datum=NAD83 +units=m +no_def"
+Bigfoot.dta <- read.csv("https://opendata.arcgis.com/datasets/9947fc49e6c44120b4a1b3133c073dbc_0.csv")
+Bigfoot.SpaPnt <- readRDS("data/Bigfoot.SpaPnt.rds")
+Bigfoot.SpaPnt.AEA <-readRDS("data/Bigfoot.SpaPnt.AEA.rds")
+data(wrld_simpl)
+wrld.AEA <- readRDS("data/wrld.AEA.rds")
+NoAmPoly <- readRDS("data/NoAmPoly.rds")
+NoAmPoly.AEA <- readRDS("data/NoAmPoly.AEA.rds")
+WC.Bioclim <- readRDS("data/Bioclim.rds")
+WC.Tmin <- readRDS("data/tmin.rds")
+WC.Tmax <- readRDS("data/tmax.rds")
+NoAm.WC.Bioclim <- readRDS("data/NoAm.WC.Bioclim.rds")
+NoAm.WC.Bioclim.AEA <- readRDS("data/NoAm.WC.Bioclim.AEA.rds")
+BFC <- readRDS("data/BFC.rds")
+```
+
+## Before you start.
+
+This week tutorial will be a bit playful, as you will focus on plotting the distribution of a crypto‐zoological species – the North American Sasquatch, or Bigfoot (*Imaginus magnapedum*). **Supposedly**, the sasquatch belongs to a large primate lineage descended from the extinct Asian species *Gigantopithicus blacki*. Sasquatch is regularly reported in forested lands of western North America and is considered a significant indigenous American and western North American folk legend. However, the existence of this creature has never been verified with a typed specimen.
+
+The main objective will be to generate a spatial representation of the complete range of the species. This type of analysis is the starting point to build a statistical model to describe the " environmental requirements" of a species. These models are often referred to as "species distribution modelling" (SDM) or "ecological niche modelling" (ENM). Regardless of the "tongue-in-cheek" nature of the organisms evaluated, this work will provide you with an opportunity to combine different spatial data in `R`.
+
+Lozier et al. (2009) undertook a similar task. They build an SDM to show the need for careful evaluation of database records before their use in modelling, especially when the presence of cryptic species (*morphologically indistinguishable biological groups that are incapable of interbreeding*) is suspected, or many records are based on indirect evidence. 
+
+## Generating and visualising `Spatial*` objects to show Bigfoot sightings.
+
+Importing occurrence a `data.frame` into `R` is easy. Transforming it into a `Spatial*` object is also easy. However, collecting, georeferencing, and cross-checking coordinate data is a tedious task. Discussions about species distribution modelling often focus on comparing modelling methods. Still, if you are dealing with species with few and uncertain records, your focus should be on improving the quality of the occurrence data. All modelling methods do better if your occurrence data is unbiased, free of errors, and if you have a relatively large number of records.
+
+In this case, you will have a file (usually a *.txt* or *.csv* file) with point locality data. Such datasets include the known distribution of a species and hopefully some extra metadata. Such a file can be stored locally in your drive or an on-line repository (e.g., GBIF, GITHUB, or hub.arcgis.com). 
+
+
+## Loading and checking the data.
+
+At this point, you should be able to load spatial data stored locally and from online repositories. As a reminder, in `R`, loading online-data is easy if you have the Uniform Resource Locator (URL) determining the location of the data set, which can be used directly as an argument into the functions `read.table()` or `read.csv()`.
+
+<div class = "alert alert-info">
+**Your task:**
+
+Run the code below to see how you can load data from an online repository
+
+</div>
+
+```{r LoadData, exercise=TRUE, exercise.lines=15}
+# The URL is data provided by the Bigfoot Field Research Organization and stored in hub.arcgis.com 
+Bigfoot.URL <- "https://opendata.arcgis.com/datasets/9947fc49e6c44120b4a1b3133c073dbc_0.csv"
+
+# Load the CSV file using the read.csv() function,
+Bigfoot.dta <- read.csv(Bigfoot.URL)
+
+#Print the first six rows of Bigfoot.dta
+head(Bigfoot.dta)
+```
+
+## First plot.
+
+As you see from the printout on the last page (and below), there are many variables in this data set. 
+
+```{r HeadData2, echo=F}
+head(Bigfoot.dta)
+```
+
+For now, you will focus on the positional information stored in the columns `X` (or `Lon`) and `Y` (or `Lat`). The first step to assess what this information is showing is to display it using a scatter plot.
+
+<div class = "alert alert-info">
+**Your task:**
+Using the data stored in the object `Bigfoot.dta` in the memory you will:
+Plot a scatter-plot showing the location (i.e., the Latitude [`Y` or `Lat`] and Longitude [`X` or `Lon`]) of each Bigfoot sighting. 
+</div>
+
+```{r LatLongPlt1, exercise=TRUE, exercise.lines=15}
+# Plot the spatial set-up of the observations stored in Bigfoot.dta as red-filled circles.
+plot(------- [, c("-----","------")], # Specify the object with the position information
+     pch = 19, # Define the type of point to plot.
+     col = "---" # Define colour of the points [make these red].
+     )
+```
+
+```{r LatLongPlt1-solution}
+# Plot the spatial set-up of the observations stored in Bigfoot.dta as red-filled circles.
+plot(Bigfoot.dta [, c("Lon","Lat")], ## Specify the object with the position information
+     pch = 19, # Define the type of point to plot.
+     col = "red" # Define colour of the points.
+     )
+```
+
+```{r LatLongPlt1-hint}
+plot(mtcars [, c("mpg","wt")], # Specify the object with the information c
+     pch = 1, # Define the type of point to plot.
+     col = "black" # Define colour of the points.
+     )
+```
+
+```{r LatLongPlt1-check}
+grade_code()
+```
+
+## Maping the world.
+
+This first visualisation provides a reasonable frame of reference, but it would be better to include the shape of continental North America for reference purposes. Many such pre-loaded maps are part of `R` packages (e.g.`maptools`, `maps`, `rworldmap`, `ggplot2`).
+
+As a start, you will use the `wrld_simpl` data set part of the `maptools` package.
+
+<div class = "alert alert-info">
+**Your task:**
+
+Explore and Plot the data in the `wrld_simpl` object (part of the `maptools` package).
+</div>
+
+```{r WorldMap1, exercise=TRUE}
+# use the function summary() to explore the information stored in the object
+```
+
+```{r WorldMap1-hint}
+summary(mtcars)
+```
+
+```{r WorldMap1-solution}
+# use the function summary() to explore the information stored in the object
+summary(wrld_simpl)
+```
+
+```{r WorldMap1-check}
+grade_code()
+```
+
+```{r WorldMap2, exercise=TRUE}
+# Print the variable names using names()
+
+```
+
+```{r WorldMap2-hint}
+names(mtcars)
+```
+
+```{r WorldMap2-solution}
+# Print the variable names using names()
+names(wrld_simpl)
+```
+
+```{r WorldMap2-check}
+grade_code()
+```
+
+```{r WorldMap3, exercise=TRUE}
+# Look at the first five rows of the Data matrix stored in wrld_simpl using head()
+
+```
+
+```{r WorldMap3-hint}
+head(mtcars)
+```
+
+```{r WorldMap3-solution}
+# Look at the first five rows of the Data matrix stored in wrld_simpl using head()
+head(wrld_simpl)
+```
+
+```{r WorldMap3-check}
+grade_code()
+```
+
+```{r WorldMap4, exercise=TRUE}
+# Check what type of object is wrld_simpl using class()
+
+```
+```{r WorldMap4-hint}
+class(mtcars)
+```
+
+```{r WorldMap4-solution}
+# Check what type of object is wrld_simpl using class()
+class(wrld_simpl)
+```
+
+```{r WorldMap4-check}
+grade_code()
+```
+
+
+```{r WorldMap5, exercise=TRUE}
+# plot wrld_simpl using plot
+
+```
+```{r WorldMap5-hint}
+plot(mtcars)
+```
+
+```{r WorldMap5-solution}
+# plot wrld_simpl using plot
+plot(wrld_simpl)
+```
+
+```{r WorldMap5-check}
+grade_code()
+```
+
+## Extracting North America.
+
+The object named `wrld_simpl` is a `SpatialPolygonsDataFrame` with multiple attributes associated to each of the `Poligons` bounded together - this is the information you summarised with function `summary()`.
+
+In this case, you are not interested in the entire globe, but rather only the three "North American" countries: Canada, United States, and Mexico. One way to generate a new `SpatialPolygonsDataFrame` only for North American countries is Sub setting `wrld_simpl` using the `NAMES` variable as you would do in a `data.frame`.
+
+<div class = "alert alert-info">
+**Your task:**
+
+Subset `wrld_simpl` so the new `SpatialPolygonsDataFrame` only has the data and spatial presentation for Canada, United States, and Mexico.
+
+</div>
+
+```{r NorthAmeMap, exercise=TRUE, exercise.lines=15}
+# Define a TRUE/FALSE vector that assesses if each name in wrld_simpl NAME variables is either "Canada", "United States"or "Mexico".
+is.NoAmCount <- ------------
+
+# Sub setting wrld_simpl using the is.NoAmCount vector.
+NoAmPoly <- -----------
+
+# Show the current names in the "reduced" SpatialPolygonsDataFrame.
+------$------
+```
+
+```{r NorthAmeMap-solution}
+# Define a TRUE/FALSE vector that assesses if each name in wrld_simpl NAME variables is either "Canada", "United States"or "Mexico".
+is.NoAmCount <- wrld_simpl@data[, "NAME"]%in%c("Canada", "United States", "Mexico")
+
+# Sub setting wrld_simpl using the is.NoAmCount vector.
+NoAmPoly <- wrld_simpl[is.NoAmCount, ]
+# Show the current names in the "reduced" SpatialPolygonsDataFrame.
+NoAmPoly$NAME
+
+```
+
+```{r NorthAmeMap-hint}
+# create a vector of TRUE/FALSE
+AM.cars <- mtcars$am==1
+# Sub setting wrld_simpl using the TRUE/FALSE vector
+mtcars$mpg[AM.cars]
+```
+
+```{r NorthAmeMap-check}
+grade_code()
+```
+
+## Ploting North America and Bigfoot data together
+
+The summary of `NoAmPoly` shows multiple features, one per country. When `NoAmPoly` is plotted over `Bigfoot.dta` it provides spatial context to Bigfoot sightings.
+
+<div class = "alert alert-info">
+**Your task:**
+
+Plot the location (i.e., the Latitude [`Y` or `Lat`] and Longitude [`X` or `Lon`]) of each Bigfoot sighting **OVER** the reference map with only North American countries.
+
+</div>
+
+```{r LatLongPlt2, exercise=TRUE, exercise.lines=15}
+# Plot Bigfoot sightings as red-filled circles.
+plot(--------[, c("----", "-----")] , # Define the object to plot.
+     pch = --,  # Define the marks are filled circles.
+     col = "---" # Define the colour of the marks
+     )
+# add the Reference map - only North American countries.
+plot(---- , # Define the SpatialPolygonsDataFrame to plot. 
+   add = -- # Should the Geometry be added to the current plot?
+   )
+```
+
+```{r LatLongPlt2-solution}
+# Plot Bigfoot sightings as red-filled circles.
+plot(Bigfoot.dta[, c("Lon", "Lat")] , # Define the object to plot.
+     pch = 19,  # Define the marks are filled circles.
+     col = "red" # Define the colour of the marks
+     )
+# add the Reference map - only North American countries.
+plot(NoAmPoly , # Define the SpatialPolygonsDataFrame to plot. 
+   add = T # Should the Geometry be added to the current plot?
+   )
+```
+
+
+```{r LatLongPlt2-check}
+grade_code()
+```
+
+## Geographic transformations for polygons.
+
+Like many other maps, the maps you have plotted so far represent a distorted view of the space. *Why is that?*, because the Mercator projection (the one used most often when the information is measured in Latitude and longitude) make areas near to the Earth’s polar regions (Greenland, Alaska and Antarctica, for example) look much larger than they are relative to areas nearer to the equator. This is because Mercator’s way of flattening the globe involves stretching the far northern and far southern parts of the world out until a flat, rectangular map is achieved.
+
+The question is how to pick the "right" way to represent the area of interest. There is no clear-cut answer to this, as it depends on the mapping exercise objective. For example, do you want to focus on a small area or an entire continent?. Lucky for you, mapping agencies everywhere have often already flagged a reasonable projection for whatever region/country you are interested in, so your first step is to look for that with a quick Internet search.
+
+A version of Albers Equal Area projection is optimised for North America's characteristics (wider east to west than north to south extents) for the study region. If South America were the focal region, you would need a different projection optimised to represent an area larger north to south than broader east to west.
+
+With this information, you can look for the PROJ string in either the PRøj <https://proj.org/> or Spatial Reference <https://spatialreference.org/> websites and re-project your  North America map using the `spTransform()` function from the `sp` package. 
+
+<div class = "alert alert-info">
+**Your task:**
+
+You will now use the `spTransform()` function from the `sp` package to re-project the `wrld_simpl` the world map to an Albers Equal Area projection for North America.
+
+Once re-projected, plot the resulting `SpatialPolygonsDataFrame` to assess how the visualisation of `wrld_simpl` changed.
+
+</div>
+
+```{r WolrdMapProj, exercise=TRUE, exercise.lines=15}
+# Define the modified Albers Equal Area projection for North America.
+# You can see it it here <<https://epsg.io/102008>>
+CRS.String <- "---------"
+
+# Using the spTransform function to change the projection.
+wrld.AEA <- -----(x = -----, # The object to "re-project".
+                  CRSobj = -----(-----) # the new projection as a CRS object.
+                  )
+# Plot the re-projected map.
+-----(-----)
+```
+
+```{r WolrdMapProj-hint}
+# some data to do the transfomrtion
+data(meuse)
+coordinates(meuse) <- c("x", "y")
+proj4string(meuse) <- CRS("+init=epsg:28992")
+# transfomr th data
+meuse.utm <- spTransform(meuse, CRS("+proj=utm +zone=32 +datum=WGS84"))
+```
+
+```{r WolrdMapProj-solution}
+# Define the modified Albers Equal Area projection for North America <//epsg.io/42303.proj4>
+CRS.String <- "+proj=aea +lat_1=20 +lat_2=60 +lat_0=40 +lon_0=-96 +x_0=0 +y_0=0 +datum=NAD83 +units=m +no_def"
+
+# Using the spTransform function to change the projection.
+wrld.AEA <- spTransform(x = wrld_simpl, # The object to "re-project".
+                         CRSobj = CRS(CRS.String) # the new projection as a CRS object.
+                             )
+# Plot the re-projected map.
+plot(wrld.AEA)
+```
+
+```{r WolrdMapProj-check}
+grade_code()
+```
+
+
+## Projecting North America.
+
+You see now that the focal area of the map is now North America (it is at the centre of the figure), with other areas distorted to the point of not being recognisable in many cases (i.e., Russia or China).
+
+Now, to accurately represent the region of interest, you can subset `wrld.AEA` to only the North American Countries (Canada, United States, and Mexico).
+
+<div class = "alert alert-info">
+**Your task:**
+
+Generate a project map for North America by sub setting `wrld.AEA` to only have the information for Canada, United States, and Mexico.
+
+after this, plot your re-projected North American Map.
+</div>
+
+```{r NorthAmProj, exercise=TRUE, exercise.lines=15}
+# Define a TRUE/FALSE vector that assesses if each name in wrld_simpl NAME variables is either "Canada", "United States"or "Mexico"
+is.NoAmCount <- -----@-----[, "-----"] %in% c("------", "-----", "-----")
+
+# Sub setting wrld.AEA using the is.NoAmCount vector.
+NoAmPoly.AEA <- 
+
+# Plot the re-projected map.
+----(----)
+
+```
+
+```{r NorthAmProj-solution}
+# Define a TRUE/FALSE vector that assesses if each name in wrld_simpl NAME variables is either "Canada", "United States"or "Mexico"
+is.NoAmCount <- wrld.AEA@data[, "NAME"] %in% c("Canada", "United States", "Mexico")
+
+# Sub setting wrld.AEA using the is.NoAmCount vector.
+NoAmPoly.AEA <- wrld.AEA[is.NoAmCount, ]
+
+# Plot the re-projected map.
+plot(NoAmPoly.AEA)
+```
+
+```{r NorthAmProj-hint}
+# some data to do the transfomrtion
+data(meuse)
+coordinates(meuse) <- c("x", "y")
+proj4string(meuse) <- CRS("+init=epsg:28992")
+# transfomr th data
+meuse.utm <- spTransform(meuse, CRS("+proj=utm +zone=32 +datum=WGS84"))
+```
+
+```{r NorthAmProj-check}
+grade_code()
+```
+
+Alternatively, you can re-project the `SpatialPolygonsDataFrame` with only North American Countries (`NoAmPoly`). An example of how this can be done is below.
+
+```{r NorthAmProj2, echo= T}
+# Approach two: Re-project NoAmPoly
+# Using the spTransform function to change the projection.
+NoAmPoly.AEA <- spTransform(x = NoAmPoly , # The object to "re-project".
+                            CRSobj = CRS("+proj=aea +lat_1=20 +lat_2=60 +lat_0=40 +lon_0=-96 +x_0=0 +y_0=0 +datum=NAD83 +units=m +no_def") # the new projection as a CRS object.
+                            )
+# Plot the re-projected map.
+plot(NoAmPoly.AEA)
+```
+
+## Projecting Bigfoot data - create a spatial object.
+
+The base map is now perfect to represent the area of interest so that distances and areas are accurately represented. **But what about the observations?** These are still in Latitude and Longitude (only georeferenced). Also, it is still a `data.frame` and not a `Spatial*` object.
+
+<div class = "alert alert-info">
+**Your task:**
+
+Using the function `coordiates()` create a `SpatialPointDataFrame` based on the information in `Bigfoot.dta`.
+
+Here you will use two variables (`Lon` and `Lat`) in `Bigfoot.dta` to define the spatial information.
+
+Once you are done creating this `SpatialPointDataFrame`, print its' summary.
+</div>
+
+```{r ObsAsSpceOb1, exercise=TRUE, exercise.lines=20}
+# Copy the data.frame to another object so the original information is available after the object transformation
+Bigfoot.SpaPnt <- --------
+
+# Use the coordinates function to transform Bigfoot.SpaPnt from a data.frame to a SpatialPointDataFrame 
+
+-----(--------) <- ~ --- + --- # note that the transformation to a SpatialPointDataFrame is done by defining a formula were the coordinates are the predictors.
+
+# What is the class of the object after using coordinates?
+------(------)
+
+# Plot the SpatialPointDataFrame..
+-----(-------,
+     pch = 19,  # Define the marks are filled circles.
+     col = "red" # Define the colour of the marks
+     )
+```
+
+
+```{r ObsAsSpceOb1-solution}
+# Copy the data.frame to another object so the original information is available after the object transformation
+Bigfoot.SpaPnt <- Bigfoot.dta
+
+# Use the coordinates function to transform Bigfoot.SpaPnt from a data.frame to a SpatialPointDataFrame 
+coordinates(Bigfoot.SpaPnt) <- ~ Lon + Lat # note that the transformation to a SpatialPointDataFrame is done by defining a formula were the coordinates are the predictors.
+
+# What is the class of the object after using coordinates?
+class(Bigfoot.SpaPnt)
+
+# Plot the SpatialPointDataFrame..
+plot(Bigfoot.SpaPnt,
+     pch = 19,  # Define the marks are filled circles.
+     col = "red" # Define the colour of the marks
+     )
+```
+
+```{r ObsAsSpceOb1-hint}
+# some data to do the transfomrtion
+data(meuse)
+coordinates(meuse) <- c("x", "y")
+```
+
+```{r ObsAsSpceOb1-check}
+grade_code()
+```
+
+
+You could also do the operation above by creating a `SpatialPoints` object and merging a data.frame to it, or using the `SpatialPointDataFrame()` function. The code below shows how this is done.
+
+```{r SpPntEx, echo = T}
+Bigfoot.Pnt <- SpatialPointsDataFrame(coords = Bigfoot.dta[, c("Lon", "Lat")] ,# Define the coordinates for each observation
+                      proj4string = CRS("+proj=longlat +datum=WGS84"), # Define the projection - It should be WGS84 as you have Lat/long Info.
+                      data = Bigfoot.dta # Define the data.frame to be appended.
+                      )
+# Plot the SpatialPointDataFrame..
+plot(Bigfoot.Pnt,
+     pch = 19,  # Define the marks are filled circles.
+     col = "red" # Define the colour of the marks
+     )
+```
+
+##  Projecting Bigfoot data - Projectiong spatial points
+
+Once you have this `SpatialPointDataFrame`, plotting it would produce a very similar map to the one created with `Bigfoot.dta`, but without the coordinates and "stretched" east-to-west. This is what you need to 
+
+Your goal now is to re-project the sightings points to the "best" projection for the region of interest. Like before, this is using the `spTransform()` function from the `sp` package. But before you do this, check the `Bigfoot.SpaPnt` projection using the `proj4string()` function. For this just run the code below **and ignore the warning**.
+
+```{r LookProjStr}
+#check the projection of `Bigfoot.SpaPnt` 
+proj4string(Bigfoot.SpaPnt)
+```
+
+Now that you know the map is in geographical coordinates, Project it to an Albers Equal Area projection. One thing before we move on, if there was no coordinate system in the object (the case if the object is created using `coordinates()`) you would need to add a initial projection manually.
+
+<div class = "alert alert-info">
+**Your task:**
+
+Use the function `spTransform()` to re-project `Bigfoot.SpaPnt` to an Albers Equal Area projection.
+
+</div>
+
+```{r ObsReProj, exercise=TRUE, exercise.lines=15}
+# Re-project the first SpatialPointsDataFrame (Bigfoot.SpaPnt) using the function `spTransform()` and the projection in CRS.String
+Bigfoot.SpaPnt.AEA <- spTransform(x = --------- , # Define the object to (re)projected.
+                                  CRSobj = -----(-------) # Define the projection to be used.
+                                  )
+
+# Print the new projection
+------------(-------)
+```
+
+```{r ObsReProj-hint}
+```
+
+```{r ObsReProj-solution}
+# Re-project the first SpatialPointsDataFrame (Bigfoot.SpaPnt) using the function `spTransform()`.
+Bigfoot.SpaPnt.AEA <- spTransform(x = Bigfoot.SpaPnt , # Define the object to (re)projected.
+                                  CRSobj = CRS(CRS.String) # Define the projection to be used.
+                                  )
+# Print the new projection
+proj4string(Bigfoot.SpaPnt.AEA)
+```
+
+```{r ObsReProj-check}
+grade_code()
+```
+
+##  A better map.
+
+With that last step, you are ready to generate a nicer looking map of the region of interest and the recorded Bigfoot sightings.
+
+<div class = "alert alert-info">
+**Your task:**
+
+Run the code below to plot your projected Bigfoot sightings object (`Bigfoot.SpaPnt`) **OVER** your projected map of North American counties (`NoAmPoly.AEA`).
+
+</div>
+
+```{r BestMapVis, exercise=TRUE, exercise.lines=25}
+## Define the plotting space [see ?par so check what xaxs = "i" and yaxs = "i" do]
+par(mar = c(2, 2, 6, 2),
+    xaxs = "i", yaxs = "i")
+
+# Plot the Area of interest making the continents light-grey, the boundaries black, and the oceans light-blue.
+plot(------ , # Define the SpatialPolygonsDataFrame to plot - projected North America
+     col = '------', # make the continental areas light-grey
+     bg = '------', # Make the oceans blue
+     xlim = range(------), # Set limits to zoom into the region with points
+     ylim = range(------), # Set limits to zoom into the region with points
+     main = "Bigfoot sigthings\n[1869 to 2017]" ,
+   cex.main = 1.2)
+
+# Add a bounding box, some tick marks to define the latitude-longitude point
+box(); axis(1, labels = NA); axis(2, labels = NA); axis(3, labels = NA); axis(4, labels = NA)
+# Note that the commands above are separated with a semicolon (;) as this allows to put consecutive functions in one line.
+
+# Plot Bigfoot sightings as a red-filled points
+points(------, # Define the SpatialPointsDataFrame to plot - Projected Big foot obs
+       pch = ------, # Define the mark shape.
+       col = "------", # Define the mark colour - make it red.
+       cex=0.7 # Define the size of the dots.
+       )
+```
+
+```{r BestMapVis-solution}
+## Define the plotting space [see ?par so check what xaxs = "i" and yaxs = "i" do]
+par(mar = c(2, 2, 6, 2),
+    xaxs = "i", yaxs = "i")
+
+# Plot the Area of interest making the continents light-grey, the boundaries black, and the oceans light-blue.
+plot(NoAmPoly.AEA , # Define the SpatialPolygonsDataFrame to plot - projected North America
+     col = 'lightgrey', # make the continental areas light-grey
+     bg = 'lightblue', # Make the oceans blue
+     xlim = range(coordinates(Bigfoot.SpaPnt.AEA)[, 1]), # Set limits to zoom into the region with points
+     ylim = range(coordinates(Bigfoot.SpaPnt.AEA)[, 2]), # Set limits to zoom into the region with points
+     main = "Bigfoot sigthings\n[1869 to 2017]" ,
+   cex.main = 1.2)
+
+# Add a bounding box, some tick marks to define the latitude-longitude point
+box(); axis(1, labels = NA); axis(2, labels = NA); axis(3, labels = NA); axis(4, labels = NA)
+# Note that the commands above are separated with a semicolon (;) as this allows to put consecutive functions in one line.
+
+# Plot Bigfoot sightings as a red-filled points
+points(Bigfoot.SpaPnt.AEA, # Define the SpatialPointsDataFrame to plot - Projected Big foot obs
+       pch = 19, # Define the mark shape.
+       col = "red", # Define the mark colour.
+       cex=0.7 # Define the size of the dots.
+       )
+```
+
+```{r BestMapVis-check}
+grade_code()
+```
+
+This map is clearly better than that first raw visualization!!!
+
+
+## Advanced maps.
+
+One of the great things about `R` is that you can make more than one type of visualization, particularity is you are making an interactive document. 
+
+Below is an example of such interactive map dome with the `mapview` package wich builds on leaflet.
+
+```{r IntActMp, echo = TRUE}
+
+require(mapview)
+
+mapview(Bigfoot.SpaPnt,
+        xcol = "Longitude",
+        ycol = "Latitude",
+        grid = T,
+        cex= 2,
+        col.regions="red")
+```
+
+## Loading and processing `Raster*` objects.
+
+Now that you know where Bigfoot has been "sighted" across North America is time to get environmental information to define the conditions that determine the best habitats for Bigfoot. This is the objective of species distribution modelling (**SDM**). In **SDM**s, environmental information is usually extracted from `raster` files stored in some kind of GIS format. Variables can include climatic, soil, terrain, vegetation, land use, and other variables.
+
+
+## Get climate data.
+
+As a start, you will focus on climatic data for the region of interest. There are many sources of climatic information freely available to be used. Some examples are the Climatic Research Unit (CRU <http://www.cru.uea.ac.uk/>), Climatologies at high resolution for the Earth’s land surface areas (CHELSA <https://chelsa-climate.org/>), WorldClim v2. (<https://www.worldclim.org/>), ecoClimate (<https://www.ecoclimate.org/>), global climatologies for bioclimatic modelling (CliMond <https://www.climond.org/>) and climate re-analyses such as ERA5-Land (<https://bit.ly/39kQlOL>).
+
+For simplicity, you will focus now on WorldClim climatologies and obtain the 19-bioclimatic variables commonly used in SDMs. These can be downloaded and stored locally. Some of these can be loaded directly from `R` with the use of packages. For example, WorldClim data can be obtained directly from `R` using the `getData()` function of the `raster` package. Climate data from CRU can be obtained directly from `R` using the `create_CRU_stack()` function of the `getCRUCLdata` package. For an example of how this can be done see the code below. 
+
+
+```{r WorldClim, eval = F, echo =T}
+# Now use the function getData() to download the 19-BioClimatic part of WorldClim at a 10ArcMis resolution.
+WC.Bioclim <- getData(name = 'worldclim', # Define the Data set name.
+                      res = 10, ## This defines the resolution of the Imported raster (10ArcMis)
+                      var = 'bio') ## This defines that BioClimatic variables are imported
+```
+
+## Visualize the climate data.
+
+By using `getData()` you get a number of files that are downloaded into a folder named `wc10` in the working working directory. These are ESRI `.hdr` Labelled files named bio1 to bio19.
+
+You will not do this, as I have downloaded it as is available in your session. The object name is `WC.Bioclim` as it is a `RasterStack` with 19 layers, coded `Bioclim.1` to `Bioclim.19` (see <https://www.WorldClim.org/data/bioclim.html> for a translation of the codes). But, how do they look? The only way to see that is to plot the variables.
+
+<div class = "alert alert-info">
+**Your task:**
+
+Plot the `Bioclim.1` (Annual Mean Temperature [C]) and `Bioclim.12` (Total Annual Precipitation [mm/yr]) layers of `WC.Bioclim`.
+
+The maps should be shown as two panels in the same figure.
+</div>
+
+
+```{r worldclimPlt, exercise=TRUE, exercise.lines=18}
+# Define a plotting space with One-Row and Two-columns
+---(---- = c(--, --))
+
+# plot Annual Mean Temperature (WorldClim temp are C*10 so you need to do some operations before plotting).
+plot(------, # Define the Layer from WC.Bioclim to plot. I divide the value by 10 as WorldClim temp are C*10 (to avoid using Floating Numbers)
+     main = "Annual Mean Temperature\n[C]", # Set the Figure title
+     cex.main = 1.2, # Define the Title font size
+     col = hcl.colors(n = 50 , palette = "Blue-Red") # Define a divergent HCL palette with 50 values.
+     )
+# plot Total Annual Precipitation 
+
+plot(------, # Define the Layer from WC.Bioclim to plot.
+     main = "Total Annual Precipitation\n[mm/yr]", # Set the Figure title
+     cex.main = 1.2,# Define the Title font size
+     col = rev(hcl.colors(n = 50 ,palette = "Blue-Red")) # Define a divergent HCL palette with 50 values.
+     )
+```
+
+```{r worldclimPlt-solution}
+# Define a plotting space with One-Row and Two-columns
+par(mfrow = c(1, 2))
+# plot Annual Mean Temperature (WorldClim temp are C*10 so you need to do some operations before plotting).
+# Define a divergent blue-to-grey-to-red HCL palette with 50 values.
+plot(WC.Bioclim[['Bioclim.1']]/10, # Define the Layer from WC.Bioclim to plot. I divide the value by 10 as WorldClim temp are C*10 (to avoid using Floating Numbers)
+     main = "Annual Mean Temperature\n[C]", # Set the Figure title
+     cex.main = 1.2, # Define the Title font size
+     col = hcl.colors(n = 50 , palette = "Blue-Red") # Define a divergent HCL palette with 50 values.
+     )
+# plot Total Annual Precipitation 
+# Define a divergent red-to-grey-to-blue HCL palette with 50 values.
+plot(WC.Bioclim[['Bioclim.12']], # Define the Layer from WC.Bioclim to plot.
+     main = "Total Annual Precipitation\n[mm/yr]", # Set the Figure title
+     cex.main = 1.2,# Define the Title font size
+     col = rev(hcl.colors(n = 50 ,palette = "Blue-Red")) # Define a divergent HCL palette with 50 values.
+     )
+```
+```{r worldclimPlt-hint}
+logo <- stack(system.file("external/rlogo.grd", package="raster")) 
+par(mfrow=c(1,2)) # define the plotting space
+plot(logo[[1]])
+plot(logo[[2]])
+```
+
+```{r worldclimPlt-check}
+grade_code()
+```
+
+## Map algebra - 1
+
+For clarity, "bioclimatic" summaries represent annual trends (e.g., mean annual temperature, annual precipitation), seasonality (e.g., annual range in temperature and precipitation) and extreme or limiting environmental factors (e.g., the temperature of the coldest and warmest month, and precipitation of the wet and dry quarters).
+
+The best way to know what information is summarised in these variables is to build them yourself, so this is your next task. Specifically, you will now create Bioclim-7 [Temperature Annual Range] as an example.
+
+For this, you will need the monthly maximum and minimum temperatures, which can be downloaded using the `var = 'tmin'` and `var = 'tmax'` arguments on the `getData()` function of the `raster` package. This data is now loaded in the memory.
+
+Both `WC.Tmin` and `WC.Tmax` are `RasterStack`s objects with 12 bands (one for each one of the months). The first step to build a raster with the Temperature Annual Range (Bioclim-7) is to estimate the Maximum Temperature of Warmest Month (Bioclim-5) and the Minimum Temperature of Coldest Month (Bioclim-6).
+
+These can be estimated directly on a the `RasterStack` using the `max()` and `min()` functions. Alternatively, you can use the function `calc()` from the `raster` package. This function allows for more elaborate calculations as you can define more complex functions with the data within a single cell in a multi-band raster (see `?calc` for more info on the function). 
+
+<div class = "alert alert-info">
+**Your task:**
+
+Using the monthly minimum (`WC.Tmin`) estimate the minimum temperature of the coldest month (the minimum value in `WC.Tmin`) and plot it. Remmebr that temperatures here are C x 10.
+</div>
+
+```{r MonthTmin, exercise=TRUE}
+#Estimate the minimum temperature of coldest month 
+WC.MinTCoMo <- ------(------)
+
+#plot the minimum temperature of coldest month 
+------(------)
+```
+
+```{r MonthTmin-solution}
+#Estimate the minimum temperature of coldest month 
+WC.MinTCoMo <- min(WC.Tmin)
+
+#plot the minimum temperature of coldest month 
+plot(WC.MinTCoMo/10)
+```
+
+```{r MonthTmin-check}
+grade_code()
+```
+
+```{r MonthTmin-hint}
+logo <- stack(system.file("external/rlogo.grd", package="raster")) 
+min(logo)
+```
+
+<div class = "alert alert-info">
+**Your task:**
+
+Using the monthly maximum (`WC.Tmax`) estimate the maximum temperature of the warmest month (the maximum value in `WC.Tmax`) and plot it.
+</div>
+
+```{r MonthTmax, exercise=TRUE}
+# Estimate the maximum temperature of warmest month
+WC.MaxTWaMo <- -----(-----)
+
+#plot the maximum temperature of coldest month 
+-----(-----)
+```
+
+```{r MonthTmax-solution}
+# Estimate the maximum temperature of warmest month
+WC.MaxTWaMo <- max(WC.Tmax)
+
+#plot the maximum temperature of coldest month 
+plot(WC.MaxTWaMo/10)
+```
+
+```{r MonthTmax-check}
+grade_code()
+```
+
+```{r MonthTmax-hint}
+logo <- stack(system.file("external/rlogo.grd", package="raster")) 
+max(logo)
+```
+
+## Map algebra - 2
+
+Doing the operations above transforms `WC.Tmax` and `WC.Tmin` from a `RasterStack` with values for each month to a `RasterLayer` that only has the maximum or minimum monthly temperature values (that is, a one layer raster).
+
+With this information, it is now possible to generate an Annual Temperature Range (Bioclim-7) `RasterLayer`. For this, you will subtract the Minimum Temperature of Coldest Month (Bioclim-6; `WC.MinTCoMo`) from the Maximum Temperature of the Warmest Month Bioclim-5; `WC.MaxTWaMo`). This can be done using the `RasterLayer`s directly or the `calc()` function if you bundle `WC.MinTCoMo` and `WC.MaxTWaMo` in one `RasterStack`.
+
+<div class = "alert alert-info">
+**Your task:**
+
+Using your estimates of the maximum temperature of the warmest month (`WC.MinTCoMo`) and the minimum temperature of the coldest month (`WC.MaxTWaMo`), estimate the Temperature Annual Range.
+
+Once you have done this, plot your Temperature Annual Range estimation.
+</div>
+
+```{r TAnnRngSetup}
+#Estimate the minimum temperature of coldest month 
+WC.MinTCoMo <- min(WC.Tmin)
+# Estimate the maximum temperature of warmest month
+WC.MaxTWaMo <- max(WC.Tmax)
+```
+
+```{r TAnnRng, exercise=TRUE, exercise.setup = "TAnnRngSetup", exercise.lines=10}
+# Estimate the Temperature Annual Range
+WC.TAnnRng <- ------ - ------
+
+# Plot the the Temperature Annual Range object - use a blue to red colour palette.
+plot(------ , # Determine the RasterLayer to plot
+     main = "Temperature Annual Range\n[c]", cex.main = 1.2, # Set the Figure title and font size
+     col = hcl.colors(n = 50 ,palette = "Blue-Red") # Define a sequential colour palette. 
+     )
+```
+
+```{r TAnnRng-solution}
+# Estimate the Temperature Annual Range
+WC.TAnnRng <- WC.MaxTWaMo - WC.MinTCoMo
+
+# Plot the the Temperature Annual Range object - use a blue to red colour palette.
+plot(WC.TAnnRng , # Determine the RasterLayer to plot
+     main = "Temperature Annual Range\n[c]", cex.main = 1.2, # Set the Figure title and font size
+     col = hcl.colors(n = 50 ,palette = "Blue-Red") # Define a sequential colour palette. 
+     )
+```
+
+
+```{r TAnnRng-hint}
+logo <- stack(system.file("external/rlogo.grd", package="raster")) 
+max(logo)-min(logo)
+```
+
+```{r TAnnRng-check}
+grade_code()
+```
+
+Now you know how these bioclimatic variables are generated. But the process above is long and tedious, done only to understand how raster operations work. When you face a similar task in the future, you could use the` bioclim()` function for the `dismo` package. I leave that task to the interested student.
+
+## Graphical representation of `Raster*` objects.
+
+You have a set of predictor variables as `rasters` in the `WC.Bioclim` object. Your next task is mapping the climatic predictors as done with the occurrences. The first step will be cropping the global climate maps to the region of interest (North America). You could do this using the `crop()` function of the `raster` package and defining the cutting region using the `Bigfoot.SpaPnt` object.
+
+<div class = "alert alert-info">
+**Your task:**
+
+Crop the `WC.Bioclim` raster using the spatial extent of your georeferenced observations (`Bigfoot.SpaPnt`).
+
+After you have done this, plot the resulting `RasterLayer`.
+</div>
+
+```{r BioclimCrop, exercise=TRUE, exercise.lines=10}
+# Crop the WC.Bioclim raster using the observations spatial extent uisng the crop function
+NoAm.WC.Bioclim <- -----(x= ----, # Define the Raster to crop
+                        y = ---- # Define the spatial object that determine the extent to be cropped
+                        )
+# Plot the cropped Raster
+plot(----)
+```
+
+```{r BioclimCrop-solution}
+# Crop the WC.Bioclim raster using the observations spatial extent
+NoAm.WC.Bioclim <- crop(x= WC.Bioclim, # Define the Raster to crop
+                        y = Bigfoot.SpaPnt # Define the spatial object that determine the extent to be cropped
+                        )
+# Plot the cropped Raster
+plot(NoAm.WC.Bioclim)
+```
+
+```{r BioclimCrop-hint}
+r <- raster(nrow=45, ncol=90)
+values(r) <- 1:ncell(r)
+e <- extent(-160, 10, 30, 60)
+rc <- crop(r, e)
+```
+
+
+```{r BioclimCrop-check}
+grade_code()
+```
+
+## Projecting `Raster*` objects.
+
+As you see from the plot above, the result of the `crop()` function is a subset of the 19-BIOCLIM variables for continental North America. One more thing here, the plot function in a `RasterStack` only plots up to 16-layers. However, like your first observations map, the visualisation does not look very "pretty". So the first thing to do is re-project these to an Albers Equal Area projection using the `projectRaster()` function.
+
+<div class = "alert alert-info">
+**Your task:**
+
+Using the function `projectRaster()`, re-project your North America cropped bioclimatic variables raster (`NoAm.WC.Bioclim`) to an Albers Equal Area projection.
+
+After you have done this, plot the resulting `RasterLayer`.
+</div>
+
+```{r PrjNoAmBioClim, exercise=TRUE, exercise.lines=10}
+# project the NoAm.WC.Bioclim raster
+NoAm.WC.Bioclim.AEA <- ------(from = ------, # Define the Raster to be projected.
+                              crs = ------(------) # Define the projection as a CRS object uisng CRS.String
+                              )
+# Plot the re-projected Raster
+------(------)
+```
+
+```{r PrjNoAmBioClim-solution}
+# project the NoAm.WC.Bioclim raster
+NoAm.WC.Bioclim.AEA <- projectRaster(from = NoAm.WC.Bioclim, # Define the Raster to be projected.
+                                     crs = CRS(CRS.String) # Define the projection as a CRS object.
+                                     )
+# Plot the re-projected Raster
+plot(NoAm.WC.Bioclim.AEA)
+```
+
+```{r PrjNoAmBioClim-hint}
+r <- raster(xmn=-110, xmx=-90, ymn=40, ymx=60, ncols=40, nrows=40)
+r <- setValues(r, 1:ncell(r))
+crs(r)
+newproj <- "+proj=lcc +lat_1=48 +lat_2=33 +lon_0=-100 +datum=WGS84"
+pr1 <- projectRaster(r, crs=newproj)
+```
+
+```{r PrjNoAmBioClim-check}
+grade_code()
+```
+
+## A better Graphical representation of `Raster*` objects.
+
+Now you have a series of projected rasters that can adequately show the climatic conditions in the region of interest. You will now focus on Annual Mean Temperature (bio1) as an example of producing an "almost" publication ready map. You can do this in many (and more straightforward) ways, but here I will show you a more "laborious" approach, so you know how to use alternative plotting parameters.
+
+The code below generates the best visualisation for Annual Mean Temperature (bio1) using the projected Bioclimatic raster (`NoAm.WC.Bioclim.AEA`) by taking the following steps: 
+
+* Define a plotting region so that the map is bounded within a region.
+
+* Plot the raster of Annual Mean Temperature using a Yellow-to-Red colour ramp palette, setting the minimum and maximum values for which colours should be plotted to -20 and 30.
+
+* Add a bounding box and axes with only tick-marks.
+
+* Add your projected map (`NoAmPoly.AEA`) of the region of interest, the projected observation points (`Bigfoot.SpaPnt.AEA`), and a legend to say what the plotted symbols are. 
+
+```{r BestRastMap, echo = T,fig.width=8, fig.height=6}
+# Step 1: define a plotting region so that the maps do not get affected by how big is the plotting space
+
+par(mfrow=c(1,1), 
+    mar=c(2,2,4,2), # Defines the margins of the plotting space
+    fig=c(0,1,0.1,1),# this argument defines a smaller figure space
+    new=F) # this argument states that a blank plotting space is used 
+
+## create a new plotting space
+plot.new()
+
+## Define the "limits" of the plotting space
+plot.window(xlim = extent(Bigfoot.SpaPnt.AEA)[1:2], # get the xlim form the projected Bigfoot sightings
+            ylim = extent(Bigfoot.SpaPnt.AEA)[3:4]) # get the ylim form the projected Bigfoot sightings)
+
+# Step 2: plot the raster
+## add the raster of Annual Mean Temperature
+image(NoAm.WC.Bioclim.AEA[[1]]/10, # Define the Raster Layer to plot. You know why you divide by 10 here
+      col = hcl.colors(100, "YlOrRd", rev = TRUE), # Define a colour ramp palette
+      zlim = c(-20,30), # define the range of values to plot 
+      add=T # Add this figure to the current plot?
+      )
+# Add a Main title manually
+mtext("Annual Mean Temperture [C]", # Define the main title text
+      side = 3, # Define the margin to locate the text.
+      cex = 1.5, # Define the text size
+      font = 2, # Define is the text is bold
+      line = 1.5 # Define the lien to add the text
+      )
+
+# Step 3: Add area elements
+#Add a bounding box
+
+# Add a bounding box and the axes with ticks
+box(); axis(1, labels = NA); axis(2, labels = NA); axis(3, labels = NA); axis(4, labels = NA)
+
+# Step 4: Add other elements
+# Add a map of the region of interest
+# Plot the Area of interest
+plot(NoAmPoly.AEA, # Define the SpatialPolygonsDataFrame to be plotted.
+     add=T # Add this figure to the current plot?
+     )
+# Plot Bigfoot sightings
+points(Bigfoot.SpaPnt.AEA, # Define the SpatialPointsDataFrame to plot.
+       pch = 10, # Define the shape of the mark.
+       col = "black" # Define the colour of the mark.
+       )
+
+# Add a legend to say what the symbols are - Manually
+legend("bottomleft",
+       pch=10,
+       legend = "Bigfoot\nsightings",
+       bty="n")
+
+# Step 4: Add a colour ramp by hand
+par(fig=c(0,1,0.01,0.13),# this argument defines a smaller figure space 
+  mar=c(2,2,1,2),
+  new=T) # this argument states that a black plotting space is used 
+# Plot a matrix with all possible values
+image((matrix(1:100)),
+      axes=F,
+      col = hcl.colors(100, "YlOrRd", rev = TRUE))
+# Add a bounding box
+box()
+# Add an axis with the values
+axis(1,
+     at = seq(0,1, length.out = 6),
+     labels = c(-2:3)*10)
+
+# Add a main title.
+mtext("Annual Mean Temperture [C]",
+      side = 3,
+      cex = 1,
+      line = 0.3)
+```
+
+
+## Extract values from a `Raster*` object to use as predictors
+
+The next step is to extract the values of the predictors at the locations where Bigfoot has been sighted. That is, get data about the climate that the species apparently likes. This is a very straightforward thing to do using the `extract()` function from the `raster` package. The question is which Bigfoot sighting object should you use: `Bigfoot.dta`, `Bigfoot.SpaPnt`, or `Bigfoot.SpaPnt.AEA`. The answer to this is given by the reference system of `WC.Bioclim`.
+
+<div class = "alert alert-info">
+**Your task:**
+
+Using the function `projection()`, print the projection string of the `WC.Bioclim` raster.
+
+</div>
+
+```{r WCBioclimProj, exercise=TRUE}
+# Extract the projection
+projection(WC.Bioclim)
+```
+
+As you see, this is a Mercator projection, so you could use `Bigfoot.dta` or `Bigfoot.SpaPnt` to extract the values for each of the sites where Bigfoot has been sighted. If you instead used `NoAm.WC.Bioclim.AEA` as your source raster, you would need to use  `Bigfoot.SpaPnt.AEA` to get the data. With that clear, now you will extract the environmental information.
+
+<div class = "alert alert-info">
+**Your task:**
+
+Using the function `extract()` get the values for the 19 Bioclimatic variables in `WC.Bioclim` for each Bigfoot sightings. for this use the `Bigfoot.SpaPnt` spatial object.
+
+</div>
+
+```{r WCBioclimExtrc, exercise=TRUE}
+# The same as above but using the SpatialPointDataFrame
+BFC <- ------(x = ------ ,# Define the RasterStack with the Environmental information.
+               y = ------ # Define the object with the locations to get the data
+               )
+# Print the resulting data.frame head.
+head(BFC)
+```
+
+```{r WCBioclimExtrc-solution}
+# The same as above but using the SpatialPointDataFrame
+BFC <- extract(x = WC.Bioclim ,# Define the RasterStack with the Environmental information.
+                y = Bigfoot.SpaPnt # Define the object with the locations to get the data
+                )
+# Print the resulting data.frame head.
+head(BFC)
+```
+
+```{r WCBioclimExtrc-hint}
+r <- raster(ncol=36, nrow=18, vals=1:(18*36))
+xy <- cbind(-50, seq(-80, 80, by=20))
+extract(r, xy)
+```
+
+
+```{r WCBioclimExtrc-check}
+grade_code()
+```
+
+## Checking the Extraction of values from a `Raster*` object to use as predictors
+
+One important check is whether there are observations with no environmental data (as these could be located in areas where the `RasterStack` has no data). You can do this using a simple `apply` loop.
+
+<div class = "alert alert-info">
+**Your task:**
+
+Using the function `apply()`, define the sightings with no bioclimatic information (rows with `NA`).
+
+</div>
+
+```{r NoDataID, exercise=TRUE}
+# Determine the rows where the variables have NA as a value.
+apply(------ ,
+      MARGIN = ------, # apply the function to each column
+      function(x){
+        ------(------(------))})# test for each column the rows with no values
+```
+
+
+```{r NoDataID-solution}
+# Determine the rows where the variables have NA as a value.
+apply(BFC ,
+      MARGIN = 2, # apply the function to each column
+      function(x){
+        which(is.na(x))})# test for each column the rows with no values
+```
+
+```{r NoDataID-check}
+grade_code()
+```
+
+The code above shows that rows 3595 and 3682 do not have environmental data. To see where they are, you can plot the "nice map" again but this time modifying the `points()` function to mark the locations with no environmental data.
+
+<div class = "alert alert-info">
+**Your task:**
+
+Plot the "nice map" , modifying the `points()` function to mark the locations with no environmental data as black filled points.
+
+</div>
+
+```{r NoDataPlot, exercise=TRUE, exercise.lines=20}
+#Plot the are of interest, observations and Latitudes and Longitudes lines
+## define the plotting area
+par(mar = c(2, 2, 6, 2), xaxs = "i", yaxs = "i")
+# Plot the Area of interest
+plot(NoAmPoly.AEA, 
+     col = 'lightgrey', # make the continual areas light-grey
+     bg = 'lightblue', # Make the oceans blue
+     xlim = range(coordinates(Bigfoot.SpaPnt.AEA)[, 1]), # Set limits to zoom into the region with points
+     ylim = range(coordinates(Bigfoot.SpaPnt.AEA)[, 2]), # Set limits to zoom into the region with points
+     main = "Bigfoot sigthings\n[1869 to 2017]", 
+     cex.main = 1.2)
+box()
+# Add some tick marks to define the latitude-longitude point
+# Note that these commands are separated with a semicolon (this allows to put consecutive functions in one line)
+axis(1, labels = NA); axis(2, labels = NA); axis(3, labels = NA); axis(4, labels = NA)
+# Plot Bigfoot sightings
+points(Bigfoot.SpaPnt.AEA ,
+       pch=19,
+       col = "red")
+## Show the sites with no environmental data
+points(Bigfoot.SpaPnt.AEA[c(3595, 3682), ] ,
+       pch = 19, 
+       cex=1.5,
+       col = "black")
+```
+
+This figure shows that a couple of points in North Carolina do not have environmental data and should be removed from the analysis.
+
+## Last Points.
+
+The work you have done today is the type of work you would do in an actual project. You have explored your observations and predictors, then matched these two together, and finally generated a model to test a hypothesis and make some predictions.

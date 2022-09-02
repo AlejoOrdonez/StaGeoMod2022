@@ -1,0 +1,950 @@
+---
+title: "Using `Spatial*` and `Raster` Data in R [Practical]"
+author: '"YOUR NAME HERE"'
+date: "`r Sys.Date()`"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+require(raster)
+require(sp)
+require(rgdal)
+require(maptools)
+require(rasterVis)
+data(wrld_simpl)
+```
+
+# **The Set-up**
+
+## *Learning objectives.*
+1. Load, create, manipulate, and save `Spatial*` object using `R`.
+2. Load, create, manipulate/extract, and save `Raster*` object using `R`.
+3. Use map algebra to create and manipulate `Raster*` object using `R`.
+4. Extract information from `Spatial*` and `Raster*`object using R.
+
+## *Before you start*
+The practical will be run using *RStudio cloud* to avoid individual machine troubleshooting. This means you **need** to have an account for *RStudio cloud*.
+
+However, remember to have [`R`](https://cran.r-project.org) and [R-studio](http://www.rstudio.com/) in your/room computer so you can work on the project after class.
+
+**You should have also **
+1. Read chapters 2, 3, and 4 Bivand et al. Applied Spatial Data Analysis with R. Springer, 2013.
+2. Done the Tutorial for this week.
+
+## *The way it's going to be run*
+
+In this 3h practical you will to implement what you have learned in the class about `Spatial*` and `Raster*`objects and how to Load, create, manipulate, and save these in `R`.
+
+You will be building and **R-Markdown** document during the class. **R-Markdown** documents allows you to combine your code, its results, and your prose commentary into a single document. If you manage to produce a document your code works. The resulting file (a html) is what you will hand-in at the end of the practical.
+
+**This is a 3h practical** and you will use all the time. Also try to write your own `R`-code and run it **DO NOT COPY THE CODE OF SOMEONE ELSE**. Writing your code and figuring out why it does not work is the best way to understand the dynamics of the `R` language and the tasks you are doing. Also, you have an excellent teaching assistant resource - ask him and/or me all the questions you have.
+
+The final document will have for classes of boxes
+
+<div class="alert alert-info">
+<p class="text-center"; style = "font-size: 20px">
+The text in the blue filled box marked as **Your task** states what you need to do</strong>
+</p>
+</div>
+
+```{r }
+#
+# The code in the window marked like this shows where you need to write your code
+#
+
+```
+
+<div class="alert alert-success">
+<p class="text-center"; style = "font-size: 20px">
+The text in the green filled box marked as **Question** phrases a question.
+</p>
+</div>
+
+<div class="alert alert-success"; style = "background-color:White; color:black">
+<p class="text-center"; style = "font-size: 20px">
+Here you will place the answer to the **question**.
+</p>
+</div>
+
+
+# **Obtaining environmental data for the Biowide dataset**
+
+## *1. Load the Data*
+<div class="alert alert-info">
+**Your task:**
+
+Load the data in *occurrence.csv*. The file is the folder associated to the project to the session - see the files tab in your R-studio session.. For this:
+
+* Use `read.csv` to load the file -  The file is comma-separated 
+
+* Save the object as `DK.Biodiv`.
+</div>
+
+```{r LoadData}
+# Step 1. Read the file and save it as an object named `DK.Biodiv`
+DK.Biodiv <-  read.csv('Data/occurrence.csv')
+```
+
+## *2. What is in the Table?*
+
+<div class="alert alert-info">
+**Your task:**
+
+Based on the data stored in the object `DK.Biodiv`, write code to answer the flowing questions:
+
+* Which groups (phylum) where sampled in the dataset?
+
+</div>
+```{r TableIn1}
+# Step 1. Which groups where sampled in the dataset?
+unique(DK.Biodiv$phylum)
+
+```
+
+<div class="alert alert-info">
+**Your task:**
+
+Based on the data stored in the object `DK.Biodiv`, write code to answer the flowing questions:
+
+* How many observations where recorded for each group (phylum)?
+
+</div>
+```{r TableIn2}
+# Step 1. How many observations where recorded for each group (phylum)?
+tapply(DK.Biodiv$scientificName, DK.Biodiv$phylum, function(x){length(x)})
+
+#
+```
+
+<div class="alert alert-info">
+**Your task:**
+
+Based on the data stored in the object `DK.Biodiv`, write code to answer the flowing questions:
+
+* How many species where recorded for each group (phylum)?
+
+* How many observations are in  the `DK.Biodiv` data set?
+
+</div>
+```{r TableIn3}
+#Step 1. How many species where recorded for each group (phylum)?
+tapply(X = DK.Biodiv$scientificName,
+       INDEX = DK.Biodiv$phylum,
+       FUN = function(x){length(unique(x))})
+
+#Step 2. How many observations where recorded for each group (phylum)?
+tapply(X = DK.Biodiv$scientificName,
+       INDEX = DK.Biodiv$phylum,
+       FUN = function(x){length(x)})
+
+```
+
+<div class="alert alert-success">
+**Question:**
+
+* What is the Difference between the number of observations and the number of species per groups?
+
+</div>
+    
+<div class="alert alert-success"; style = "background-color : White; color: black">
+
+**Observations** is a count of the number of the number of individuals recorded regardless of the species identity. **Number of species** indicate the number of species recorded for a group, without considering the number of recorded individuals of each species.
+
+</div>
+
+<div class="alert alert-info">
+**Your task:**
+
+Based on the data stored in the object `DK.Biodiv`, estimate the avenge number of species per sampled site of the groups *Magnoliophyta* and *Pinophyta*. For this, you will:
+
+* Add a new column to `DK.Biodiv` named *siteID* that define the unique locations by combining the `Lat` & `Lon` data. Use the function `paste()` or `paste0()` for this.
+
+* Count the number of species per site for *Magnoliophyta*. Store the result in an object named `Rich.Magnoliophyta`.
+
+* Count the number of species per site for *Pinophyta*. Store the result in an object named `Rich.Pinophyta`.
+
+* Estimate the average number of species per site using the data in `Rich.Magnoliophyta`  `Rich.Pinophyta`.
+
+</div>
+```{r TableIn4}
+# Avenge number of species per sampled site of the groups *Magnoliophyta* and *Pinophyta*?
+
+# Step-1 Define the unique Locations based on Lat-Lon data - add it as a column to the data.frame
+DK.Biodiv$siteID <- paste0(DK.Biodiv$decimalLatitude,"-",DK.Biodiv$decimalLongitude)
+
+# Step 2 Count the number of species per site
+Rich.Magnoliophyta <- tapply(X = DK.Biodiv[DK.Biodiv$phylum=="Magnoliophyta","scientificName"],
+                             INDEX = DK.Biodiv[DK.Biodiv$phylum=="Magnoliophyta","siteID"],
+                             FUN = function(x){length(unique(x))})
+# Step 3 Count the number of species per site
+Rich.Pinophyta <- tapply(X = DK.Biodiv[DK.Biodiv$phylum=="Pinophyta","scientificName"],
+                         INDEX = DK.Biodiv[DK.Biodiv$phylum=="Pinophyta","siteID"],
+                         FUN = function(x){length(unique(x))})
+
+# Step 4 Estimate the average No of species Per site
+mean(Rich.Magnoliophyta) # Average for Magnoliophyta
+
+mean(Rich.Pinophyta) # Average for Pinophyta
+```
+
+<div class="alert alert-info">
+**Your task:**
+
+Based on the data stored in the object `DK.Biodiv`, you will:
+
+* Estimate the 95%-confidence interval in the number of species per sampled site of the groups *Magnoliophyta* and *Pinophyta*  using the `quantile()` function.
+
+</div>
+
+```{r TableIn5a}
+# 95%-confidence interval in the  number of species per sampled site of the groups *Magnoliophyta* and *Pinophyta*?
+
+# Step 1 Estimate the 95%-confidence interval No of species Per site - using quantile
+quantile(x = Rich.Magnoliophyta,
+         probs = c(0.025,0.975)) # 95%-CI for Magnoliophyta
+quantile(x = Rich.Pinophyta,
+         probs = c(0.025,0.975)) # 95%-CI for Pinophyta
+```
+<div class="alert alert-info">
+**Your task:**
+
+Based on the data stored in the object `DK.Biodiv`, you will:
+
+* Estimate the 95%-confidence interval in the number of species per sampled site of the groups *Magnoliophyta* and *Pinophyta*  using a using a normal approximation.
+
+</div>
+```{r TableIn5b}
+# 95%-confidence interval in the  number of species per sampled site of the groups *Magnoliophyta* and *Pinophyta*?
+
+# Step 1 Estimate the 95%-confidence interval No of species Per site - using a normal approximation
+## 95%-CI for Magnoliophyta
+round(c(mean(Rich.Magnoliophyta)-(qnorm(0.975)*(sd(Rich.Magnoliophyta)/sqrt(length(Rich.Magnoliophyta)))),
+mean(Rich.Magnoliophyta)+(qnorm(0.975)*(sd(Rich.Magnoliophyta)/sqrt(length(Rich.Magnoliophyta))))),1)
+
+## 95%-CI for Pinophyta
+round(c(mean(Rich.Pinophyta)-(qnorm(0.975)*(sd(Rich.Pinophyta)/sqrt(length(Rich.Pinophyta)))),
+mean(Rich.Pinophyta)+(qnorm(0.975)*(sd(Rich.Pinophyta)/sqrt(length(Rich.Pinophyta))))),1)
+```
+
+<div class="alert alert-success">
+**Question:**
+
+* What is the Difference between using the `quantile` function and a normal approximation to estimate 95%-Confidence intervals?
+
+</div>
+    
+<div class="alert alert-success"; style = "background-color : White; color: black">
+
+The **`quantile()``** function estimate the *sample* percentiles - the value at which a given percentage of the observations fall below. The normal approximation, assumes that the data is normally distributed, and uses this assumption to define the 95%-CI. 
+</div>
+
+<div class="alert alert-info">
+**Your task:**
+
+Based on the data stored in the object `DK.Biodiv`, write code to answer the flowing questions:
+
+
+* Count the number of species per site per group using the function `tapply()`.
+
+* Plot the box-plot of the **Log_10* of the number of species per site sites for all evaluated groups.
+
+</div>
+
+```{r TableIn6}
+# box-plot of the **Log_10* of species richness.
+
+# Step 1 Count the number of species per site per group
+Rich.PerSite <- tapply(X = DK.Biodiv$scientificName,
+                            INDEX = list(DK.Biodiv$siteID,DK.Biodiv$phylum),
+                            FUN = function(x){length(unique(x))})
+
+# Step 2. Plot the Box-plot of log-10 richness
+boxplot(x = log10(Rich.PerSite), 
+        ylab = "Log10 - Species richness",
+        col = rainbow(dim(Rich.PerSite)[2]))
+
+# Plot the Box-plot of log-10 richness Ver 2
+boxplot(x = (Rich.PerSite),
+        log = "y",
+        ylab = "Log10 - Species richness",
+        col = rainbow(dim(Rich.PerSite)[2]))
+```
+
+
+<div class="alert alert-success">
+**Question:**
+
+* How do you interpret a difference in one (1) unit in Y-axis of the box-plot you just plotted?
+
+</div>
+    
+<div class="alert alert-success"; style = "background-color : White; color: black">
+
+The Y-axes is in a logarithmic scale, which means a difference in one means one order of magnitude difference between groups 
+</div>
+
+<div class="alert alert-info">
+**Your task:**
+
+Based on the data stored in the object `DK.Biodiv`, you will:
+
+* Transform `Rich.PerSite` to from a matrix into a `data.frame` using the function `as.data.frame()`.
+
+* Define the latitude to each site, and add this value to `Rich.PerSite` as a new variable named *Lat*.
+
+* Define the longitude to each site, and add * Define the latitude to each site, and add this value to `Rich.PerSite` as a new variable named *Lat*. value to `Rich.PerSite` as a new variable named *Lon*.
+
+* Estimate the correlation between species richness per site of vascular plants (*Magnoliophyta* and *Pinophyta*) and latitude.
+
+* Estimate the correlation between species richness per site of vascular plants (*Magnoliophyta* and *Pinophyta*) and longitude.
+
+</div>
+
+```{r TableIn7}
+# Estimate the correlation between species richness per site and latitude.
+
+# Step 1 transform Rich.PerSite to a data.frame
+
+Rich.PerSite <- as.data.frame(Rich.PerSite)
+
+# Step 2 Define the latitude to each site
+Rich.PerSite$Lat <- do.call("c",lapply(strsplit(row.names(Rich.PerSite),"-"),
+       function(x){as.numeric(x[1])}))
+
+# Step 3 Define the Longitude to each site
+SiteLon <- do.call("c",lapply(strsplit(row.names(Rich.PerSite),"-"),
+       function(x){as.numeric(x[2])}))
+Rich.PerSite$Lon <- SiteLon
+
+# Step 4 estimate the correlation between richness and Latitude
+apply(X = Rich.PerSite[,c("Magnoliophyta","Pinophyta")],
+      MARGIN = 2,
+      FUN = function(x){
+        cor(x = x,
+            y = Rich.PerSite$Lat,
+            use = "pairwise.complete.obs")})
+
+# Step 5 estimate the correlation between richness and longitude
+apply(X = Rich.PerSite[,c("Magnoliophyta","Pinophyta")],
+      MARGIN = 2,
+      FUN = function(x){
+        cor(x = x,
+            y = Rich.PerSite$Lon,
+            use = "pairwise.complete.obs")})
+```
+
+## *3. Creating and working with `SpatialPointsDataFrame`s*
+
+<div class="alert alert-info">
+**Your task:**
+  
+Based on the data stored in the object `Rich.PerSite`, you will create a `SpatialPointsDataFrame` were each point represents a sampled location. For this you will:
+
+* Copy the data in `Rich.PerSite` into a new object named `BiowideSptPnt`.
+
+* Use the function `coordinates()` to transform `BiowideSptPnt` into a `SpatialPointsDataFrame`.
+
+* Check the class of `BiowideSptPnt`.
+
+* Call the `BiowideSptPnt` object.
+
+</div>
+
+```{r SpatPnt1}
+# Create a `SpatialPointsDataFrame` 
+BiowideSptPnt <- Rich.PerSite
+
+#Step 1. Use the function coordinates() to create a SpatialPointsDataFrame.
+coordinates(BiowideSptPnt) <- ~Lon+Lat
+
+#Step 2. Check the class of BiowideSptPnt to be sure that is a SpatialPointsDataFrame. 
+class(BiowideSptPnt)
+
+#Step 2. Call the BiowideSptPnt object
+BiowideSptPnt
+```
+<div class="alert alert-info">
+**Your task:**
+  
+Using the object `BiowideSptPnt`, you will.
+
+* Check the projection of `BiowideSptPnt`.
+
+* Define a Projection for `BiowideSptPnt` using the function `projection()`.
+
+* Visualize the `BiowideSptPnt` object.
+</div>
+
+```{r SpatPnt2}
+# Define a Projection for BiowideSptPnt
+
+#Step 1. Check the projection of BiowideSptPnt
+## One way is to use the function `projection()`
+projection(BiowideSptPnt)
+## Another way is to Call the object
+BiowideSptPnt
+
+# Step 2. Define the projection
+## As the Object has no projection you can just add it as a string
+projection(BiowideSptPnt) <- CRS("+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs")
+
+# Step 3. Visualize the BiowideSptPnt object
+plot(BiowideSptPnt)
+```
+
+<div class="alert alert-info">
+**Your task:**
+  
+Based on the data stored in the object `Rich.PerSite`, create a `SpatialPointsDataFrame` were each point represents a sampled location. For this, you will:
+
+* Use the function `SpatialPointsDataFrame()` to transform `Rich.PerSite` into a spatial object named `BiowideSptPnt`.
+
+* Check the class of `BiowideSptPnt`.
+
+* Call and visualize the `BiowideSptPnt` object.
+</div>
+
+```{r SpatPnt3}
+# Step 1. Create a `SpatialPointsDataFrame` 
+BiowideSptPnt <- SpatialPointsDataFrame(coords = Rich.PerSite[,c("Lon","Lat")],
+                                          proj4string = CRS("+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs"),
+                                          data = Rich.PerSite)
+
+# Step 2. Check the class of BiowideSptPnt to be sure that is a SpatialPointsDataFrame. 
+class(BiowideSptPnt)
+
+# Step 3a. Call the BiowideSptPnt object
+BiowideSptPnt
+
+# Step 3b. Visualize the BiowideSptPnt object
+plot(BiowideSptPnt)
+```
+
+<div class="alert alert-success">
+**Question:**
+
+* What is the diff between the the `SpatialPointsDataFrame` created with the function `coordinates()` and the one created using the `SpatialPointsDataFrame()` function?
+
+</div>
+    
+<div class="alert alert-success"; style = "background-color : White; color: black">
+
+The object created with *`coordinates()`* removes the coordinates from the data (it only has 13 variables), while the object created with `SpatialPointsDataFrame()` has all the data included in the `Rich.PerSite` object.
+</div>
+
+<div class="alert alert-info">
+**Your task:**
+  
+Based on the data stored in the object `BiowideSptPnt`, you will.
+
+* Re-project this object to the projection system for Denmark (UTM/ETRS89).
+
+* Call and visualize `BiowideSptPnt.UTM`.
+</div>
+
+```{r SpatPnt4}
+# Step 1. Re-project BiowideSptPnt to UTM/ETRS89
+BiowideSptPnt.UTM <- spTransform(x = BiowideSptPnt,
+                                 CRSobj = CRS("+proj=utm +zone=32 +ellps=GRS80 +units=m +no_def"))
+# Step 2a. Call BiowideSptPnt.UTM
+BiowideSptPnt.UTM
+
+# Step 2b. plot BiowideSptPnt.UTM
+plot(BiowideSptPnt.UTM)
+```
+
+## *4. Creating and working with `SpatialPolygonsDataFrame`s*
+
+<div class="alert alert-info">
+**Your task:**
+Here you will get data from an on-line repository. For this. you will:
+
+* Use the function `getData()` to get the first level of administrative subdivision for Denmark (i.e., landsdele). Store the data in an object named `LandsdeleShp`.
+
+* Visualize `LandsdeleShp`.
+</div>
+
+```{r SpaPoly1}
+# Step 1. Get The level-1 map for Denmark - Denmark/ISO-code is DNK
+LandsdeleShp <- getData(name = 'GADM',
+                        country= 'DNK',
+                        level=1,
+                        path = "Data/")
+# Step 2. Visualize LandsdeleShp
+plot(LandsdeleShp)
+```
+
+<div class="alert alert-success">
+**Question:**
+
+* Can you use the object `BiowideSptPnt.UTM` to extract the names of the regions of Denmark in `LandsdeleShp` for each sampled location?
+</div>
+    
+<div class="alert alert-success"; style = "background-color : White; color: black">
+
+NO, The reasons is that the object `LandsdeleShp` is geo-referenced, while `BiowideSptPnt.UTM` is projected to UTM-coordinates.
+</div>
+
+<div class="alert alert-info">
+**Your task:**
+Based on the data stored in the object `LandsdeleShp`, you will.
+
+* Call the projection of `LandsdeleShp`.
+
+* Re-project this object to the projection system for Denmark (UTM/ETRS89). For this, use the function `spTransform()`.
+
+* Call and plot `LandsdeleShp.UTM`.
+
+</div>
+```{r SpaPoly2}
+# Step 1. check the projection of LandsdeleShp
+projection(LandsdeleShp)
+
+# Step 2. Re-project LandsdeleShp to UTM/ETRS89
+LandsdeleShp.UTM <- spTransform(x = LandsdeleShp,
+                                 CRSobj = CRS("+proj=utm +zone=32 +ellps=GRS80 +units=m +no_def"))
+# Step 3a. Call LandsdeleShp.UTM to check the projection of LandsdeleShp.UTM
+LandsdeleShp.UTM@data
+
+# Step 3b. Plot LandsdeleShp.UTM
+LandsdeleShp.UTM@data
+```
+
+<div class="alert alert-info">
+**Your task:**
+Using the `BiowideSptPnt.UTM` and `LandsdeleShp.UTM` objects, you will.
+
+* Call the data included in `LandsdeleShp.UTM`.
+
+* Extract the region of Denmark (Landsdele) where each variable was sampled. For this you will use the function `over()`.
+
+* Add this information to `BiowideSptPnt.UTM` as a new variable named *landsdele*.
+
+* Check the data in `BiowideSptPnt.UTM` by calling the first five rows.
+
+</div>
+```{r SpaPoly3}
+# Step 1. Call the data included in LandsdeleShp.UTM
+LandsdeleShp.UTM@data
+
+# Step 2. Extract the region name that corresponds to each sampled point using the function over.
+landsdele <- over(x = BiowideSptPnt.UTM, # The SpatialPointDataFrame
+                  y = LandsdeleShp.UTM["NAME_1"] # The attribute to extract 
+)
+
+# Step 3. add this variable to BiowideSptPnt.UTM
+BiowideSptPnt.UTM$landsdele <- as.vector(landsdele[,1])
+
+# Step 3. Check the data in BiowideSptPnt.UTM by Calling the first five rows
+head(BiowideSptPnt.UTM)
+```
+<div class="alert alert-info">
+**Your task:**
+Using the `BiowideSptPnt.UTM` and `LandsdeleShp.UTM` objects, you will.
+
+* Estimate the number of sampled sites per region and save this summary as an object named `SmpSitPerReg`.
+
+* Add the values in `SmpSitPerReg` to`LandsdeleShp.UTM` a new variable that corresponds to the number of sampled sites per region. Name this new variable *NoSampSites*.
+
+* Call the data included in `LandsdeleShp.UTM`.
+
+</div>
+```{r SpaPoly4}
+# Step 1. Estimate the number of sampled sites per region.
+SmpSitPerReg <- table(BiowideSptPnt.UTM$landsdele)
+
+# Step 2b. add this variable to LandsdeleShp.UTM
+LandsdeleShp.UTM$NoSampSites <- SmpSitPerReg
+
+# Step 3. Check the data in LandsdeleShp.UTM
+LandsdeleShp.UTM@data
+```
+<div class="alert alert-info">
+**Your task:**
+Using the `BiowideSptPnt.UTM` and `LandsdeleShp.UTM` objects, you will.
+
+* Plot`LandsdeleShp.UTM` colouring the Regions (landsdele) by the number of sampling sites.
+
+* Add a legend can be used to interpret the colours representing the number of sampled sites. Use the function `legend()` for this.
+
+* Estimate the richness of vascular plants per site by adding the richness of *Magnoliophyta* & *Pinophyta*.
+
+* Overlay on top of this map `BiowideSptPnt.UTM` sizing the points by the richness of vascular plants.
+
+* Add a legend that can be used to interpret the species richness per site.
+
+</div>
+
+```{SpaPoly4}
+# Step 1. Plot`LandsdeleShp.UTM` colouring the Regions
+plot(x = LandsdeleShp.UTM[,"NoSampSites"],
+     col = rev(hcl.colors(40,palette="reds")[LandsdeleShp.UTM$NoSampSites]),)
+box()
+# Step 2. Add a legend can be used to interpret the colours representing the number of sampled.  
+legend("topright",
+       fill = rev(hcl.colors(40,palette="reds")[c(1,10,20,30,40)]),
+       legend = seq(0,40,length.out=5))
+
+# Step 3. Estimate the richness of vascular plants
+S.Spermatophyte = apply(X = BiowideSptPnt.UTM@data[,c("Magnoliophyta","Pinophyta")],
+                        MARGIN = 1,
+                        FUN = sum,
+                        na.rm=T)
+# Step 4. Overlay `BiowideSptPnt.UTM`
+plot(BiowideSptPnt.UTM,
+     pch=19,
+     cex= S.Spermatophyte/median(S.Spermatophyte),
+     add = T)
+
+# Step 5. Add a legend that can be used to interpret the species richness per site.  
+legend("topleft",
+       pch = 19,
+       legend = seq(10,135,by=20),
+       pt.cex = seq(10,135,by=20)/median(S.Spermatophyte))
+```
+
+## *5. Rasters-1: Reclassify and aggregate a 'raster' object*
+
+<div class="alert alert-info">
+**Your task:**
+Load the data in *BASEMAP_2018_Crop.tif*, the file is the folder associated to the project to the session - see the files tab in your R-studio session.
+
+* Use `raster()` to load the file.
+
+* Save the object as `BASEMAP.Crop`.
+
+* Visualize the object.
+</div>
+```{r RasrRecl1}
+# Step 1. Load BASEMAP_2018_Crop.tif
+BASEMAP.Crop <- raster("Data/BASEMAP_2018_Crop.tif")
+# Step 2. Call the BASEMAP.Crop object
+BASEMAP.Crop
+# Step 3. visualize the BASEMAP.Crop object
+plot(BASEMAP.Crop)
+```
+
+<div class="alert alert-success">
+**Question:**
+
+* What is the projection of `BASEMAP.Crop`?
+</div>
+    
+<div class="alert alert-success"; style = "background-color : White; color: black">
+
+`BASEMAP.Crop` is in the UTM/ETRS89 projection
+</div>
+
+<div class="alert alert-info">
+**Your task:**
+Using the object `BASEMAP.Crop` you will:
+
+* Load the *Basemap-Legend.csv* file with the link between codes in `BASEMAP.Crop`and the land cover classes names.The file is in the folder associated to the project to the session.
+
+* Extract the Data in `BASEMAP.Crop` and save it as a object named `BASEMAP.Data`.
+
+* Transform `BASEMAP.Data` to a factor using the data in `BASEMAP.Legend`.
+
+* Estimate the number of cells per Land cover class. Use the function `table()` to do this.
+</div>
+```{r RasrRecl2}
+# Step 1. Load Basemap-Legend.csv
+BASEMAP.Legend <- read.csv("Data/Basemap-Legend.csv")
+
+# Step 2. Extract the Data in BASEMAP.Crop and save it as a object named BASEMAP.Data
+BASEMAP.Data <- values(BASEMAP.Crop)
+
+# Step 3. Transform BASEMAP.Data to a factor using the data in BASEMAP.Legend to define the levels and labels
+BASEMAP.Data.Factor <- factor(x = BASEMAP.Data,
+                              levels = BASEMAP.Legend$Code,
+                              labels = BASEMAP.Legend$Name)
+# Step 4. Use the function table to count the number of cells per land cover type defined in BASEMAP.Data.Factor - Call the object
+CountLandCov <- table(BASEMAP.Data.Factor)
+
+# Step 5. Sort the data in CountLandCov in increasing order
+sort(CountLandCov)
+```
+
+<div class="alert alert-success">
+**Questions:**
+
+* Which land Cover type is the most abundant?
+
+* Which land Cover type(s) are not represented?
+
+* What is the coverage of Forested areas?
+</div>
+    
+<div class="alert alert-success"; style = "background-color : White; color: black">
+
+Agriculture, intensive, temporary crops is the most abundant land cover type.
+
+Airport/runway, Resource extraction, Sea, and Unmapped are not represented in the map.
+
+Forested areas (Fortes + Forest,Wet) cover an area of 36.6811km2 (the sum of the number of cells x the area of each cell (100m2) x the conversion factor from m2 to km2)
+</div>
+
+<div class="alert alert-info">
+**Your task:**
+Using the object `BASEMAP.Crop` and the data in `BASEMAP.Legend` you will reclassify ``BASEMAP.Crop` so that it shows areas consider as Agricultural areas (Agriculture-intensive/extensive-temporary crops/permanent crops). For this, you will:
+
+* Create a new table that transform the *Names* variable in `BASEMAP.Legend` to 1 (Agricultural areas) and 0 (Other areas). Name this new table `Reclas.Table`.
+
+* Transform `Reclas.Table` into a matrix. Use the function `as.matrix()`.
+
+* Reclassify `BASEMAP.Crop` using `Reclas.Table` so that only only shows the cells considered as Agricultural areas. For this, use the function `reclassify()`. Store the reclassified map as an object named `BASEMAP.Agri`.
+
+* Plot `BASEMAP.Agri`.
+
+</div>
+```{r RasrRecl3}
+# Step 1. Create a reclassification table (Reclas.Table) using the data in BASEMAP.Legend
+Reclas.Table <- BASEMAP.Legend
+Reclas.Table$Name <- 0
+Reclas.Table$Name[grep("Agriculture",BASEMAP.Legend$Name)] <- 1
+Reclas.Table <- rbind(Reclas.Table,c(NA,NA))
+# Step 2. Transform Reclas.Table into a matrix
+Reclas.Table <- as.matrix(Reclas.Table)
+# Step 3. Use the reclassify function to transform BASEMAP.Crop into a binary map (BASEMAP.Agri) based on Reclas.Table
+BASEMAP.Agri <- reclassify(x = BASEMAP.Crop,
+                          rcl = Reclas.Table)
+# Step 3. plot BASEMAP.Agri
+plot(BASEMAP.Agri)
+```
+
+<div class="alert alert-info">
+**Your task:**
+Using the object `BASEMAP.Agri` you will:
+
+* Estimate the Agricultural Density per 1km^2 using the function `aggregate()`. save the aggregated raster as an object named `BASEMAP.Agri`.
+
+* Plot `BASEMAP.Agri`.
+
+
+
+</div>
+```{r RasrRecl4}
+# Step 1. Aggregate the raster `BASEMAP.Agri`. Save the result as an object named AgriDen
+AgriDen <- aggregate(x = BASEMAP.Agri,
+                     fact = 10,
+                     fun = sum,
+                     na.rm = T)
+# Step 2. Plot the AgriDen object to visualize the result
+plot(AgriDen)
+```
+
+<div class="alert alert-info">
+**Your task:**
+Load the data in *NatDens_BaseMap.tif* that has the density of natural areas based on BASEMAP. The file is the folder associated to the project to the session - see the files tab in your R-studio session.
+
+* Use `raster()` to load the file.
+
+* Save the object as `NatDens.DK`.
+
+* Call the object to check it's properties.
+
+* Visualize the object.
+</div>
+```{r RasrRecl5}
+# Step 1. Load NatDens_BaseMap.tif
+NatDens.DK <- raster("Data/NatDens_BaseMap.tif")
+
+# Step 2. Call the NatDens.DK object
+NatDens.DK
+
+# Step 3. visualize the NatDens.DK object
+plot(NatDens.DK)
+```
+
+<div class="alert alert-success">
+**Questions:**
+
+* What is the projection of the `NatDens.DK` raster?
+
+* Can you use the object `BiowideSptPnt` to extract the values of Nature Density from `NatDens.DK`.
+</div>
+    
+<div class="alert alert-success"; style = "background-color : White; color: black">
+
+The `NatDens.DK` object is projected to Denmark's projection system (UTM/ETRS89).
+By comparison `BiowideSptPnt` is only referenced, so it **CAN NOT** be used to extract the information in `NatDens.DK`. You need to use `BiowideSptPnt.UTM` for this.
+</div>
+
+<div class="alert alert-info">
+**Your task:**
+Extract the information in `NatDens.DK` using the appropriate Biowide
+`StaialPointsDataFrame` object. For this, you will:
+
+* Use the function `extract ()`.
+
+* Save the data as a new variable named *NatDens* in the appropriate Biowide
+`StaialPointsDataFrame` object.
+
+* Plot a histogram for *NatDens*. 
+</div>
+
+```{r RasrRecl6}
+#Step 1. Extract the data in NatDens.DK & save it to the appropriate SpatialPoints object 
+BiowideSptPnt.UTM$NatDens <- extract(x = NatDens.DK,
+                                     y = BiowideSptPnt.UTM)
+
+#Step 2. Plot a histogram for *NatDens*
+hist(BiowideSptPnt.UTM$NatDens)
+```
+
+<div class="alert alert-info">
+**Your task:**
+Based on the information in `BASEMAP.Crop` and `BASEMAP.Legend` you will plot the land cover raster as a categorical raster. For this, you will:
+
+* Transform `BASEMAP.Crop` into a factor using the function `ratify()`. Store the transformed `BASEMAP.Crop` as an object names `BASEMAP.Crop.Fact`.
+
+* Extract the levels in the `BASEMAP.Crop.Fact` categorical raster using the function `levels()`. Store these levels as an object named `rat`.  
+
+* Add an extra attribute to `rat` that will be used for the legend. This is done by matching the values in `rat` to the `code` variable in `BASEMAP.Legend`, and extracting  from `BASEMAP.Legend` the variable `Name`. use the function `match()` for this.
+
+* Make now `rat` the `leves` of `BASEMAP.Crop.Fact` using the function `levels()`.
+
+* Plot  `BASEMAP.Crop.Fact` using the function `levelplot()` from the `rasterVis` package.
+
+</div>
+
+```{r RasrRecl7}
+# Step 1. Transform `NatDens.DK` into a factor
+BASEMAP.Crop.Fact <- ratify(BASEMAP.Crop)
+
+# Step 2. Extract the Factors - note that you will get a list with one slot.
+rat <- levels(BASEMAP.Crop.Fact)
+
+# Step 3. Add the Name for each factors using the information in `BASEMAP.Legend`
+rat[[1]][,'landcover'] <- BASEMAP.Legend[match(rat[[1]][,1],BASEMAP.Legend[,1]),2]
+
+# Step 4. Make rat the levels in BASEMAP.Crop.Fact
+levels(BASEMAP.Crop.Fact) <- rat
+
+# Step 4. Plot BASEMAP.Crop.Fact
+levelplot(x = BASEMAP.Crop.Fact,
+          col.regions = rainbow(dim(rat[[1]])[1]))
+```
+
+## *5. Rasters-3: Map Algebra*
+
+<div class="alert alert-info">
+**Your task:**
+Load the data in *Tmean_CHELSA-DK.tif*, the file is the folder associated to the project to the session - see the files tab in your R-studio session.
+
+* Use `stack()` to load the file.
+
+* Save the object as `Tmean.DK`.
+
+* Visualize the object.
+</div>
+
+```{r RasrMapAlg1}
+# Step 1. Load Tmean_CHELSA-DK.tif and store it as an object named Tmean.DK
+Tmean.DK <- stack("Data/Tmean_CHELSA-DK.tif")
+
+# Step 2. Visualize the object.
+plot(Tmean.DK)
+```
+<div class="alert alert-success">
+**Question:**
+
+* What is the difference between loading the data using the functions `raster()`, `stack()`, and `brick()`
+</div>
+    
+<div class="alert alert-success"; style = "background-color : White; color: black">
+
+The difference between `raster()` and  `stack()`/`brick()` is that `raster()` ONLY loads one of the layers in the raster. Both `stack()`and `brick()` can load multiple layers of multi band rasters, or store multiple individual rates ans a multi-band raster object. The difference between `stack()`and `brick()` is that in **stacks** all data is in the same locations, while for **brick** it can be in multiple locations.
+</div>
+
+<div class="alert alert-info">
+**Your task:**
+Using the data in `Tmean.DK` yo will now estimate the annual Temperature seasonality as:
+
+* The standard deviation of mean monthly temperatures. Store this operation as an object named `TSes.SD`. Use the function `calc()` for this.
+
+* The coefficient of variation of mean monthly temperatures. Store this operation as an object named `TSes.CV`. Use the function `calc()` for this.
+
+* Stack `TSes.SD` and `TSes.CV` as an object named `TSes.DK`. Use the function `stack()` for this.
+
+* Visualize `TSes.DK`.
+</div>
+
+```{r RasrMapAlg2}
+# Step 1. Estimate the annual Temperature seasonality as SD
+TSes.SD <- calc(Tmean.DK,
+                fun = function(x){sd(x,na.rm = T)})
+
+# Step 2. Estimate the annual Temperature seasonality as CV
+TSes.CV <- calc(Tmean.DK,
+                fun = function(x){sd(x,na.rm = T)/mean(x,na.rm = T)})
+
+# Step 3. Stack `TSes.SD` and `TSes.CV` 
+TSes.DK <- stack(TSes.SD, TSes.CV)
+names(TSes.DK)<- c("TSes.SD","TSes.CV")
+# Step 4. Visualize `TSes`.
+plot(TSes.DK)
+```
+
+<div class="alert alert-success">
+**Questions:**
+
+* What is the projection of the `TSes.DK` raster?
+
+* Can you use the object `BiowideSptPnt.UTM` to extract the values of Nature Density from `NatDens.DK`.
+</div>
+    
+<div class="alert alert-success"; style = "background-color : White; color: black">
+
+The `TSes.DK` object is referenced, so you CANNOT use `BiowideSptPnt.UTM` to extract the information in `TSes.DK` as `BiowideSptPnt.UTM` is projected to Denmark's projection system (UTM/ETRS89).
+</div>
+
+<div class="alert alert-info">
+**Your task:**
+Using the object `TSes.DK` you will:
+
+* Re-project the raster to  Denmark's projection system (UTM/ETRS89). For this, use the function `projectRaster()`.
+
+* Store the Re-projected raster as an object named `TSes.DK.UTM` 
+
+* Call the `TSes.DK.UTM` to check the projection.
+</div>
+
+```{r RasrMapAlg3}
+# Step 1. Re-project the raster 
+TSes.DK.UTM <- projectRaster(from = TSes.DK,
+                             crs = CRS("+proj=utm +zone=32 +ellps=GRS80 +units=m +no_defs"))
+
+# Step 2. Call the Re-projected raster
+TSes.DK.UTM
+```
+
+<div class="alert alert-info">
+**Your task:**
+Using the objects `TSes.DK` and `BiowideSptPnt.UTM` you will:
+
+* Extract both the Temperature seasonality estimated using the standard deviation for all sampled locations.
+
+* Save the data as a new variable named *TSes* in `BiowideSptPnt.UTM`.
+
+* Visualize the extracted data as a box-plot grouping *TSes* by *regions*.
+</div>
+
+```{r RasrMapAlg4}
+# Step 1. Extract both the SD derived Temperature seasonality  
+BiowideSptPnt.UTM$TSes <- extract(x = TSes.DK.UTM[["TSes.SD"]],
+                                  y = BiowideSptPnt.UTM)
+
+TSes.DK.UTM <- projectRaster(from = TSes.DK,
+                             crs = CRS("+proj=utm +zone=32 +ellps=GRS80 +units=m +no_defs"))
+
+# Step 2. Visualize TSes as a box-plot
+boxplot(formula = TSes ~ landsdele,
+        data = BiowideSptPnt.UTM,
+        col = rainbow(5))
+```
+
+
