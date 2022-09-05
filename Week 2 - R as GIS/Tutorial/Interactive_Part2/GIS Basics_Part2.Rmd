@@ -1,0 +1,564 @@
+---
+title: "Using `Raster` Data in R"
+author: "Alejandro Ordonez"
+documentclass: "report"
+output: 
+  learnr::tutorial:
+  progressive: true
+runtime: shiny_prerendered
+---
+
+
+```{r setup, include=FALSE}
+# Load packages
+library(learnr)
+library(tidyverse)
+library(raster)
+library(rgdal)
+library(sp)
+
+# options
+knitr::opts_chunk$set(echo = FALSE)
+gradethis::gradethis_setup()
+
+# Load the Base information
+CRS.String <- "+proj=aea +lat_1=20 +lat_2=60 +lat_0=40 +lon_0=-96 +x_0=0 +y_0=0 +datum=NAD83 +units=m +no_def"
+Bigfoot.SpaPnt <- readRDS("data/Bigfoot.SpaPnt.rds")
+Bigfoot.SpaPnt.AEA <-readRDS("data/Bigfoot.SpaPnt.AEA.rds")
+NoAmPoly.AEA <- readRDS("data/NoAmPoly.AEA.rds")
+WC.Bioclim <- stack("data/Bioclim.tif")
+NoAm.WC.Tmin <- stack("data/NoAm.tmin.tif")
+NoAm.WC.Tmax <- stack("data/NoAm.tmax.tif")
+NoAm.WC.Bioclim <- stack("data/NoAm.WC.Bioclim.tif")
+NoAm.WC.Bioclim.AEA <- stack("data/NoAm.WC.Bioclim.AEA.tif")
+BFC <- readRDS("data/BFC.rds")
+```
+
+## Before you start.
+
+This week tutorial will be a bit playful, as you will focus on plotting the distribution of a crypto‐zoological species – the North American Sasquatch, or Bigfoot (*Imaginus magnapedum*). **Supposedly**, the sasquatch belongs to a large primate lineage descended from the extinct Asian species *Gigantopithicus blacki*. Sasquatch is regularly reported in forested lands of western North America and is considered a significant indigenous American and western North American folk legend. However, the existence of this creature has never been verified with a typed specimen.
+
+The main objective will be to generate a spatial representation of the complete range of the species. This type of analysis is the starting point to build a statistical model to describe the " environmental requirements" of a species. These models are often referred to as "species distribution modelling" (SDM) or "ecological niche modelling" (ENM). Regardless of the "tongue-in-cheek" nature of the organisms evaluated, this work will provide you with an opportunity to combine different spatial data in `R`.
+
+Lozier et al. (2009) undertook a similar task. They build an SDM to show the need for careful evaluation of database records before their use in modelling, especially when the presence of cryptic species (*morphologically indistinguishable biological groups that are incapable of interbreeding*) is suspected, or many records are based on indirect evidence. 
+
+## Loading and processing `Raster*` objects.
+
+Now that you know where Bigfoot has been "sighted" across North America is time to get environmental information to define the conditions that determine the best habitats for Bigfoot. This is the objective of species distribution modelling (**SDM**). In **SDM**s, environmental information is usually extracted from `raster` files stored in some kind of GIS format. Variables can include climatic, soil, terrain, vegetation, land use, and other variables.
+
+
+## Get climate data.
+
+As a start, you will focus on climatic data for the region of interest. There are many sources of climatic information freely available to be used. Some examples are the Climatic Research Unit (CRU <http://www.cru.uea.ac.uk/>), Climatologies at high resolution for the Earth’s land surface areas (CHELSA <https://chelsa-climate.org/>), WorldClim v2. (<https://www.worldclim.org/>), ecoClimate (<https://www.ecoclimate.org/>), global climatologies for bioclimatic modelling (CliMond <https://www.climond.org/>) and climate re-analyses such as ERA5-Land (<https://bit.ly/39kQlOL>).
+
+For simplicity, you will focus now on WorldClim climatologies and obtain the 19-bioclimatic variables commonly used in SDMs. These can be downloaded and stored locally. Some of these can be loaded directly from `R` with the use of packages. For example, WorldClim data can be obtained directly from `R` using the `getData()` function of the `raster` package. Climate data from CRU can be obtained directly from `R` using the `create_CRU_stack()` function of the `getCRUCLdata` package. For an example of how this can be done see the code below. 
+
+
+```{r WorldClim, eval = F, echo =T}
+# Now use the function getData() to download the 19-BioClimatic part of WorldClim at a 10ArcMis resolution.
+WC.Bioclim <- getData(name = 'worldclim', # Define the Data set name.
+                      res = 10, ## This defines the resolution of the Imported raster (10ArcMis)
+                      var = 'bio') ## This defines that BioClimatic variables are imported
+```
+
+## Visualize the climate data.
+
+By using `getData()` you get a number of files that are downloaded into a folder named `wc10` in the working working directory. These are ESRI `.hdr` Labelled files named bio1 to bio19.
+
+You will not do this, as I have downloaded and it and crop the area to a manageble size (the Americas) an this map is available in your session. The object name is `WC.Bioclim` as it is a `RasterStack` with 19 layers, coded `Bioclim.1` to `Bioclim.19` (see <https://www.WorldClim.org/data/bioclim.html> for a translation of the codes). But, how do they look? The only way to see that is to plot the variables.
+
+<div class = "alert alert-info">
+**Your task:**
+
+Plot the `Bioclim.1` (Annual Mean Temperature [C]) and `Bioclim.12` (Total Annual Precipitation [mm/yr]) layers of `WC.Bioclim`.
+
+The maps should be shown as two panels in the same figure.
+</div>
+
+
+```{r worldclimPlt, exercise=TRUE, exercise.lines=18}
+# Define a plotting space with One-Row and Two-columns
+---(---- = c(--, --))
+
+# plot Annual Mean Temperature (WorldClim temp are C*10 so you need to do some operations before plotting).
+plot(------, # Define the Layer from WC.Bioclim to plot. I divide the value by 10 as WorldClim temp are C*10 (to avoid using Floating Numbers)
+     main = "Annual Mean Temperature\n[C]", # Set the Figure title
+     cex.main = 1.2, # Define the Title font size
+     col = hcl.colors(n = 50 , palette = "Blue-Red") # Define a divergent HCL palette with 50 values.
+     )
+# plot Total Annual Precipitation 
+
+plot(------, # Define the Layer from WC.Bioclim to plot.
+     main = "Total Annual Precipitation\n[mm/yr]", # Set the Figure title
+     cex.main = 1.2,# Define the Title font size
+     col = rev(hcl.colors(n = 50 ,palette = "Blue-Red")) # Define a divergent HCL palette with 50 values.
+     )
+```
+
+```{r worldclimPlt-solution}
+# Define a plotting space with One-Row and Two-columns
+par(mfrow = c(1, 2))
+# plot Annual Mean Temperature (WorldClim temp are C*10 so you need to do some operations before plotting).
+# Define a divergent blue-to-grey-to-red HCL palette with 50 values.
+plot(WC.Bioclim[['Bioclim.1']]/10, # Define the Layer from WC.Bioclim to plot. I divide the value by 10 as WorldClim temp are C*10 (to avoid using Floating Numbers)
+     main = "Annual Mean Temperature\n[C]", # Set the Figure title
+     cex.main = 1.2, # Define the Title font size
+     col = hcl.colors(n = 50 , palette = "Blue-Red") # Define a divergent HCL palette with 50 values.
+     )
+# plot Total Annual Precipitation 
+# Define a divergent red-to-grey-to-blue HCL palette with 50 values.
+plot(WC.Bioclim[['Bioclim.12']], # Define the Layer from WC.Bioclim to plot.
+     main = "Total Annual Precipitation\n[mm/yr]", # Set the Figure title
+     cex.main = 1.2,# Define the Title font size
+     col = rev(hcl.colors(n = 50 ,palette = "Blue-Red")) # Define a divergent HCL palette with 50 values.
+     )
+```
+```{r worldclimPlt-hint}
+logo <- stack(system.file("external/rlogo.grd", package="raster")) 
+par(mfrow=c(1,2)) # define the plotting space
+plot(logo[[1]])
+plot(logo[[2]])
+```
+
+```{r worldclimPlt-check}
+grade_code()
+```
+
+## Croping  `Raster*` objects.
+
+You have a set of predictor variables as `rasters` in the `WC.Bioclim` object. Your next task is cropping the continatal climate maps to the region of interest (North America). You could do this using the `crop()` function of the `raster` package and defining the cutting region using the `Bigfoot.SpaPnt` object.
+
+<div class = "alert alert-info">
+**Your task:**
+
+Crop the `WC.Bioclim` raster using the spatial extent of your georeferenced observations (`Bigfoot.SpaPnt`).
+
+After you have done this, plot the resulting `RasterLayer`.
+</div>
+
+```{r BioclimCrop, exercise=TRUE, exercise.lines=10}
+# Crop the WC.Bioclim raster using the observations spatial extent using the crop function
+NoAm.WC.Bioclim <- -----(x= ----, # Define the Raster to crop
+                        y = ---- # Define the spatial object that determine the extent to be cropped
+                        )
+# Plot the cropped Raster
+plot(----)
+```
+
+```{r BioclimCrop-solution}
+# Crop the WC.Bioclim raster using the observations spatial extent
+NoAm.WC.Bioclim <- crop(x= WC.Bioclim, # Define the Raster to crop
+                        y = Bigfoot.SpaPnt # Define the spatial object that determine the extent to be cropped
+                        )
+# Plot the cropped Raster
+plot(NoAm.WC.Bioclim)
+```
+
+```{r BioclimCrop-hint}
+r <- raster(nrow=45, ncol=90)
+values(r) <- 1:ncell(r)
+e <- extent(-160, 10, 30, 60)
+rc <- crop(r, e)
+```
+
+
+```{r BioclimCrop-check}
+grade_code()
+```
+
+## Projecting `Raster*` objects.
+
+As you see from the plot above, the result of the `crop()` function is a subset of the 19-BIOCLIM variables for continental North America. One more thing here, the plot function in a `RasterStack` only plots up to 16-layers. However, like your first observations map, the visualisation does not look very "pretty". So the first thing to do is re-project these to an Albers Equal Area projection using the `projectRaster()` function.
+
+<div class = "alert alert-info">
+**Your task:**
+
+Using the function `projectRaster()`, re-project your North America cropped bioclimatic variables raster (`NoAm.WC.Bioclim`) to an Albers Equal Area projection.
+
+After you have done this, plot the resulting `RasterLayer`.
+</div>
+
+```{r PrjNoAmBioClim, exercise=TRUE, exercise.lines=10}
+# project the NoAm.WC.Bioclim raster
+NoAm.WC.Bioclim.AEA <- ------(from = ------, # Define the Raster to be projected.
+                              crs = ------(------) # Define the projection as a CRS object uisng CRS.String
+                              )
+# Plot the re-projected Raster
+------(------)
+```
+
+```{r PrjNoAmBioClim-solution}
+# project the NoAm.WC.Bioclim raster
+NoAm.WC.Bioclim.AEA <- projectRaster(from = NoAm.WC.Bioclim, # Define the Raster to be projected.
+                                     crs = CRS(CRS.String) # Define the projection as a CRS object.
+                                     )
+# Plot the re-projected Raster
+plot(NoAm.WC.Bioclim.AEA)
+```
+
+```{r PrjNoAmBioClim-hint}
+r <- raster(xmn=-110, xmx=-90, ymn=40, ymx=60, ncols=40, nrows=40)
+r <- setValues(r, 1:ncell(r))
+crs(r)
+newproj <- "+proj=lcc +lat_1=48 +lat_2=33 +lon_0=-100 +datum=WGS84"
+pr1 <- projectRaster(r, crs=newproj)
+```
+
+```{r PrjNoAmBioClim-check}
+grade_code()
+```
+
+## Map algebra - 1
+
+For clarity, "bioclimatic" summaries represent annual trends (e.g., mean annual temperature, annual precipitation), seasonality (e.g., annual range in temperature and precipitation) and extreme or limiting environmental factors (e.g., the temperature of the coldest and warmest month, and precipitation of the wet and dry quarters).
+
+The best way to know what information is summarised in these variables is to build them yourself, so this is your next task. Specifically, you will now create Bioclim-7 [Temperature Annual Range] as an example.
+
+For this, you will need the monthly maximum and minimum temperatures, which can be downloaded using the `var = 'tmin'` and `var = 'tmax'` arguments on the `getData()` function of the `raster` package. This data is now loaded in the memory.
+
+Both `No.Am.WC.Tmin` and `No.Am.WC.Tmax` are `RasterStack`s objects with 12 bands (one for each one of the months). The first step to build a raster with the Temperature Annual Range (Bioclim-7) is to estimate the Maximum Temperature of Warmest Month (Bioclim-5) and the Minimum Temperature of Coldest Month (Bioclim-6).
+
+These can be estimated directly on a the `RasterStack` using the `max()` and `min()` functions. Alternatively, you can use the function `calc()` from the `raster` package. This function allows for more elaborate calculations as you can define more complex functions with the data within a single cell in a multi-band raster (see `?calc` for more info on the function). 
+
+<div class = "alert alert-info">
+**Your task:**
+
+Using the monthly minimum (`NoAm.WC.Tmin`) estimate the minimum temperature of the coldest month (the minimum value in `NoAm.WC.Tmin`) and plot it. Remmebr that temperatures here are C x 10.
+</div>
+
+```{r MonthTmin, exercise=TRUE}
+#Estimate the minimum temperature of coldest month 
+WC.MinTCoMo <- ------(------)
+
+#plot the minimum temperature of coldest month - dive by 10
+------(------)
+```
+
+```{r MonthTmin-solution}
+#Estimate the minimum temperature of coldest month 
+WC.MinTCoMo <- min(NoAm.WC.Tmin)
+
+#plot the minimum temperature of coldest month - dive by 10
+plot(WC.MinTCoMo/10)
+```
+
+```{r MonthTmin-check}
+grade_code()
+```
+
+```{r MonthTmin-hint}
+logo <- stack(system.file("external/rlogo.grd", package="raster")) 
+min(logo)
+```
+
+<div class = "alert alert-info">
+**Your task:**
+
+Using the monthly maximum (`NoAm.WC.Tmax`) estimate the maximum temperature of the warmest month (the maximum value in `NoAm.WC.Tmax`) and plot it.
+</div>
+
+```{r MonthTmax, exercise=TRUE}
+# Estimate the maximum temperature of warmest month
+WC.MaxTWaMo <- -----(-----)
+
+#plot the maximum temperature of coldest month - divide by 10
+-----(-----)
+```
+
+```{r MonthTmax-solution}
+# Estimate the maximum temperature of warmest month
+WC.MaxTWaMo <- max(NoAm.WC.Tmax)
+
+#plot the maximum temperature of coldest month - divide by 10
+plot(WC.MaxTWaMo/10)
+```
+
+```{r MonthTmax-check}
+grade_code()
+```
+
+```{r MonthTmax-hint}
+logo <- stack(system.file("external/rlogo.grd", package="raster")) 
+max(logo)
+```
+
+## Map algebra - 2
+
+Doing the operations above transforms `NoAm.WC.Tmax` and `NoAm.WC.Tmin` from a `RasterStack` with values for each month to a `RasterLayer` that only has the maximum or minimum monthly temperature values (that is, a one layer raster).
+
+With this information, it is now possible to generate an Annual Temperature Range (Bioclim-7) `RasterLayer`. For this, you will subtract the Minimum Temperature of Coldest Month (Bioclim-6; `WC.MinTCoMo`) from the Maximum Temperature of the Warmest Month Bioclim-5; `WC.MaxTWaMo`). This can be done using the `RasterLayer`s directly or the `calc()` function if you bundle `WC.MinTCoMo` and `WC.MaxTWaMo` in one `RasterStack`.
+
+<div class = "alert alert-info">
+**Your task:**
+
+Using your estimates of the maximum temperature of the warmest month (`WC.MinTCoMo`) and the minimum temperature of the coldest month (`WC.MaxTWaMo`), estimate the Temperature Annual Range.
+
+Once you have done this, plot your Temperature Annual Range estimation.
+</div>
+
+```{r TAnnRngSetup}
+#Estimate the minimum temperature of coldest month 
+WC.MinTCoMo <- min(NoAm.WC.Tmin)
+# Estimate the maximum temperature of warmest month
+WC.MaxTWaMo <- max(NoAm.WC.Tmax)
+```
+
+```{r TAnnRng, exercise=TRUE, exercise.setup = "TAnnRngSetup", exercise.lines=10}
+# Estimate the Temperature Annual Range
+WC.TAnnRng <- ------ - ------
+
+# Plot the the Temperature Annual Range object - use a blue to red colour palette.
+plot(------ , # Determine the RasterLayer to plot
+     main = "Temperature Annual Range\n[c]", cex.main = 1.2, # Set the Figure title and font size
+     col = hcl.colors(n = 50 ,palette = "Blue-Red") # Define a sequential colour palette. 
+     )
+```
+
+```{r TAnnRng-solution}
+# Estimate the Temperature Annual Range
+WC.TAnnRng <- WC.MaxTWaMo - WC.MinTCoMo
+
+# Plot the the Temperature Annual Range object - use a blue to red colour palette.
+plot(WC.TAnnRng , # Determine the RasterLayer to plot
+     main = "Temperature Annual Range\n[c]", cex.main = 1.2, # Set the Figure title and font size
+     col = hcl.colors(n = 50 ,palette = "Blue-Red") # Define a sequential colour palette. 
+     )
+```
+
+
+```{r TAnnRng-hint}
+logo <- stack(system.file("external/rlogo.grd", package="raster")) 
+max(logo)-min(logo)
+```
+
+```{r TAnnRng-check}
+grade_code()
+```
+
+Now you know how these bioclimatic variables are generated. But the process above is long and tedious, done only to understand how raster operations work. When you face a similar task in the future, you could use the` bioclim()` function for the `dismo` package. I leave that task to the interested student.
+
+## Graphical representation of `Raster*` objects.
+
+Now you have a series of projected rasters that can adequately show the climatic conditions in the region of interest. You will now focus on Annual Mean Temperature (bio1) as an example of producing an "almost" publication ready map. You can do this in many (and more straightforward) ways, but here I will show you a more "laborious" approach, so you know how to use alternative plotting parameters.
+
+The code below generates the best visualisation for Annual Mean Temperature (bio1) using the projected Bioclimatic raster (`NoAm.WC.Bioclim.AEA`) by taking the following steps: 
+
+* Define a plotting region so that the map is bounded within a region.
+
+* Plot the raster of Annual Mean Temperature using a Yellow-to-Red colour ramp palette, setting the minimum and maximum values for which colours should be plotted to -20 and 30.
+
+* Add a bounding box and axes with only tick-marks.
+
+* Add your projected map (`NoAmPoly.AEA`) of the region of interest, the projected observation points (`Bigfoot.SpaPnt.AEA`), and a legend to say what the plotted symbols are. 
+
+```{r BestRastMap, echo = T,fig.width=8, fig.height=6}
+# Step 1: define a plotting region so that the maps do not get affected by how big is the plotting space
+
+par(mfrow=c(1,1), 
+    mar=c(2,2,4,2), # Defines the margins of the plotting space
+    fig=c(0,1,0.1,1),# this argument defines a smaller figure space
+    new=F) # this argument states that a blank plotting space is used 
+
+## create a new plotting space
+plot.new()
+
+## Define the "limits" of the plotting space
+plot.window(xlim = extent(Bigfoot.SpaPnt.AEA)[1:2], # get the xlim form the projected Bigfoot sightings
+            ylim = extent(Bigfoot.SpaPnt.AEA)[3:4]) # get the ylim form the projected Bigfoot sightings)
+
+# Step 2: plot the raster
+## add the raster of Annual Mean Temperature
+image(NoAm.WC.Bioclim.AEA[[1]]/10, # Define the Raster Layer to plot. You know why you divide by 10 here
+      col = hcl.colors(100, "YlOrRd", rev = TRUE), # Define a colour ramp palette
+      zlim = c(-20,30), # define the range of values to plot 
+      add=T # Add this figure to the current plot?
+      )
+# Add a Main title manually
+mtext("Annual Mean Temperture [C]", # Define the main title text
+      side = 3, # Define the margin to locate the text.
+      cex = 1.5, # Define the text size
+      font = 2, # Define is the text is bold
+      line = 1.5 # Define the lien to add the text
+      )
+
+# Step 3: Add area elements
+#Add a bounding box
+
+# Add a bounding box and the axes with ticks
+box(); axis(1, labels = NA); axis(2, labels = NA); axis(3, labels = NA); axis(4, labels = NA)
+
+# Step 4: Add other elements
+# Add a map of the region of interest
+# Plot the Area of interest
+plot(NoAmPoly.AEA, # Define the SpatialPolygonsDataFrame to be plotted.
+     add=T # Add this figure to the current plot?
+     )
+# Plot Bigfoot sightings
+points(Bigfoot.SpaPnt.AEA, # Define the SpatialPointsDataFrame to plot.
+       pch = 10, # Define the shape of the mark.
+       col = "black" # Define the colour of the mark.
+       )
+
+# Add a legend to say what the symbols are - Manually
+legend("bottomleft",
+       pch=10,
+       legend = "Bigfoot\nsightings",
+       bty="n")
+
+# Step 4: Add a colour ramp by hand
+par(fig=c(0,1,0.01,0.13),# this argument defines a smaller figure space 
+  mar=c(2,2,1,2),
+  new=T) # this argument states that a black plotting space is used 
+# Plot a matrix with all possible values
+image((matrix(1:100)),
+      axes=F,
+      col = hcl.colors(100, "YlOrRd", rev = TRUE))
+# Add a bounding box
+box()
+# Add an axis with the values
+axis(1,
+     at = seq(0,1, length.out = 6),
+     labels = c(-2:3)*10)
+
+# Add a main title.
+mtext("Annual Mean Temperture [C]",
+      side = 3,
+      cex = 1,
+      line = 0.3)
+```
+
+## Extract values from a `Raster*` object to use as predictors
+
+The next step is to extract the values of the predictors at the locations where Bigfoot has been sighted. That is, get data about the climate that the species apparently likes. This is a very straightforward thing to do using the `extract()` function from the `raster` package. The question is which Bigfoot sighting object should you use: `Bigfoot.dta`, `Bigfoot.SpaPnt`, or `Bigfoot.SpaPnt.AEA`. The answer to this is given by the reference system of `WC.Bioclim`.
+
+<div class = "alert alert-info">
+**Your task:**
+
+Using the function `projection()`, print the projection string of the `WC.Bioclim` raster.
+
+</div>
+
+```{r WCBioclimProj, exercise=TRUE}
+# Extract the projection
+-------(-------)
+```
+```{r WCBioclimProj-hint}
+# Extract the projection
+projection(rastObj)
+```
+```{r WCBioclimProj-solution}
+# Extract the projection
+projection(WC.Bioclim)
+```
+
+As you see, this is a Mercator projection, so you could use `Bigfoot.dta` or `Bigfoot.SpaPnt` to extract the values for each of the sites where Bigfoot has been sighted. If you instead used `NoAm.WC.Bioclim.AEA` as your source raster, you would need to use  `Bigfoot.SpaPnt.AEA` to get the data. With that clear, now you will extract the environmental information.
+
+<div class = "alert alert-info">
+**Your task:**
+
+Using the function `extract()` get the values for the 19 Bioclimatic variables in `WC.Bioclim` for each Bigfoot sightings. for this use the `Bigfoot.SpaPnt` spatial object.
+
+</div>
+
+```{r WCBioclimExtrc, exercise=TRUE}
+# The same as above but using the SpatialPointDataFrame
+BFC <- ------(x = ------ ,# Define the RasterStack with the Environmental information.
+               y = ------ # Define the object with the locations to get the data
+               )
+# Print the resulting data.frame head.
+head(BFC)
+```
+
+```{r WCBioclimExtrc-solution}
+# The same as above but using the SpatialPointDataFrame
+BFC <- extract(x = WC.Bioclim ,# Define the RasterStack with the Environmental information.
+                y = Bigfoot.SpaPnt # Define the object with the locations to get the data
+                )
+# Print the resulting data.frame head.
+head(BFC)
+```
+
+```{r WCBioclimExtrc-hint}
+r <- raster(ncol=36, nrow=18, vals=1:(18*36))
+xy <- cbind(-50, seq(-80, 80, by=20))
+extract(r, xy)
+```
+
+
+```{r WCBioclimExtrc-check}
+grade_code()
+```
+
+## Checking the Extraction of values from a `Raster*` object to use as predictors
+
+One important check is whether there are observations with no environmental data (as these could be located in areas where the `RasterStack` has no data). You can do this using a simple `apply` loop.
+
+<div class = "alert alert-info">
+**Your task:**
+
+Using the function `apply()`, define the sightings with no bioclimatic information (rows with `NA`).
+
+</div>
+
+```{r NoDataID, exercise=TRUE}
+# Determine the rows where the variables have NA as a value.
+apply(------ ,
+      MARGIN = ------, # apply the function to each column
+      function(x){
+        ------(------(------))})# test for each column the rows with no values
+```
+
+
+```{r NoDataID-solution, exercise.reveal_solution = FALSE}
+# Determine the rows where the variables have NA as a value.
+apply(BFC ,
+      MARGIN = 2, # apply the function to each column
+      function(x){
+        which(is.na(x))})# test for each column the rows with no values
+```
+
+```{r NoDataID-check}
+grade_code()
+```
+
+The code above shows that all rows rows have data, but for the sake of the exercise let's assume that rows 3595 and 3682 do not have environmental data. To see where they are, you can plot the "nice map" again but this time modifying the `points()` function to mark the locations with no environmental data.
+
+<div class = "alert alert-info">
+**Your task:**
+
+Plot the "nice map" , modifying the `points()` function to mark the locations with no environmental data as black filled points.
+
+</div>
+
+```{r NoDataPlot, exercise=TRUE, exercise.lines=20}
+#Plot the are of interest, observations and Latitudes and Longitudes lines
+## define the plotting area
+par(mar = c(2, 2, 6, 2), xaxs = "i", yaxs = "i")
+# Plot the Area of interest
+plot(NoAmPoly.AEA, 
+     col = 'lightgrey', # make the continual areas light-grey
+     bg = 'lightblue', # Make the oceans blue
+     xlim = range(coordinates(Bigfoot.SpaPnt.AEA)[, 1]), # Set limits to zoom into the region with points
+     ylim = range(coordinates(Bigfoot.SpaPnt.AEA)[, 2]), # Set limits to zoom into the region with points
+     main = "Bigfoot sigthings\n[1869 to 2017]", 
+     cex.main = 1.2)
+box()
+# Add some tick marks to define the latitude-longitude point
+# Note that these commands are separated with a semicolon (this allows to put consecutive functions in one line)
+axis(1, labels = NA); axis(2, labels = NA); axis(3, labels = NA); axis(4, labels = NA)
+# Plot Bigfoot sightings
+points(Bigfoot.SpaPnt.AEA ,
+       pch=19,
+       col = "red")
+## Show the sites with no environmental data
+points(Bigfoot.SpaPnt.AEA[c(3595, 3682), ] ,
+       pch = 19, 
+       cex=1.5,
+       col = "black")
+```
+
+This figure shows that a couple of points in North Carolina do not have environmental data and should be removed from the analysis.
+
+## Last Points.
+
+The work you have done today is the type of work you would do in an actual project. You have explored your observations and predictors, then matched these two together, and finally generated a model to test a hypothesis and make some predictions.
