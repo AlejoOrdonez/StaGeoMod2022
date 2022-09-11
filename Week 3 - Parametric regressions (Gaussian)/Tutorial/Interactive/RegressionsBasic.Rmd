@@ -44,7 +44,7 @@ Predictor variables used to describe each evaluated site included the latitude i
 
 ## Data Exploration: Assessing the information at hand
 
-Now that you have the data on relative abundance and climate variables contained in the paruelo.csv file, it is time to explore the dataset.
+Now that you have the data on relative abundance and climate variables contained in the *paruelo.csv* file, it is time to explore the dataset.
 
 In the context of linear regression (that, to be clear, refers to the way parameters are used in the model and not to the type of relationships that are modelled), you need to know whether there are linear or non-linear patterns between response and explanatory variables.
 
@@ -82,7 +82,7 @@ Using the `paruelo` data, you will now build a box plot for each predictor varia
 
 ```{r Outlier1, exercise=TRUE, exercise.lines=15}
 # Build 3x2 plotting space filled row-wise 
-par(mfrow = c(3,2), mar=rep(2,4)v), 
+par(mfrow = c(3,2), mar=rep(2,4))
 # Make a box-plot for MAP
 boxplot(x = paruelo$-----,
         main = "Var.Name") 

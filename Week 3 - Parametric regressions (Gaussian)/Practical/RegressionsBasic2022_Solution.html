@@ -393,7 +393,7 @@ individual machine troubleshooting. This means you <strong>need</strong>
 to have an account for <em>RStudio cloud</em>.</p>
 <p>However, remember to have <a href="https://cran.r-project.org"><code>R</code></a> and <a href="http://www.rstudio.com/">R-studio</a> in your/room computer so you
 can work on the project after class.</p>
-<p><strong>You should have also </strong> 1. Read chapter 7 of Crawley
+<p><strong>You should have also </strong> 1. Read chapter 10 of Crawley
 the R book. 2. Done the Tutorial for this week.</p>
 </div>
 <div id="the-way-its-going-to-be-run" class="section level2">
@@ -431,12 +431,50 @@ The text in the green filled box marked as <strong>Question</strong> phrases a q
 <div id="environmental-factors-driving-denmarks-biodiversity-patterns." class="section level1">
 <h1><strong>Environmental factors driving Denmark’s biodiversity
 patterns.</strong></h1>
+<div id="about-the-data-you-will-use." class="section level2">
+<h2>About the data you will use.</h2>
+<p>The data to be used in this week practical is a combination of the
+biodiversity data from the <a href="https://ecos.au.dk/forskningraadgivning/temasider/biowide">Biowide</a>
+project, which aimed at collecting biodiversity data from 130
+terrestrial sampling sites across Denmark. The dataset contains data for
+Plants (vascular plants and bryophytes), fungi (lichens and macrofungi),
+gastropods, and arthropods. You can get the <a href="https://www.gbif.org/dataset/cd4eb3ec-0a18-42b4-bda4-155716ddd7b1#description">biodiversity
+data</a> from the Danish Biodiversity Information Facility. For further
+information on the project check the publication.</p>
+<p>Although environmental variables were collected as part of Biowide,
+this data is not available for our use. The data on environmental
+variables included in the table you will use comes from multiple
+Geospatial datasets I complied for this course.</p>
+<p>Here you will focus on the flowing variables:</p>
+<p><strong>1) decimalLongitude</strong>: East-West position in
+decimal-degrees of a sample site coming from <a href="https://ecos.au.dk/forskningraadgivning/temasider/biowide">Biowide</a>.</p>
+<p><strong>2) decimalLatitude</strong>: North-South position in
+decimal-degrees of a sample site coming from <a href="https://ecos.au.dk/forskningraadgivning/temasider/biowide">Biowide</a>.</p>
+<p><strong>3) Log.S.AllGrp</strong>: Logarithm of the total species
+richness of a sample site (sum of the unique species of all sampled
+groups in a site) coming from <a href="https://ecos.au.dk/forskningraadgivning/temasider/biowide">Biowide</a>.</p>
+<p><strong>4) landsdele</strong>: Regional political unit of Denmark
+coming form the Database of Global Administrative Areas <a href="https://gadm.org">GADAM</a>.</p>
+<p><strong>5) Geology</strong>: Geological formation coming from the <a href="https://eng.geus.dk/products-services-facilities/data-and-maps/maps-of-denmark">Denamrk’s
+geological service</a>.</p>
+<p><strong>6) NatDensBasMp</strong>: Density of natural land cover types
+as defined by <a href="https://envs.au.dk/en/research-areas/society-environment-and-resources/land-use-and-gis/basemap">BASEMAP</a>.</p>
+<p><strong>7) Dis2Cost</strong>: Distance in km of a sampled site to the
+coast estimated by me using Denmark high resolution contour map coming
+form the Database of Global Administrative Areas <a href="https://gadm.org">GADAM</a>.</p>
+<p><strong>8) HII</strong>: <a href="https://sedac.ciesin.columbia.edu/data/set/wildareas-v2-human-influence-index-geographic">Human
+Influence Index</a>, a measurement of the anthropogenic impacts on the
+environment.</p>
+<p><strong>9) Slope30mAgg</strong>: the maximum rate of change in value
+from that cell to its neighbours estimated based on the <a href="https://www2.jpl.nasa.gov/srtm/">SRTM-30m DEM</a>.</p>
+<p><strong>10) PrecSea</strong>: Seasonality of precipitation measured
+as the variability of monthly values (using the CV) coming the <a href="https://chelsa-climate.org">CHELSA-climatologies</a> .</p>
+</div>
 <div id="load-the-data" class="section level2">
 <h2>1. Load the Data</h2>
 <div class="alert alert-info">
 <p><strong>Your task:</strong> Load the data in
-<em>Biowide_With_EnvDta.csv</em>, located in the files of the
-project</p>
+<em>Biowide_AllSppRich.csv</em>, located in the files of the project</p>
 <p>Use <code>read.csv</code> to load the file - The file is
 comma-separated</p>
 <p>Save the object as an object named <code>DK.Biodiv</code>.</p>
