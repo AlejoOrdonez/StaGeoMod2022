@@ -1,0 +1,578 @@
+---
+title: "Generalized Linear Models (GLMs)"
+author: '"YOUR NAME HERE"'
+date: "`r Sys.Date()`"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# **The Set-up**
+
+## *Learning objectives.*
+1.	Implement as simple/multiple Generalized Linear Models in `R`. 
+2.	Determine the fit of a Generalized Linear Models and establish how good a model is.
+3.	Reduce a Generalized Linear Models to the minimum adequate number of predictors using a stepwise procedure.
+
+## *Before you start*
+The practical will be run using *RStudio cloud* to avoid individual machine troubleshooting. This means you **need** to have an account for *RStudio cloud*.
+
+However, remember to have [`R`](https://cran.r-project.org) and [R-studio](http://www.rstudio.com/) in your/room computer so you can work on the project after class.
+
+**You should have also **
+1. Read chapter 13 of Crawley the R book.
+2. Done the Tutorial for this week.
+
+## *The way it's going to be run*
+
+In this 3h practical you will to implement what you have learned in the class about Regression Analyses in `R`.
+
+You will be building and **R-Markdown** document during the class. **R-Markdown** documents allows you to combine your code, its results, and your prose commentary into a single document. If you manage to produce a document your code works. The resulting file (a html) is what you will hand-in at the end of the practical.
+
+This 3h practical is divided into seven parts (24 tasks in total). Also try to write your own `R`-code and run it **DO NOT COPY THE CODE OF SOMEONE ELSE**. Writing your code and figuring out why it does not work is the best way to understand the dynamics of the `R` language and the tasks you are doing. Also, you have an excellent teaching assistant resource - ask him and/or me all the questions you have.
+
+The final document will have three classes of boxes
+
+<div class="alert alert-info">
+<p class="text-center"; style = "font-size: 20px">
+The text in the blue filled box marked as <strong>Your task</strong> states what you need to do
+</p>
+</div>
+
+```{r }
+#
+# The code in the window marked like this shows where you need to write your code
+#
+
+```
+
+<div class="alert alert-success">
+<p class="text-center"; style = "font-size: 20px">
+The text in the green filled box marked as <strong>Question</strong> phrases a question, and where you will place the answer to the <strong>question</strong> is marked as ***PLACE YOUR ANSWER HERE**. </p>
+</div>
+
+## About the data you will use.
+
+The data to be used in this week practical is a combination of the biodiversity data  from the [Biowide](https://ecos.au.dk/forskningraadgivning/temasider/biowide) project, which aimed at collecting biodiversity data from 130 terrestrial sampling sites across Denmark. The dataset contains data for Plants (vascular plants and bryophytes), fungi (lichens and macrofungi), gastropods, and arthropods. You can get the [biodiversity data](https://www.gbif.org/dataset/cd4eb3ec-0a18-42b4-bda4-155716ddd7b1#description) from the Danish Biodiversity Information Facility. For further information on the project check the publication.
+
+Although environmental variables were collected as part of Biowide, this data is not available for our use. The data on environmental variables included in the table you will use comes from multiple Geospatial datasets I complied for this course.
+
+Here you will focus on the flowing variables:
+
+**1) decimalLongitude**: East-West position in decimal-degrees of a sample site coming from [Biowide](https://ecos.au.dk/forskningraadgivning/temasider/biowide).
+
+**2) decimalLatitude**: North-South position in decimal-degrees of a sample site coming from [Biowide](https://ecos.au.dk/forskningraadgivning/temasider/biowide). 
+
+**3) S.AllGrp**: The total species richness of a sample site (sum of the unique species of all sampled groups in a site) coming from [Biowide](https://ecos.au.dk/forskningraadgivning/temasider/biowide).
+
+**4) landsdele**: Regional political unit of Denmark coming form the Database of Global Administrative Areas [GADAM](https://gadm.org).
+
+**5) Geology**: Geological formation coming from the [Denamrk's geological service](https://eng.geus.dk/products-services-facilities/data-and-maps/maps-of-denmark).
+
+**6) NatDensBasMp**: Density of natural land cover types as defined by [BASEMAP](https://envs.au.dk/en/research-areas/society-environment-and-resources/land-use-and-gis/basemap).
+
+**7) Dis2Cost**: Distance in km of a sampled site to the coast estimated by me using Denmark high resolution contour map coming form the Database of Global Administrative Areas [GADAM](https://gadm.org).
+
+**8) HII**: [Human Influence Index](https://sedac.ciesin.columbia.edu/data/set/wildareas-v2-human-influence-index-geographic), a measurement of the anthropogenic impacts on the environment.
+
+**9) Slope30mAgg**: the maximum rate of change in value from that cell to its neighbours estimated based on the [SRTM-30m DEM](https://www2.jpl.nasa.gov/srtm/).
+
+**10) PrecSea**: Seasonality of precipitation measured as the variability of monthly values (using the CV) coming the [CHELSA-climatologies](https://chelsa-climate.org) .
+
+
+## The first step: Loading the data
+
+<div class = "alert alert-info">
+**Your task:**
+
+Load the data in *Biowide_AllSppRich.csv*, located in the files of the project
+
+Use `read.csv` to load the file - The file is comma-separated
+
+Save the object as an object named `DK.Biodiv`.
+</div>
+
+```{r LoadData}
+# Read the file and save it as an object named `DK.Biodiv`
+DK.Biodiv <-  read.csv("data/Biowide_AllSppRich.csv")
+# Use the function head to print the five forst rows
+head(DK.Biodiv)
+```
+
+## Data Exploration
+
+<div class="alert alert-info">
+**Your task:**
+
+Using the `DK.Biodiv` data, you will now build a box plot for each continuous predictor variable. You will also add a "title" to each plot using the `main` argument.
+
+The continuous predictors are:
+1) *Nature Density* [`NatDensBasMp`]
+2) *Distance to coast* [`Dis2Cost`]
+3) *Human Impact Index* [`HII`]
+4) *Slope* [`Slope30mAgg`]
+5) *Precipitation Seasonality* [`PrecSea`]
+
+</div>
+```{r Boxplot1}
+# Set-up the plotting space
+par(mfrow=c(2,3))
+
+# Box plot for Nature Density
+boxplot(DK.Biodiv$NatDensBasMp,
+        main = "Nature Density")
+# Box plot for Distance to coast 
+boxplot(DK.Biodiv$NatDensBasMp,
+        main = "Distance to coast")
+# Box plot for Human Impact Index
+boxplot(DK.Biodiv$HII,
+        main = "Human Impact Index")
+# Box plot for Slope
+boxplot(DK.Biodiv$Slope30mAgg,
+        main = "Slope")
+# Box plot for Precipitation Seasonality
+boxplot(DK.Biodiv$PrecSea,
+        main = "Precipitation Seasonality")
+```
+
+<div class="alert alert-success">
+**Question**: For which variable can you detect outlier observation.
+
+For Distance to coast, slope and HII there are some outliers.
+</div>
+
+
+<div class = "alert alert-info">
+**Your task:**
+Estimate the pairwise correlation between variables (using the `cor()` function) and plotting their values using the function `image.plo()` of the package `fields`.
+
+</div>
+
+```{r Colin1}
+# Assess the correlation between predictors and save this as an object named Cor.pred.DK.Biodiv
+Cor.pred.DK.Biodiv <- cor(DK.Biodiv[, c("NatDensBasMp", "Dis2Cost", "HII", "Slope30mAgg", "PrecSea")], 
+        method = "spearman")
+#Call the Cor.pred.DK.Biodiv object
+Cor.pred.DK.Biodiv
+# Use the  function image.plo() of the package fields to generate a plot of the correlation matrix
+fields::image.plot(Cor.pred.DK.Biodiv,
+      zlim=c(-1,1), # Sets the range of values to get colors from between -1 and1
+      col = hcl.colors(100,"RdYlBu") # sets the colors to a Red-Yellow-Blue Palette.
+      )
+```
+
+<div class="alert alert-success">
+**Question:** Which pairs of predictors have a correlation above the 0.7 cut-off?
+
+Neither, the correlations for all predictors go between -0.4675138 and 0.2722866 
+
+</div>
+
+
+<div class = "alert alert-info">
+**Your task:**
+
+With the data in memory (saved as an object named `DK.Biodiv`), you will evaluate the multiple-collinearity of the predictor variables [`NatDensBasMp`, `Dis2Cost`, `HII`, `Slope30mAgg`, `PrecSea`] using the variance inflation index. For this you will:
+
+* Build a linear model where`S.AllGrp` is the response variable, and `NatDensBasMp`, `Dis2Cost`, `HII`, `Slope30mAgg`, and `PrecSea` are set as linear predictors with NO interactions.
+
+* Use a the function `vif()` of the `car` package to estimate the variance inflation index.
+
+</div>
+
+```{r Colin2}
+# Build a linear model where`S.AllGrp` is the response variable, and `NatDensBasMp`, `Dis2Cost`, `HII`, `Slope30mAgg`, and `PrecSea` are set as linear predictors with NO interactions.
+Colin.Model <- lm(S.AllGrp ~ NatDensBasMp + Dis2Cost + HII + Slope30mAgg + PrecSea,
+                  data = DK.Biodiv)
+# Use a the function `vif()` of the `car` package to estimate the variance inflation index. 
+Colin.DK.Pred <- car::vif(mod = Colin.Model) #
+# Call the Colin.DK.Pred object
+Colin.DK.Pred
+
+# Estimating each predictor tolerance (1/vif)
+1/Colin.DK.Pred
+
+```
+<div class="alert alert-success">
+**Question:**
+</div>
+
+```{r}
+# Do you see collinearity between the predictors
+
+## For all variables, the tolerances are above the Tolerance threshold of concern (0.1) and hence below the VIF threshold of concern (10).
+```
+
+## How does my response variable change as a function of each predictor?
+
+<div class = "alert alert-info">
+**Your task:**
+
+Graphically explore how `S.AllGrp` changes as a function of either `NatDensBasMp`, `Dis2Cost`, `HII`, `Slope30mAgg`, `PrecSea`. For this, you will:
+
+* Plot a scatter plots for each `S.AllGrp ~` *predictor* combination.
+
+* Build a linear model using the function `?line()`.
+
+* Plot a line representing the association between `S.AllGrp` **AND** *predictor*.
+
+* Using the function `legend()`, add to the plot the person correlation coefficient of the relation and the P-value, calculated with the function `cor.test()`, .
+
+**YOU WILL USE a `for()`loop to make this figure**.
+
+</div>
+  
+```{r UnivarRel1}
+# Start by setting a plotting space with three (3) rows and two (2) columns, making sure that plots are added row-wise
+par(mfrow = c(3, 2)) # add a vector with the number of rows and number of columns in the plotting space
+# start a for() Loop
+for (Var in c("NatDensBasMp", "Dis2Cost", "HII", "Slope30mAgg", "PrecSea")){ 
+# Scatter plot of S.AllGrp vs the evaluated predictor using the test.
+  
+ plot(x = DK.Biodiv[,Var], # The values for the predictor
+      y = DK.Biodiv[,"S.AllGrp"], # The values for the response, 
+      pch = 19, # make the points filled circles   
+      main = Var,  # Add a title to the figure
+      ylab = "Species Richness", # Y-axis name
+      xlab = Var # X-axis name
+      )
+
+ # To  add a trend line you first need a regression object created with the line() function.
+  Reg.Tmp <- line(x = DK.Biodiv[,Var], # The values for the predictor
+                  y = DK.Biodiv[,"S.AllGrp"]) # The values for the response, )
+# Add a trend line using the abline() function on the lm function created above
+  abline(Reg.Tmp, ## the line object to plot
+         col = "red", # the colour of the line
+         lwd = 2,  # the width of the line
+         lty = 2) # the type of the line
+
+# Estimate the correlation between S.AllGrp and the predictor.
+ Cor.Tmp <- cor.test(x = log10(DK.Biodiv[,Var]),
+                     y = DK.Biodiv[,"S.AllGrp"])
+ 
+  legend("topright",
+         legend = paste0("r = ",
+                         round(Cor.Tmp$estimate,3),
+                         "; p = ",
+                         round(Cor.Tmp$p.value,3)))
+summary(lm(formula(paste0("S.AllGrp~",Var)),
+   data=DK.Biodiv))
+  
+  }
+```
+
+<div class="alert alert-success">
+**Question:** Based on these graphical representations, what do you see?
+
+It appears that there is a weak relation between `S.AllGrp` and most predictors. Based on the regression coefficients, only `Slope30mAgg` has a significant relation with species richness, and `PrecSea` has a marginaly significnt relation.
+</div>
+
+
+## Why do you need a GLM?	
+
+Answer the question below based on what you discussed in the theory session. 
+
+<div class="alert alert-success">
+**Question:** Which is the family of the model to will use to predict `S.AllGrp`?.
+  
+`S.AllGrp` is a count variable (and integer), so you should use **POISSON REGRESSION** 
+</div>
+
+## GLM and hypothesis testing
+
+When the response variable is an integer (i.e. Counts of individuals), you model $\lambda_(x)$, that is, the mean count ($\lambda$) given value of $X$ or a combination of $X_i$. The usual model fitted to such data is a Poisson regression model.
+
+The model looks like this:
+$g(x) = \lambda_(x) = \beta_0 + (\beta_1*NatDensBasMp) + (\beta_2*Dis2Cost) + (\beta_3*HII) + (\beta_4*Slope30mAgg) + (\beta_5*PrecSea)$
+
+Also, remember that the error terms from the poisson model are generally not normality distributed; because the response variable is discrete, the error terms have a Poisson distribution. Also there is no homogeneity of variances, as the variance is the same as the mean in a Poisson regression.
+
+<<div class="alert alert-success">
+**Question:** Based on the regression formulation described in the point above, which is/are the H~0~’s you are interested in testing?
+
+There is no relation between the richness of species and Nature density (`NatDensBasMp`), distance to coast (`Dis2Cost`), Human Impact (`HII`), Slope (`Slope30mAgg`), and precipitation seasonality  (`PrecSea`).
+
+</div>
+  
+## Building a Poisson regression.
+
+<div class = "alert alert-info">
+**Your task:**
+
+Use the `glm()` function to evaluate the proposed poisson regression. Remember to include the adequate error `family` for the type of data in `S.AllGrp`.
+  
+</div>
+  
+```{r glmMod}
+# Build a glm to predict S.AllGrp based on a linear combination of NatDensBasMp, Dis2Cost, HII, Slope30mAgg, PrecSea
+# Save the Model as an object named DK.Biodiv.glm
+DK.Biodiv.glm <- glm(S.AllGrp ~ NatDensBasMp + Dis2Cost + HII + Slope30mAgg + PrecSea, #  the Equations defining the response and additive combination of predictors
+                  data = DK.Biodiv, # specify the Object where the data is in
+                  family = "poisson") # Argument defining the adequate error `family` given the type of the response variable (quasi)binomial for presence/absence and proportion data, and (quasi)Poisson for counts.
+
+DK.Biodiv.glm
+```
+
+## Initial summary of the regression
+
+<div class = "alert alert-info">
+**Your task:**
+
+Build a `data.frame` that contains the maximum likelihood estimates of the model parameters. The `data.frame` set-up should be as the table below. Also, this table needs to build by extracting the adequate elements from the `DK.Biodiv.glm` object, **NOT BY TYPING VALUES IN THE TABLE!**
+
++-----------------------+---------------+---------------+----------------+----------------+
+| PARAMETER             | Estimate      | SE            | Z-value        | $p$            |
++=======================+===============+===============+================+================+
+| $\beta_0$             |               |               |                |                |
++-----------------------+---------------+---------------+----------------+----------------+
+| $\beta_{NatDensBasMp}$|               |               |                |                |
++-----------------------+---------------+---------------+----------------+----------------+
+| $\beta_{Dis2Cost}$    |               |               |                |                |
++-----------------------+---------------+---------------+----------------+----------------+
+| $\beta_{HII}$         |               |               |                |                |
++-----------------------+---------------+---------------+----------------+----------------+
+| $\beta_{Slope30mAgg}$ |               |               |                |                |
++-----------------------+---------------+---------------+----------------+----------------+
+| $\beta_{PrecSea}$     |               |               |                |                |
++-----------------------+---------------+---------------+----------------+----------------+
+</div>
+
+```{r glmmCoff}
+# use the summary() function on an object created using the glm() function to get the overview of the regression coefficients. 
+# save this as an object named  Summ.DK.Biodiv.glm
+Summ.DK.Biodiv.glm <- summary(DK.Biodiv.glm)
+Summ.DK.Biodiv.glm
+
+# Now extract the coefficients from Summ.DK.Biodiv.glm with the coef() function. save this as an object named Coef.DK.Biodiv.glm
+Coef.Summ.DK.Biodiv.glm <- coef(Summ.DK.Biodiv.glm)
+# print Coef.Summ.DK.Biodiv.glm, but round all numbers to 3 decimal points
+round(x = Coef.Summ.DK.Biodiv.glm, # What to round?
+      digits = 3) #number of decimal points
+```
+
+## Do you have an overdispersion problem?
+
+<div class = "alert alert-info">
+**Your task:**
+
+Use the function summary on the `DK.Biodiv.glm` object created using the `glm()` function to compare the ratio between the residual deviance and the degrees of freedom.
+
+</div>
+  
+```{r Overdisp}
+# use the summary() function on an object created using the glm() function to get the overview of the regression coefficients. 
+# save this as an object named  Summ.DK.Biodiv.glm
+Summ.DK.Biodiv.glm <- summary(DK.Biodiv.glm)
+# print Summ.DK.Biodiv.glm
+Summ.DK.Biodiv.glm
+```
+
+<div class="alert alert-success">
+**Question:** Do you see an over-dispersion or under-dispersion problem?; if so, how you will solve the problem?
+
+Yes, you do not have an over dispersion value as the Residual deviance is way larger than the residual degrees of freedom.
+
+This issue could be addressed by changing the family of the model to `quasipoisson`, or a negative binomial model.
+</div>
+
+## Addresing the over-dispersion problem.	
+
+<div class = "alert alert-info">
+**Your task:**
+
+Use the `glm()` function to build a regression that could address the over-dispersion problem. Remember to include the adequate error `family` for the type of data in `S.AllGrp`.
+  
+</div>
+  
+```{r glmModQuasi}
+# Build a glm to predict S.AllGrp based on a linear combination of NatDensBasMp, Dis2Cost, HII, Slope30mAgg, PrecSea
+# Save the Model as an object named DK.Biodiv.glm
+DK.Biodiv.glmQuasi <- glm(S.AllGrp ~ NatDensBasMp + Dis2Cost + HII + Slope30mAgg + PrecSea, #  the Equations defining the response and additive combination of predictors
+                          data = DK.Biodiv, # specify the Object where the data is in
+                          family = "quasipoisson") # Argument defining the adequate error `family` given the type of the response variable (quasi)binomial for presence/absence and proportion data, and (quasi)Poisson for counts.
+# Call the summary() of the DK.Biodiv.glmQuasi object
+summary(DK.Biodiv.glmQuasi)
+```
+
+<div class="alert alert-success">
+**Question:** Is there an over-dispersion problem in this quasi-Poisson model?
+
+Yes, there is still an over-dispersion as the residual deviance is way larger than the residual degrees of freedom after changing the family of the model to `quasipoisson`.
+</div>
+
+
+<div class = "alert alert-info">
+**Your task:**
+
+Use the `glm.nb()` function of the `MASS` package to build a negative-binomial regression that could address the over-dispersion problem. Remember to include the adequate error `family` for the type of data in `S.AllGrp`.
+  
+</div>
+```{r glmNegBin}
+# Build a glm to predict S.AllGrp based on a linear combination of NatDensBasMp, Dis2Cost, HII, Slope30mAgg, PrecSea
+# Save the Model as an object named DK.Biodiv.glm
+DK.Biodiv.glmnb <- MASS::glm.nb(S.AllGrp ~ NatDensBasMp + Dis2Cost + HII + Slope30mAgg + PrecSea, #  the Equations defining the response and additive combination of predictors
+                          data = DK.Biodiv # specify the Object where the data is in
+                          )
+
+# Call the summary() of the DK.Biodiv.glmnb object
+summary(DK.Biodiv.glmnb)
+```
+
+<div class="alert alert-success">
+**Question:** Is there an over-dispersion problem in this negative binomial model?
+
+No. The ratio of deviance and df is near 1 and hence probably fine.
+</div>
+
+
+<div class="alert alert-success">
+**Question:** Which of the three models you build (`possion`, `quasipoisson`, `glm.nb`) you should use from now on?
+
+The negative binomial model (`DK.Biodiv.glmnb`), as it has no problem with over-dispersion, and hence the coefficient SE are reliable.
+</div>
+
+## Testing the asumptions.
+<div class = "alert alert-info">
+**Your task:**
+
+Using the regression that addressed the over dispersion problem, check the assumption of a GLMM. For this yo will use the function `plot()` to visualize the diagnistic plot of the selected model.
+</div>
+
+```{r DIagPlot1}
+# Set the plotting space to 2-rows and 2-columns
+par(mfrow=c(2,2))
+# Plot the object that contains the he regression that addressed the over dispersion problem
+plot(DK.Biodiv.glmnb)
+```
+
+<div class="alert alert-success">
+**Question:** Are the corrected residuals (standardized residuals), normaly distributed?
+
+Based on the qq-plot I would be confident that the corrected residuals are normaly distributed. 
+</div>
+
+
+<div class="alert alert-success">
+**Question:** Which plot do you need to look to assess if there is homogeneity of variances in this model? is there is homogeneity of variances>
+
+You need to use the plot showing how the Sqrt-of standardized residuals change as a function of the predicted values. The model shows that there is NO homogeneity of variances, 
+</div>
+
+
+## How Good is my full model.	
+
+<div class = "alert alert-info">
+**Your task:**
+
+For the Full-mode (`S.AllGrp ~ NatDensBasMp + Dis2Cost + HII + Slope30mAgg + PrecSea`), estimate the G^2^ statistic and its significance. For this, you will build a **CONSTANT** model (only intercept) and contrast it to `bolger.glm` using the `anova()` function.
+</div>
+  
+```{r GSqrTst}
+# Build a glm to predict S.AllGrp based on a NO PREDICTOR save this as Const.glm
+Const.glm.nb <- MASS::glm.nb(S.AllGrp ~ 1, #  the Equations of a Constant model
+                          data = DK.Biodiv # specify the Object where the data is in
+                          )
+
+# Contrast the full model and the reduced model
+anova(DK.Biodiv.glmnb, # The FULL Model
+      Const.glm.nb, # the Constant Model
+      test = "Chisq") # What test to use
+```
+<div class="alert alert-success">
+**Question:** Is the **FULL** model better than a **CONSTANT** model?
+
+Based on the anova tests, the full model is significantly better (significantly lower log-likelihood) than the constant model"
+</div>  
+
+
+## Which variables to keep 
+
+<div class = "alert alert-info">
+**Your task:**
+
+Using the `step()` function and a "backward" section procedure you will build the Minimum Adequate Model to predict S.AllGrp
+
+</div>
+
+  
+```{r FinalModl1}
+# build the Minimum Adequate Model to predict S.AllGrp
+DK.Biodiv.glmnb.Back <- step(DK.Biodiv.glmnb,
+                              direction = "backward")
+# Call bolger.glm.Back
+DK.Biodiv.glmnb.Back
+```
+
+<div class = "alert alert-info">
+**Your task:**
+
+Using the `step()` function and a "forward" section procedure you will build the Minimum Adequate Model to predict S.AllGrp
+</div>
+
+  
+```{r FinalModl2}
+# build the Minimum Adequate Model to predict S.AllGrp
+DK.Biodiv.glmnb.Frwd <- step(DK.Biodiv.glmnb,
+                              direction = "forward")
+# Call bolger.glm.Back
+DK.Biodiv.glmnb.Frwd
+```
+
+<div class="alert alert-success">
+**Question:** Do the two procedures select the same variables?
+
+NO, The backward selection only chose Slope30mAgg as a predictor, while the forward selection keep all variables.  When contrasting these there is no differences in the log likelihood. Since we always prefer simple to complex models, the DK.Biodiv.glmnb.Back model is preferred.
+</div>
+
+
+## How good is my final model
+
+<div class = "alert alert-info">
+**Your task:**
+
+Assess if your final-reduced model is better than a model with **NONE** of the predictors.</div>
+  
+```{r FinalModl3}
+# Contrast the full model and the reduced model
+anova(DK.Biodiv.glmnb.Back, # The FULL Model
+      Const.glm.nb, # the Constant Model
+      test = "Chisq") # What test to use
+
+## Based on the G2 test p-values, the Final Model is not different from a Full-model. Since we always prefer simple to complex models, the DK.Biodiv.Final model is preferred.
+```
+
+<div class="alert alert-success">
+**Question:** Is the reduced model better than a Constant model?
+
+YES!!! based on the text, a reduced model has significantly differnt log-likelihhod than a constant model.
+</div>
+
+## Testing the asumptions of the final model.
+<div class = "alert alert-info">
+**Your task:**
+
+Check the assumption of a GLMM in your final model. For this, you will use the function `plot()` to visualize the diagnostic plot of the selected model.
+</div>
+
+```{r DIagPlot2}
+# Set the plotting space to 2-rows and 2-columns
+par(mfrow=c(2,2))
+# Plot the object that contains the he regression that addressed the over dispersion problem
+plot(DK.Biodiv.glmnb.Back)
+```
+
+<div class="alert alert-success">
+**Question:** Are the corrected residuals (standardized residuals), normaly distributed?
+
+Based on the qq-plot I would be confident that the corrected residuals are normaly distributed. 
+</div>
+
+<div class="alert alert-success">
+**Question:** Is there homogeneity of variances?
+
+YES!, based on the standardised-residuals vs. predictors plot, the variances are homogeneous. 
+</div>

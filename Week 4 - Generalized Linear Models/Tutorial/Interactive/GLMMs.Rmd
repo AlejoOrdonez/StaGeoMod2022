@@ -1,0 +1,585 @@
+---
+title: "Logistic regression"
+output: learnr::tutorial
+runtime: shiny_prerendered
+---
+
+```{r setup, include=FALSE}
+# Load packages
+library(learnr)
+
+# Set-up the Markdown
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE, tidy = 'styler', tidy.opts = list(strict = TRUE), fig.width = 10, fig.height = 8)
+gradethis::gradethis_setup()
+
+# Load the Data
+bolger <- read.csv("https://raw.githubusercontent.com/AlejoOrdonez/StaGeoMod2021/main/bolger.csv")
+bolger.glm <- glm(RODENTSP ~ DISTX + AGE + PERSHRUB,
+                  data = bolger,
+                  family = "binomial")
+```
+
+## Before you start.
+
+Bolger et al. (1997) recorded the number of species of native rodents (except *Microtus californicus*) on 25 canyon fragments in southern California. These fragments have been isolated by urbanization. Using their data, you will model the presence/absence of any species of native rodent in a fragment (`RODENTSP`) against three predictor variables: distance (meters) of the fragment nearest source-canyon (`DISTX`), `AGE` (years) since the fragment was isolated by urbanization (`AGE`), and percentage of the fragment area covered in shrubs (`PERSHRUB`).
+
+The data on presence/absence of any species of native rodent, distance (meters) of the fragment nearest source-canyon, age (years) since the fragment was isolated by urbanization, and percentage of the fragment area covered in shrubs is pre-loaded as an object named `bolger`.
+
+## Data Exploration: Assessing the information at hand
+
+Remember that the first step in all analyses is exploring your data, and understanding the variability in the response variable (here `RODENTSP`) and predictors (`DISTX`, `AGE`, `PERSHRUB`). You also need to explore the co-variation between predictors. 
+
+<div class="alert alert-info">
+**Your task:**
+
+Using the `bolger` data, you will now build a box plot for each predictor variable described in the **Before you start** section. You will also add a "title" to each plot using the `main` argument.
+</div>
+
+```{r Boxplot1, exercise=TRUE}
+# Set-up the plotting space
+par(mfrow=c(1,3))
+# Box plot for distance (meters) of the fragment
+boxplot(-------------,
+        main = "distance (meters) of the fragment")
+# Box plot for Years since the fragment was isolated 
+boxplot(-------------,
+        main = "Isolation time")
+# Box plot for percentage of the fragment area covered in shrubs
+boxplot(-------------,
+        main = "Shrub cover")
+```
+```{r Boxplot1-hint}
+boxplot(mtcars$mpg)
+```
+```{r Boxplot1-solution, exercise.reveal_solution = FALSE}
+# Set-up the plotting space
+par(mfrow=c(1,3))
+# Box plot for distance (meters) of the fragment
+boxplot(bolger$DISTX,
+        main = "distance (meters) of the fragment")
+# Box plot for Years since the fragment was isolated 
+boxplot(bolger$AGE,
+        main = "Isolation time")
+# Box plot for percentage of the fragment area covered in shrubs
+boxplot(bolger$PERSHRUB,
+        main = "Shrub cover")
+```
+```{r Boxplot1-check}
+grade_code()
+```
+
+```{r Boxplot_Q1, echo=FALSE}
+question("For which variable(s) can you detect outlier observation? - Select as many as necesary",
+  answer("DISTX", correct = TRUE),
+  answer("AGE"),
+  answer("PERSHRUB"),
+  incorrect = "Incorrect. When you check the box-plots for all evaluated variables, you only see an outlier for DISTX"
+)
+```
+
+## Collinearity between predictors - 1
+
+Now that you evaluated the variation of individual predictors and identified possible problematic observations, it is time to assess if there is redundancy in the predictors - that is *if the information in one of the variables used to explain the patterns of interest is not contained in all other predictors*. This situation is problematic as the coefficient estimates of the multiple regression may change erratically in response to small changes in the model or the data.
+
+
+<div class = "alert alert-info">
+**Your task:**
+
+With the data in memory (saved as an object named `bolger`), you will evaluate the collinearity of the predictor variables [`DISTX`, `AGE`, and `PERSHRUB`]. For this, estimate the pairwise correlation between variables (using the `cor()` function).
+
+</div>
+
+```{r Colin1, exercise=TRUE}
+# Assess the correlation between predictors
+```
+```{r Colin1-hint}
+cor(mtcars[,c("mpg","cyl", "disp")])
+```
+
+```{r Colin1-solution, exercise.reveal_solution = FALSE}
+# Assess the correlation between predictors and save this as an object named Cor.bolger
+cor(bolger[, c("DISTX", "AGE", "PERSHRUB")], 
+    method = "pearson")
+```
+```{r Colin1-check}
+grade_code()
+```
+```{r Colin_Q2, echo=FALSE}
+question("Which pairs of predictors have a correlation above the 0.7 cut-off? - Select as many as necesary",
+  answer("DISTX-AGE"),
+  answer("DISTX-PERSHRUB"),
+  answer("AGE-PERSHRUB", correct = TRUE),
+  answer("PERSHRUB"),
+  incorrect = "Incorrect. When you check the table only AGE-PERSHRUB have correlation above the 0.7"
+)
+```
+
+## Multi-collinearity between predictors - 1
+
+For this example, things are simple as you have a relative small number of predictor variables. But as you increase the number of predictors, pairwise correlations might provide ambiguous results, and also do not capture the full effects of all other predictors. For this, you need to measure the (multi)collinearity predictor variables (or independent variables). Collinearity becomes a concern in regression analysis when there is a high correlation or an association between the selected predictor variables. This can be measured by establishing if one predictor variable in a multiple regression model can be linearly predicted from the others with a substantial degree of accuracy - this is formaly known as the variance inflation factor [VIF](https://en.wikipedia.org/wiki/Variance_inflation_factor).
+
+<div class = "alert alert-info">
+**Your task:**
+
+With the data in memory (saved as an object named `bolger`), you will evaluate the multiple-collinearity of the predictor variables [`DISTX`, `AGE`, and `PERSHRUB`] using the variance inflation index.For this, use a custom-build function based on the `*apply()` family of functions. Check <https://bit.ly/37V2Akb> for a tutorial on how to use these.
+
+</div>
+
+```{r VIF1, exercise=TRUE, exercise.lines=20}
+#Estimate each predictor's tolerance using a Custom-build function 
+Tol.Test <- lapply(X = c("DISTX", "-----", "-------"), # Here you specify the vector used by the iterator/counter 
+  function(i){ data.tmp <- data.frame(PredVar = --------[, i], # Variable to test
+                                      --------[, !names(--------)%in%i]# Other Variables 
+                                      )
+# Build a model to test for tolerance - name it Tol.Mod
+                    Tol.Mod <- lm(PredVar ~ ., # Use a model specification where PredVar is a response and all the other variables in the data.frame are predictors [ Y ~ .]
+                                  data = -------- # Specify the name of the object where you can find the data
+                    )
+# estimate the tolerance (1-R2) using a summary of the Tol.Mod object - name this Tol.Mod
+                    Toll.Out <- data.frame(Var = ---, # which variable did you estimate the Tolerance
+                                           Tolerance = 1-summary(Tol.Mod)$-------- # the Tolerance value
+                    )
+# Last, the return() function states which is the value the loop should save in the object to be presented
+                    return(Toll.Out)
+                  })
+# Call Tol.Test
+--------
+```
+```{r VIF1-hint}
+lapply(mtcars,
+       mean)
+```
+```{r VIF1-solution, exercise.reveal_solution = FALSE}
+#Estimate each predictor's tolerance using a Custom-build function 
+Tol.Test <- lapply(X = c("DISTX", "AGE", "PERSHRUB"), # Here you specify the vector used by the iterator/counter 
+  function(i){ data.tmp <- data.frame(PredVar = bolger[, i], # Variable to test
+                                      bolger[, !names(bolger)%in%i]# Other Variables 
+                                      )
+# Build a model to test for tolerance - name it Tol.Mod
+                    Tol.Mod <- lm(PredVar ~ ., # Use a model specification where PredVar is a response and all the other variables in the data.frame are predictors [ Y ~ .]
+                                  data = data.tmp # Specify the name of the object where you can find the data
+                    )
+# estimate the tolerance (1-R2) using a summary of the Tol.Mod object - name this Tol.Mod
+                    Toll.Out <- data.frame(Var = i, # which variable did you estdivimate the Tolerance
+                                           Tolerance = 1-summary(Tol.Mod)$r.squared # the Tolerance value
+                    )
+# Last, the return() function states which is the value the loop should save in the object to be presented
+                    return(Toll.Out)
+                  })
+# Call Tol.Test
+Tol.Test
+```
+```{r VIF1-check}
+grade_code()
+```
+
+```{r VIF_Q2, echo=FALSE}
+question("Which predictor shows collinearity?",
+  answer("All"),
+  answer("DISTX"),
+  answer("AGE"),
+  answer("PERSHRUB"),
+  answer("None", correct = TRUE),
+  incorrect = "Incorrect. Although AGE and PERSHRUB show a strong correlation, for all variables, the tolerances are above the threshold of concern (0.1)"
+)
+```
+
+## How does my response variable change as a function of each predictor? - 1
+
+The next step is assess how your response variable (`RODENTSP`) changes as a function of your predictors. For this, the best fist approach is to visualize such relations.
+
+<div class = "alert alert-info">
+**Your task:**
+
+Graphically explore how `RODENTSP` changes as a function of `DISTX`, `AGE`, and `PERSHRUB` using scatterplots (build using the `plot()` function) and add a basic linear regression to the figure. 
+**YOU WILL USE a `for()`loop to make this figure**.
+</div>
+  
+```{r UnivarRel1, exercise=TRUE, exercise.lines=15}
+# Set a plotting space
+par(mfrow = c(1, 3)) 
+
+for (Var in c('------', '------', '------')){ # define a vector with the names of the predictors
+# Scatter plot of RODENTSP vs the evaluated predictor using the test.Formula object to determine what to plot
+ plot(x = bolger[,------], # Predictor variable
+      y = bolger[,"------"], # response 
+      pch = 19) # make the points filled circles   
+
+ # To  add a trend line you first need a regression object created with the lm() function.
+  Reg.Tmp <- line(x = ------[,------], # Predictor variable
+                  y = ------[,"------"] # response 
+                  )
+# Add a trend line using the abline() function on the lm function created above
+  abline(------, ## the line object to plot
+         col = "red", # the colour of the line
+         lwd = 2,  # the width of the line
+         lty = 2) # the type of the line
+}
+```
+
+```{r UnivarRel1-hint-1}
+# plot to variables
+plot(x = mtcars$cyl,
+     y = mtcars$mpg)
+```
+```{r UnivarRel1-hint-2}
+# Easy linear model estimation
+line(x = mtcars$cyl,
+     y = mtcars$mpg)
+```
+
+```{r UnivarRel1-hint-3}
+# Add a line to a plot
+Model1 <- line(x = mtcars$cyl,
+               y = mtcars$mpg)
+plot(x = mtcars$cyl,
+     y = mtcars$mpg)
+abline(Model1)
+```
+```{r UnivarRel1-solution, exercise.reveal_solution = FALSE}
+# Set a plotting space
+par(mfrow = c(1, 3)) 
+
+for (Var in c('DISTX', 'AGE', 'PERSHRUB')){ # define a vector with the names of the predictors
+# Scatter plot of RODENTSP vs the evaluated predictor using the test.Formula object to determine what to plot
+ plot(x = bolger[,Var], # Predictor variable
+      y = bolger[,"RODENTSP"], # response 
+      pch = 19) # make the points filled circles   
+
+ # To  add a trend line you first need a regression object created with the lm() function.
+  Reg.Tmp <- line(x = bolger[,Var], # Predictor variable
+                  y = bolger[,"RODENTSP"] # response 
+                  )
+# Add a trend line using the abline() function on the lm function created above
+  abline(Reg.Tmp, ## the line object to plot
+         col = "red", # the colour of the line
+         lwd = 2,  # the width of the line
+         lty = 2) # the type of the line
+}
+```
+```{r UnivarRel1-check}
+grade_code()
+```
+
+## How does my response variable change as a function of each predictor? - 2
+
+The figures you just made showcase the difficultly of working with binary data - you just have to  response levels, so establishing the effect of a predictors can be difficult. So one way to see this is to plot the predictors as a function of the response in a box plot (using the `boxplot()` function).
+
+<div class = "alert alert-info">
+**Your task:**
+
+Graphically explore how `RODENTSP` changes as a function of `DISTX`, `AGE`, and `PERSHRUB` using box plots (build using the `boxplot()` function). **As before, YOU WILL USE a `for()`loop to make this figure**.
+</div>
+  
+```{r BoxplotPred1, exercise=TRUE, exercise.lines=15}
+# Set a plotting space
+par(mfrow = c(1, 3)) 
+
+# define a vector with the names of the predictors
+for (Var in c('---------', '---------', '---------')){
+
+  # As you will be iterating over different predictors is now a good time to learn about the formula() function as it can be used to define a formula from a text string .
+  Test.Formula <-  formula(paste(Var,"~RODENTSP")) # here the paste() function links together "RODENTSP ~" which is text and Var that is the iterator/counter
+
+# Now  Plot the Boxplot  
+ boxplot(---------, # The formula
+         data = ---------)
+}
+```
+
+```{r BoxplotPred1-hint-1}
+# use the formula function
+formula("y ~ x")
+```
+```{r BoxplotPred1-hint-2}
+# Merging strings
+paste("a","~","b")
+```
+```{r BoxplotPred1-hint-3}
+# boxplot with formula
+Form1 <- formula("mpg~am")
+boxplot(Form1,
+        data = mtcars)
+```
+
+```{r BoxplotPred1-solution, exercise.reveal_solution = FALSE}
+# Set a plotting space
+par(mfrow = c(1, 3)) 
+
+# define a vector with the names of the predictors
+for (Var in c('DISTX', 'AGE', 'PERSHRUB')){
+
+  # As you will be iterating over different predictors is now a good time to learn about the formula() function as it can be used to define a formula from a text string .
+  Test.Formula <-  formula(paste(Var,"~RODENTSP")) # here the paste() function links together "RODENTSP ~" which is text and Var that is the iterator/counter
+
+# Now  Plot the Boxplot  
+ boxplot(Test.Formula, # The formula
+         data = bolger)
+}
+```
+```{r BoxplotPred1-check}
+grade_code()
+```
+```{r BoxplotPred_Q2, echo=FALSE}
+question("Based on these graphical representations wich variable(s) can be used to diferenciate betwen presnece absece of rodents?",
+  answer("All"),
+  answer("DISTX"),
+  answer("AGE", correct = TRUE),
+  answer("PERSHRUB", correct = TRUE),
+  answer("None"),
+  incorrect = "Incorrect. It seems that `AGE` affects `RODENTSP`, with older places being those where rodents are absent. It also appears that `PERSHRUB` impacts `RODENTSP`, with areas where rodents are present have a higher percentage of shrub cover."
+)
+```
+
+## GLM and hypothesis testing
+
+When the response variable is binary (i.e. categorical with two levels, zero or one), you model $\pi_(x)$, that is, the probability that $Y$ equals one for a given value of $X$ or a combination of $X_i$. The usual model fitted to such data is a logistic regression model, a non-linear model with a sigmoidal shape (S-shape).
+
+The model looks like this:
+$g(x) = ln(\pi(x)/1-\pi(x)) = \beta_0 + (\beta_1*DISTX) + (\beta_2*AGE) + (\beta_3*PERSHRUB)$
+
+Here is essential to remember that the change in the probability that $Y$ equals one for a given change in $X$  (or a combination of $X_i$) is what you are testing.
+
+Also, remember that the error terms from the logistic model are generally not distributed; because the response variable is binary, the error terms have a binomial distribution.
+
+## Building a logistic regression.
+
+Now that it is clear which type of model you need to use, which predictors to are necessary, and which hypotheses to test, you can start estimating the parameters for the proposed logistic regression. 
+
+<div class = "alert alert-info">
+**Your task:**
+
+Use the `glm()` function to how the presence absence of rodents `RODENTSP` is determined by the individual effects of distance (meters) of the fragment nearest source-canyon (`DISTX`), age since the fragment was isolated by urbanization (`AGE`), and percentage of the fragment area covered in shrubs (`PERSHRUB`). Remember to include the adequate error `family` for the type of data in `RODENTSP`.
+  
+</div>
+  
+```{r glmMod, exercise=TRUE, exercise.lines=15}
+# Build a glm to predict RODENTSP based on a linear combination of DISTX, AGE, and PERSHRUB
+# Save the Model as an object named bolger.glm
+bolger.glm <- glm(------- ~ ------- + ------- + -------, # the Equations defining the response and additive combination of predictors
+                  data = -------, # specify the Object where the data is in
+                  family = "-------") # Argument defining the adequate error `family` given the type of the response variable (quasi)binomial for presence/absence and proportion data, and (quasi)Poisson for counts.
+
+# Call the regression model
+-------
+```
+```{r glmMod-hint}
+#build a regression
+glm(mpg ~ am + cyl + disp,
+    family = "gaussian",
+    data = mtcars)
+```
+
+```{r glmMod-solution, exercise.reveal_solution = FALSE}
+# Build a glm to predict RODENTSP based on a linear combination of DISTX, AGE, and PERSHRUB
+# Save the Model as an object named bolger.glm
+bolger.glm <- glm(RODENTSP ~ DISTX + AGE + PERSHRUB, # the Equations defining the response and additive combination of predictors
+                  data = bolger, # specify the Object where the data is in
+                  family = "binomial") # Argument defining the adequate error `family` given the type of the response variable (quasi)binomial for presence/absence and proportion data, and (quasi)Poisson for counts.
+
+# Call the regression model
+bolger.glm
+```
+```{r glmMod-check}
+grade_code()
+```
+
+
+## Initial summary of the regression
+
+Now that you have estimated the regression parameters is time to start reporting.
+
+
+<div class = "alert alert-info">
+**Your task:**
+Build a `data.frame` that contains the maximum likelihood estimates of the model parameters. The `data.frame` setup should be as the table below. Also, this table needs to build by extracting the adequate elements from the `bolger.glm` object, **NOT BY TYPING VALUES IN THE TABLE!**
+
++--------------------+---------------+---------------+----------------+----------------+
+| PARAMETER          | Estimate      | SE            | Z-value        | $p$            |
++====================+===============+===============+================+================+
+| $\beta_0$          |               |               |                |                |
++--------------------+---------------+---------------+----------------+----------------+
+| $\beta_{DISTX}$    |               |               |                |                |
++--------------------+---------------+---------------+----------------+----------------+
+| $\beta_{AGE}$      |               |               |                |                |
++--------------------+---------------+---------------+----------------+----------------+
+| $\beta_{PERSHRUB}$ |               |               |                |                |
++--------------------+---------------+---------------+----------------+----------------+
+</div>
+
+```{r glmmCoff, exercise=TRUE, exercise.lines=15}
+# use the summary() function on an object created using the glm() function to get the overview of the regression coefficients. 
+Summ.bolger.glm <- -------(-------)
+
+# Now extract the coefficients from Summ.bolger.glm with the coef() function. save this as an object named Coef.bolger.glm
+Coef.Summ.bolger.glm <- -------(-------)
+
+# print Coef.Summ.bolger.glm, but round all numbers to 3 decimal points
+round(x = -------, # What to round?
+      digits = -----) #number of decimal points
+
+```
+```{r glmmCoff-hint-1}
+# Extract infomrtion form a regression model
+summary(Model1)
+```
+```{r glmmCoff-hint-2}
+#round a number
+round(x = 0.123456,
+      digits = 3)
+```
+```{r glmmCoff-solution, exercise.reveal_solution = FALSE}
+# use the summary() function on an object created using the glm() function to get the overview of the regression coefficients. 
+# save this as an object named  Summ.bolger.glm
+Summ.bolger.glm <- summary(bolger.glm)
+Summ.bolger.glm
+
+# Now extract the coefficients from Summ.bolger.glm with the coef() function. save this as an object named Coef.bolger.glm
+Coef.Summ.bolger.glm <- coef(Summ.bolger.glm)
+# print Coef.Summ.bolger.glm, but round all numbers to 3 decimal points
+round(x = Coef.Summ.bolger.glm, # What to round?
+      digits = 3) #number of decimal points
+```
+```{r glmmCoff-check}
+grade_code()
+```
+
+## How Good is my full model.	
+
+Just like in multiple linear regression models, you can first test the significance of the overall regression model by comparing the log-likelihood of the full model to the log-likelihood of the fully reduced model (constant, or $\beta_0$). For this, you will calculate the G^2^ statistic [- 2(log-likelihood reduced - log-likelihood full)] to test the hypothesis that at least one of the regression coefficients equals zero.
+
+Suppose the G^2^ test is significant (tested using a chi-squared distribution). In that case, you know that the full model is a better fit for your data than the constant model and, therefore, at least one of the regression coefficients equals zero.
+
+
+<div class = "alert alert-info">
+**Your task:**
+
+For the Full-mode (`RODENTSP ~ DISTX + AGE + PERSHRUB`), estimate the G^2^ statistic and its significance. For this, you will build a **CONSTANT** model (only intercept) and contrast it to `bolger.glm` using the `anova()` function.
+</div>
+  
+```{r GSqrTst,  exercise=TRUE, exercise.lines=10}
+# Build a glm to predict RODENTSP based on a NO PREDICTOR save this as Const.glm
+Const.glm <- glm(--------- ~ 1,  # the Equations defining the response as a function of NO predictor
+                  data = ---------, # specify the object where the data is in
+                  family = "---------") # Argument defining the adequate error `family` given the 
+
+# Contrast the full model and the reduced model
+anova(---------, # The FULL Model
+      ---------, # the Constant Model
+      test = "Chisq") # What test to use
+```
+
+```{r GSqrTst-solution, exercise.reveal_solution = FALSE}
+# Build a glm to predict RODENTSP based on a NO PREDICTOR save this as Const.glm
+Const.glm <- glm(RODENTSP ~ 1,  # the Equations defining the response as a function of NO predictor
+                  data = bolger, # specify the object where the data is in
+                  family = "binomial") # Argument defining the adequate error `family` given the 
+
+# Contrast the full model and the reduced model
+anova(bolger.glm, # The FULL Model
+      Const.glm, # the Constant Model
+      test = "Chisq") # What test to use
+```
+```{r GSqrTst-check}
+grade_code()
+```
+
+```{r GSqrTst_Q1, echo=FALSE}
+question("Is the **FULL** model better than a **CONSTANT** model?",
+  answer("No"),
+  answer("Yes", correct = TRUE),
+  incorrect = "Incorrect. Based on the anova tests, the full model is significantly better (significantly lower log-likelihood) than the constant model"
+)
+```
+## Which variables to keep
+
+Even as you know that your model performs better than a model with no predictors, that does not mean you need to keep all predictors. Remember that your goal is allays to produce the Minimum Adequate Model (MAM).
+The way this is done is by fitting a series of reduced models (those without a predictor of interest) and compare their fit (log-likelihood) to the full model. The goal is to asses if adding a variable increases the likelihood of a model. If the test is significant, you will then know that the inclusion of the predictor makes the full model a better fit to our data than the reduced model and, therefore the variable is does not make the model better. In R you can do this "by hand" or use the `step()` function, and indicting the the direction of the stepwise process
+
+<div class = "alert alert-info">
+**Your task:**
+
+Using the `step()` function and a "backward" section procedure you will build the Minimum Adequate Model to predict presence/absence of rodents.
+
+</div>
+
+  
+```{r FinalModl1, exercise=TRUE}
+# build the Minimum Adequate Model to predict presence/absence of rodents.
+bolger.glm.Back <- ----------(----------,
+                              direction = "----------")
+# Call bolger.glm.Back
+bolger.glm.Back
+```
+```{r FinalModl1-hint}
+# Using the Step function
+step(lm(mpg ~ am + cyl + disp, data = mtcars)
+     direction = "both")
+```
+```{r FinalModl1-solution, exercise.reveal_solution = FALSE}
+# build the Minimum Adequate Model to predict presence/absence of rodents.
+bolger.glm.Back <- step(bolger.glm,
+                        direction = "backward")
+# Call bolger.glm.Back
+bolger.glm.Back
+```
+```{r FinalModl1-check}
+grade_code()
+```
+
+<div class = "alert alert-info">
+**Your task:**
+
+Using the `step()` function and a "forward" section procedure you will build the Minimum Adequate Model to predict presence/absence of rodents.
+
+</div>
+
+  
+```{r FinalModl2, exercise=TRUE}
+# build the Minimum Adequate Model to predict presence/absence of rodents.
+bolger.glm.Frwd <- ----------(----------,
+                              ---------- = "----------")
+# Call bolger.glm.Back
+bolger.glm.Frwd
+```
+```{r FinalModl2-hint}
+# Using the Step function
+step(lm(mpg ~ am + cyl + disp, data = mtcars)
+     direction = "both")
+```
+```{r FinalModl2-solution, exercise.reveal_solution = FALSE}
+# build the Minimum Adequate Model to predict presence/absence of rodents.
+bolger.glm.Frwd <- step(bolger.glm,
+                        direction = "forward")
+# Call bolger.glm.Back
+bolger.glm.Frwd
+```
+```{r FinalModl2-check}
+grade_code()
+```
+
+```{r FinalModl_Q1, echo=FALSE}
+question("Do the two procedures select the same variables?",
+  answer("No", correct = TRUE),
+  answer("Yes"),
+  incorrect = "Incorrect. The backward selection only chose PERSHRUB as aa predictor, while the forward selection keept all variables"
+)
+```
+
+```{r FinalModl_Q2, echo=FALSE}
+question("Which of the two models has a better fit?",
+  answer("Backward selection", correct = TRUE),
+  answer("Forward selection"),
+  incorrect = "Incorrect. While the Forward selection model has a higher deviance explained (the ration between the Null Deviance and Residual Deviance) the differecne betwen modles is not significnat, and hecne you allways chose the simpler model."
+)
+```
+
+## Final thoughts
+
+Like all GLMs, logistic regression assumes that the probability distribution for the response variable, and hence for the error terms from the fitted model, is adequately described by the random component chosen. For logistic regressions, this component is assumed to follow a binomial distribution.
+
+After this, the same principles of a linear regression apply. That is when there are two or more predictors in the
+Model, then the absence of strong collinearity (strong correlations between the predictors) is important. It will inflate the standard errors of the estimates of the model coefficients and can produce unreliable results. There is also the need for observation independence. 
+
+The last point here is that **Homoscedasticity is not an assumption of logistic regression** like linear regression (OLS). Heteroscedasticity in the context of logistic regressions will only have a positive scaling effect on the maximum likelihood estimates (MLE) of the parameters, but these still are correct.
+
