@@ -1,0 +1,581 @@
+---
+title: "Generalized Least Squares (GLSs)"
+author: '"YOUR NAME HERE"'
+date: "`r Sys.Date()`"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+require(nlme)
+require(sp)
+require(ape)
+require(MASS)
+```
+
+# **The Set-up**
+
+## *Learning objectives.*
+1.	Implement as Generalized Least Squares model that considers Spatial correlation between observations in `R`. 
+2.	Determine the fit of a Generalized Least Squares model.
+3.	Reduce a Generalized Least Squares model to the minimum adequate number of predictors using a stepwise procedure.
+
+## *Before you start*
+The practical will be run using *RStudio cloud* to avoid individual machine troubleshooting. This means you **need** to have an account for *RStudio cloud*.
+
+However, remember to have [`R`](https://cran.r-project.org) and [R-studio](http://www.rstudio.com/) in your/room computer so you can work on the project after class.
+
+**You should have also **
+1. Read chapter 4 of Zuur mixed effect models book.
+1. Read chapter 26  of Crawley the R book.
+2. Done the Tutorial for this week.
+
+## *The way it's going to be run*
+
+In this 3h practical you will to implement what you have learned in the class about Regression Analyses in `R`.
+
+You will be building and **R-Markdown** document during the class. **R-Markdown** documents allows you to combine your code, its results, and your prose commentary into a single document. If you manage to produce a document your code works. The resulting file (a html) is what you will hand-in at the end of the practical.
+
+This 3h practical is divided into seven parts (24 tasks in total). Also try to write your own `R`-code and run it **DO NOT COPY THE CODE OF SOMEONE ELSE**. Writing your code and figuring out why it does not work is the best way to understand the dynamics of the `R` language and the tasks you are doing. Also, you have an excellent teaching assistant resource - ask him and/or me all the questions you have.
+
+The final document will have three classes of boxes
+
+<div class="alert alert-info">
+<p class="text-center"; style = "font-size: 20px">
+The text in the blue filled box marked as <strong>Your task</strong> states what you need to do
+</p>
+</div>
+
+```{r }
+#
+# The code in the window marked like this shows where you need to write your code
+#
+
+```
+
+<div class="alert alert-success">
+<p class="text-center"; style = "font-size: 20px">
+The text in the green filled box marked as <strong>Question</strong> phrases a question, and where you will place the answer to the <strong>question</strong> is marked as **PLACE YOUR ANSWER HERE**. </p>
+</div>
+
+## About the data you will use.
+
+The data to be used in this week practical is a combination of the biodiversity data  from the [Biowide](https://ecos.au.dk/forskningraadgivning/temasider/biowide) project, which aimed at collecting biodiversity data from 130 terrestrial sampling sites across Denmark. The dataset contains data for Plants (vascular plants and bryophytes), fungi (lichens and macrofungi), gastropods, and arthropods. You can get the [biodiversity data](https://www.gbif.org/dataset/cd4eb3ec-0a18-42b4-bda4-155716ddd7b1#description) from the Danish Biodiversity Information Facility. For further information on the project check the publication.
+
+Although environmental variables were collected as part of Biowide, this data is not available for our use. The data on environmental variables included in the table you will use comes from multiple Geospatial datasets I complied for this course.
+
+Here you will focus on the flowing variables:
+
+**1) decimalLongitude**: East-West position in decimal-degrees of a sample site coming from [Biowide](https://ecos.au.dk/forskningraadgivning/temasider/biowide).
+
+**2) decimalLatitude**: North-South position in decimal-degrees of a sample site coming from [Biowide](https://ecos.au.dk/forskningraadgivning/temasider/biowide). 
+
+**3) Log.S.AllGrp**: The total species richness of a sample site (sum of the unique species of all sampled groups in a site) coming from [Biowide](https://ecos.au.dk/forskningraadgivning/temasider/biowide).
+
+**4) AgrBasMp**: Density of agricultural land cover types as defined by [BASEMAP](https://envs.au.dk/en/research-areas/society-environment-and-resources/land-use-and-gis/basemap).
+
+**5) WetLndBasMp**: Density of Wetlands cover types as defined by [BASEMAP](https://envs.au.dk/en/research-areas/society-environment-and-resources/land-use-and-gis/basemap).
+
+**6) Slope30mAgg**: the maximum rate of change in value from that cell to its neighbours estimated based on the [SRTM-30m DEM](https://www2.jpl.nasa.gov/srtm/).
+
+**7) NDVI**: Normalized difference vegetation index, a simple graphical indicator that can be used to analyse vegetation greenness and has strong relation with productivity [Copernicus Global Land Service](https://land.copernicus.eu/global/products/ndvi).
+
+**8) Mean Annual Temperature (MAT)**: Annual average of temperatures  coming the [CHELSA-climatologies](https://chelsa-climate.org) ..
+
+**9) Dis2Cost**: Distance in km of a sampled site to the coast estimated by me using Denmark high resolution contour map coming form the Database of Global Administrative Areas [GADAM](https://gadm.org).
+
+**10) HII**: [Human Influence Index](https://sedac.ciesin.columbia.edu/data/set/wildareas-v2-human-influence-index-geographic), a measurement of the anthropogenic impacts on the environment.
+
+**11) PrecSea**: Seasonality of precipitation measured as the variability of monthly values (using the CV) coming the [CHELSA-climatologies](https://chelsa-climate.org).
+
+
+## 1) The first step: Loading the data
+
+<div class = "alert alert-info">
+**Your task:**
+
+Load the data in *Biowide_AllSppRichV2.csv*, located in the files of the project
+
+Use `read.csv` to load the file - The file is comma-separated
+
+Save the object as an object named `DK.Biodiv`.
+</div>
+
+```{r LoadData}
+# Read the file and save it as an object named `DK.Biodiv`
+DK.Biodiv <-  read.csv("data/Biowide_AllSppRichV2.csv")
+# Use the function head to print the five first rows
+head(DK.Biodiv)
+```
+
+## 2) Building a regression.
+
+<div class = "alert alert-info">
+**Your task:**
+
+Use the function `lm()` to build  model where all **continuous** predictors, with the exception of `decimalLongitude` and `decimalLatitude` are used to predict `Log.S.AllGrp`.
+
+</div>
+  
+```{r glmMod1}
+# Build a glm to predict Log.S.AllGrp based on a linear combination of all NON-positional predictors
+DK.Biodiv.lm <- lm(Log.S.AllGrp ~ ., #  the Equations defining the response and additive combination of predictors
+                  data = DK.Biodiv[,-c(1:4)]) # dataset (removing the variables not of interest)
+# Print the summary of DK.Biodiv.lm
+summary(DK.Biodiv.lm)
+```
+
+## 3) Check your regression.
+
+<div class = "alert alert-info">
+**Your task:**
+
+* Evaluate graphically the assumptions of your full linear model (`DK.Biodiv.lm`).
+</div>
+  
+```{r glmModDiagFig, fig.dim=c(6,6)}
+# define a 2x2 plotting space
+par(mfrow=c(2,2))
+# Evaluate graphically the assumptions of your full linear model
+plot(DK.Biodiv.lm)
+```
+
+<div class="alert alert-success">
+**Question:** Are the following assumptions meet??
+
+1) Homogeneity of variances?
+At first glance it appears that the residuals are homogeneous. But the Standardized residuals vs. fitted values shows a triangular shape which indicates lack of homogeneity of variances.
+
+2) Normality of residuals?
+The qq-plot would appear to show that the residuals are normal.
+
+3) Observations with large leverage?
+While observations 94, 115 and 13 are of interest none of them are above the Cook's distance that indicates outliers (0.125) - to see only the distances plot `plot(DK.Biodiv.lm,which=4)`
+</div>
+
+<div class = "alert alert-info">
+**Your task:**
+
+* Evaluate if the predictors in `DK.Biodiv.lm` are collinear.
+</div>
+  
+```{r glmModcollinear}
+# Evaluate if the predictors in `DK.Biodiv.lm` are collinear.
+1 / car::vif(DK.Biodiv.lm)
+```
+
+<div class="alert alert-success">
+**Question:** Are predictors collinear?.
+
+No, all tolerances are above 0.1 (vif are below 10)
+</div>
+
+<div class = "alert alert-info">
+**Your task:**
+
+* Evaluate graphically the assumptions of independence of observations. (`DK.Biodiv.lm`).
+</div>
+
+```{r glmModIndepen, fig.dim=c(6,10)}
+# Set a piloting space
+
+par(mfrow=c(round(length(names(coef(DK.Biodiv.lm))[-1])/2),2))
+# Loop across the predictors
+for(VarUse in names(coef(DK.Biodiv.lm))[-1]){
+# Plot the Residuals vs the predictor
+  plot(y = residuals(DK.Biodiv.lm), # Residuals 
+       x = DK.Biodiv[,VarUse], # Predictor
+       ylab = "Log.S.AllGrp", # Labels
+       xlab = VarUse, # Labels
+       pch=19)  # Point type
+# add a smoother trend line using lowess
+    lines(lowess(y = residuals(DK.Biodiv.lm), # Residuals
+               x = DK.Biodiv[,VarUse]),# Predictor
+        lwd = 2, # Line width
+        lty = 2, # Dashed line
+        col = "red")  # colour of the line
+}
+
+```
+
+<div class="alert alert-success">
+**Question:** Is there independence of observations?.
+
+Based on the figure I would say Yes! as there is no strong-trends in the relation between the residuals and either of the predictors.
+</div>
+
+
+## 4) Detecting spatial autocorrelation
+
+<div class = "alert alert-info">
+**Your task:**
+
+* Create a Spatial object with the data in `DK.Biodiv`. For this, you will:
+    1) Copy the data in `DK.Biodiv` into an object names `DK.Biodiv.Spatial`.
+    2) Extract the standardized residuals of the `DK.Biodiv.lm` object using the function `rstandard()`; and add these to `DK.Biodiv.Spatial.` as a variable named `Resid`.
+    3) Transform the `DK.Biodiv.Spatial` object from a `data.frame` to a `SpatialPointsDataframe` using the function `coordinates()`.
+    4) Define the right reference system to `DK.Biodiv.Spatial` using the function `proj4string()`..
+    5) Re-project `DK.Biodiv.Spatial` to `UTM/ETRS89` using the function `spTransform()`.
+ 
+ </div>
+```{r SpatialObj}
+# Copy the data in `DK.Biodiv` into an object names `DK.Biodiv.Spatial`.
+DK.Biodiv.Spatial <- DK.Biodiv # copy the original data
+
+# Extract the standardized residuals of the `DK.Biodiv.lm` object
+DK.Biodiv.Spatial$Resid <- rstandard(model = DK.Biodiv.lm) # Model to extract the residuals
+
+# Transform the `DK.Biodiv.Spatial` to a `SpatialPointsDataframe`
+coordinates(DK.Biodiv.Spatial) <- ~decimalLongitude+decimalLatitude 
+
+# Define the right reference system to `DK.Biodiv.Spatial`.
+proj4string(DK.Biodiv.Spatial) <- CRS("+proj=longlat") # The 
+
+# Re-project `DK.Biodiv.Spatial` to `UTM/ETRS89`.
+DK.Biodiv.Spatial <- spTransform(DK.Biodiv.Spatial, # object to be transformed
+                                 CRSobj = CRS("+proj=utm +zone=32 +ellps=intl +towgs84=-87,-98,-121,0,0,0,0 +units=m +no_defs +type=crs")# New Projection
+)
+
+# Add the projected X and Y to the Data frame of the Spatial object
+DK.Biodiv.Spatial$X <- coordinates(DK.Biodiv.Spatial)[,'decimalLongitude']
+DK.Biodiv.Spatial$Y <- coordinates(DK.Biodiv.Spatial)[,'decimalLatitude']
+
+# Plot the spatial object you created
+plot(DK.Biodiv.Spatial,
+     pch=19)
+# Load a map of Denmark
+DK.Map <- readRDS("data/gadm36_DNK_0_sp.rds")
+# Re-project `DK.Map` to `UTM/ETRS89`.
+DK.Map <- spTransform(DK.Map, # object to be transformed
+                      CRSobj = CRS("+proj=utm +zone=32 +ellps=intl +towgs84=-87,-98,-121,0,0,0,0 +units=m +no_defs +type=crs") # New Projection
+                      )
+
+# plot DK.Map over DK.Biodiv.Spatial 
+plot(DK.Map,add=T)
+```
+
+<div class = "alert alert-info">
+**Your task:**
+
+* Generate a map to represent the spatial variation in the residual variation from the `DK.Biodiv.lm` model. For this, you will:
+    1) Add to `DK.Biodiv.Spatial` the normalized residuals from the `DK.Biodiv.lm` model as a variable names `Resid`. You will get these using the function `rstandard()`.
+    2) Use the function `bubble()` from the package `sp`to generate this spatial representation of the normalized residual variation.
+    
+ </div>
+ 
+```{r bubblePlot}
+# Add to `DK.Biodiv.Spatial` the normalized residuals to the Spatial object
+DK.Biodiv.Spatial$Resid <- rstandard(DK.Biodiv.lm)
+#spatial representation of the normalized residual variation.
+bubble(obj = DK.Biodiv.Spatial, # the Spatial object to plot
+      zcol = "Resid")# column name, or column number of the variable to plot
+
+```
+ 
+
+<div class="alert alert-success">
+**Question:** there is a clear spatial pattern in the residuals?.
+
+Yes, there is a clear spatial pattern in the residuals. Observations with similar residuals come from sampling units that were closer together in space and thus there is evidence of spatial autocorrelation.
+
+</div>
+
+
+## 5) Building a semi-variogram to quantify the Autocorrelation.
+
+<div class = "alert alert-info">
+**Your task:** 
+
+* Re-run your best model using a Generalised least Squares method. For this, you will use the function `gls()` and the data in `DK.Biodiv.Spatial`.
+
+* Save the the model as an object named `DK.Biodiv.gls`.
+
+</div>
+
+```{r GLSmod}
+# Make the reduced model a Generalised least Squares model
+DK.Biodiv.gls <- gls(formula(DK.Biodiv.lm), # Get the Formula form the LM model
+                     data = DK.Biodiv.Spatial, # The data.frame,e with the variables 
+                     method ="REML" # The inference method
+                     )
+
+# call the summary of DK.Biodiv.gls
+summary(DK.Biodiv.gls)
+
+```
+
+<div class="alert alert-success">
+**Question:** 
+
+1) Is there any change in the regression coefficients when ruing the model with the function `gls()`?.
+
+NO!. The model coefficients are the same. 
+
+2) Why you do not get a R^2^ or Adjusted-R^2^ when ruining the model with the function `gls()`?
+
+Because the model is done using Restricted Maximum Likelihood, and R^2^ are only defined for OLS estimation.
+
+</div>
+
+<div class = "alert alert-info">
+**Your task:**
+
+* Generate a variogram for the residuals from `DK.Biodiv.gls`. For this, you will use the function `Variogram()` from the `nlme` package. See the help file from the function `Variogram()` to see how to use this. 
+</div>
+
+```{r Semivar}
+# Generate a semi-variogram for the residuals from `DK.Biodiv.gls`. 
+
+DK.Biodiv.gls.Vargrm <- Variogram(DK.Biodiv.gls, # The gls model
+                                  form = ~ X + Y, # the way correlation is defined - here as 
+                                  resType = "normalized" # the type of residuals to use
+                                  )
+# Plot the semi-variogram
+plot(DK.Biodiv.gls.Vargrm)
+
+```
+
+<div class="alert alert-success">
+**Question:** Is there autocorrelation in the residuals?.
+
+Based on the semivariogram, I would say that there is correlation in the residuals - there is consistent- asymptotic trend. 
+
+</div>
+
+## 6) Moran-I: An Statistic for Autocorrelation.
+
+
+<div class = "alert alert-info">
+**Your task:** 
+
+* Estimate the Moran's I statistic (which is a measure of spatial autocorrelation) using the function `Moran.I()` of the package `ape`. For this, you will:
+    1) Create a distance matrix between all the observations using the function `dist()`, and the projected coordinates. Save the distance matrix as an object named `DistDKBio`.
+    2) Extract the `normalized` residuals of the gls model (`DK.Biodiv.gls`). Save these as a object names `NorResGLS`. 
+    3) Estimate Moran I of the residuals using the function `Moran.I()` of the package `ape`.
+
+</div>
+
+```{r MoranI}
+# Create a distance matrix using the coordinates
+DistDKBio <- dist(coordinates(DK.Biodiv.Spatial))
+
+#Extract the `normalized` residuals
+NorResGLS <- residuals(DK.Biodiv.gls, # Model
+                       type = "normalized"# the residuals type
+                       )
+
+# Estimate Moran I of the residuals
+Moran.I(NorResGLS, # the variable to evaluate 
+        w = as.matrix(DistDKBio) # the Distance matrix 
+        )
+```
+
+<div class="alert alert-success">
+**Question:** Is there autocorrelation in the residuals based on Moran I? - Check the help file of the function `Moran.I()` to see wit is tested.
+
+Moran I null hypothesis is that there is no Autocorrelation. So based on this the model suggest that there IS Spatial correlation as the test rejects this null-hypothesis.
+
+</div>
+
+## 7) Accommodating spatial autocorrelation in the model.
+
+
+<div class = "alert alert-info">
+**Your task:** 
+
+* Refit the model `DK.Biodiv.gls` using the flowing correlation structures:
+  1) Exponential. 
+  2) Gaussian
+  3) Spherical
+  4) Rational quadratic
+  
+Remember to use the projected spatial object, and use the projected Coordinates when defining the correlation structures.
+</div>
+
+```{r Cor Str}
+# Fit an Exponential correlation model
+DK.Biodiv.glsExp <- gls(formula(DK.Biodiv.gls), # Formula of the model
+                        data = DK.Biodiv.Spatial, # Source data location
+                        correlation = corExp(form = ~X + Y, # Formula to define the correlation based on distances
+                                               nugget = TRUE), # is there variation when the distace is Zero
+                         method = "REML" # Estimation method
+                         )
+
+# Fit a Gaussian correlation model
+DK.Biodiv.glsGaus <- gls(formula(DK.Biodiv.gls), # Formula of the model
+                         data = DK.Biodiv.Spatial, # Source data location
+                         correlation = corGaus(form = ~X + Y, # Formula to define the correlation based on distances
+                                               nugget = TRUE), # is there variation when the distace is Zero
+                         method = "REML" # Estimation method
+                         )
+
+# Fit a Rational quadratic correlation model
+DK.Biodiv.glsRatio <- gls(formula(DK.Biodiv.gls), # Formula of the model
+                          data = DK.Biodiv.Spatial, # Source data location
+                          correlation = corRatio(form = ~X + Y, # Formula to define the correlation based on distances
+                                               nugget = TRUE), # is there variation when the distace is Zero
+                         method = "REML" # Estimation method
+                         )
+
+# Fit an Spherical correlation model
+DK.Biodiv.glsSpher <- gls(formula(DK.Biodiv.gls), # Formula of the model
+                          data = DK.Biodiv.Spatial,
+                          correlation = corSpher(form = ~X + Y, # Formula to define the correlation based on distances
+                                               nugget = TRUE), # is there variation when the distace is Zero
+                         method = "REML" # Estimation method
+                         )
+```
+
+<div class = "alert alert-info">
+**Your task:** 
+* Contrast the AIC of the different models
+</div>
+
+
+```{r AICcontrast}
+#Contrast the AIC of the different models
+AIC(DK.Biodiv.glsExp, # Exponential model
+    DK.Biodiv.glsGaus, # Gaussian model
+    DK.Biodiv.glsRatio, # Ratio model
+    DK.Biodiv.glsSpher # Sperical model
+    )
+```
+
+<div class="alert alert-success">
+**Question:** Based on the AIC which is the best model?.
+
+The model with a Spherical correlation structure is the best model.
+
+</div>
+
+<div class = "alert alert-info">
+**Your task:** 
+Contrast the  the best model with a correlation structure to that of the model with out one (`DK.Biodiv.gls`). For this, you will use the function `anova()`. 
+</div>
+
+```{r finalcontrast}
+#Contrast the  the best model with a correlation structure to that of the model with out one
+anova(DK.Biodiv.glsSpher, # Model with spatial correlation structure
+      DK.Biodiv.gls # Model with OUT spatial correlation structure
+      )
+```
+
+<div class="alert alert-success">
+**Question:** Best on the AIS which is the best model .
+
+Based on the Log-likelihood ratio test the model with a Spatial-Correlation structure is the best model - It is significant different that a model without the structure and has lower AIC.
+
+</div>
+
+## 8) Select the best Fixed effects.
+
+<div class = "alert alert-info">
+**Your task:** 
+
+* Now that you have defined the best correlation structure; select the best set of predictors. For this, you will:
+  1) Redefine the model with a correlation structure, by updating the inferencer method. Use the function `update()` for this.
+  2) Use the function `setpAIC()` from the package `MASS` to do the model section using a `both` directions stepwise search.
+  3) Redefine the model with a correlation structure, by updating the inferencer method. Use the function `update()` for this.
+
+</div>
+
+```{r ModelSel}
+# updating the inferencer method of the model with a correlation structure
+DK.Biodiv.glsSpher.ML <- update(DK.Biodiv.glsSpher, # Original model
+                                method="ML" # Update the inference method
+                                )
+# Use a 
+DK.Biodiv.glsSpher.ML.Updated <- MASS::stepAIC(DK.Biodiv.glsSpher.ML, # regression object
+                                               direction = "both", # Stepwise direction
+                                               trace = 0) # No print out
+
+# Call the summary of the reduced model
+summary(DK.Biodiv.glsSpher.ML.Updated)
+
+# updating the inferencer method of the model with a correlation structure
+DK.Biodiv.glsSpher.ML.Updated <- update(DK.Biodiv.glsSpher.ML.Updated, #Original model
+                                        method="REML"# Update the inference method
+                                        )
+
+# Call the summary of the reduced model after updating the inference method.
+summary(DK.Biodiv.glsSpher.ML.Updated)
+```
+
+## 9) Last check
+
+<div class = "alert alert-info">
+**Your task:**
+
+* Evaluate graphically the assumptions of your reduced linear model. Here only focus on:
+  1) Homogeneity of variances.
+  2) Normality of the residuals
+
+</div>
+  
+```{r glsModDiagFig}
+# Evaluate graphically the assumptions of your reduced linear model
+plot(DK.Biodiv.glsSpher.ML.Updated, # Model
+     abline=0, # add a horizontal line at Zero
+     idResType = "normalized" # Residual type
+     )
+
+# OR
+plot(y = residuals(DK.Biodiv.glsSpher.ML.Updated,"normalized"), # Residuals
+     x = predict(DK.Biodiv.glsSpher.ML.Updated),# Predictor
+     pch=19, #point type
+     ylab = "Standarized residuals", # y-axis Label
+     xlab = "fitted values" # x-axis Label
+     )
+# Horizontal line
+abline(h=0,
+       lty=3,
+       lwd=2)
+# Trend line
+lines(lowess(y = residuals(DK.Biodiv.glsSpher.ML.Updated,"normalized"), # Residuals
+               x = predict(DK.Biodiv.glsSpher.ML.Updated)),# Predictor
+        lwd = 2, # Line width
+        lty = 2, # Dashed line
+        col = "red")  # colour of the line
+
+# Evaluate graphically the assumptions of your reduced linear model
+qqnorm(residuals(DK.Biodiv.glsSpher.ML.Updated,type="normalized"))
+qqline(residuals(DK.Biodiv.glsSpher.ML.Updated,type="normalized"))
+```
+
+<div class="alert alert-success">
+**Question:** Are the following assumptions meet??
+
+1) Homogeneity of variances?
+At first glance it appears that the standardized residuals are homogeneous; But the Standardized residuals vs. fitted values shows a triangular shape which indicates lack of homogeneity of variances.
+
+2) Normality of residuals?
+The qq-plot would appear to show that the standardized residuals are normal.
+
+</div>
+
+<div class = "alert alert-info">
+**Your task:**
+
+* Generate a variogram for the residuals from the final reduced model. For this, you will use the function `Variogram()` from the `nlme` package.
+</div>
+
+```{r SemivarFinal}
+# Generate a semi-variogram for the residuals from the reduced model. 
+
+DK.Biodiv.gls.Vargrm2 <- Variogram(DK.Biodiv.glsSpher.ML.Updated, # Model 
+                                   form = ~ X + Y, # Formula of how to define the distance
+                                   resType = "normalized" # Residual type
+                                   )
+# Plot the semi-variogram
+plot(DK.Biodiv.gls.Vargrm2)
+```
+
+
+<div class="alert alert-success">
+**Question:** Is there autocorrelation in the residuals?.
+
+Based on the semivariogram, I would say that there is NOT correlation in the residuals - the variogram is flat.
+
+</div>

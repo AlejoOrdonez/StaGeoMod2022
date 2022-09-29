@@ -1,0 +1,13 @@
+name: GLS_Spatial
+title: GLS_Spatial
+username:
+account: alejandro-ordonez
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 7150050
+bundleId: 6348504
+url: https://alejandro-ordonez.shinyapps.io/GLS_Spatial/
+when: 1664393204.03969
+lastSyncTime: 1664393204.03971
+asMultiple: FALSE
+asStatic: FALSE
