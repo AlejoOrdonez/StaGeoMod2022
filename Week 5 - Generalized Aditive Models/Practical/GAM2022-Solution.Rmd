@@ -1,0 +1,724 @@
+---
+title: "Generalized Additive Models (GAMs)"
+author: '"YOUR NAME HERE"'
+date: "`r Sys.Date()`"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+library(mgcv)
+library(MASS)
+library(raster)
+library(car)
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# **The Set-up**
+
+## *Learning objectives.*
+1.	Implement as simple/multiple Generalized Additive Model in `R`.
+2.  Understand the difference between smoothed and linear terms in a Generalized Additive Model.
+3.	Determine the fit of a Generalized Additive Models and establish how good a model is.
+4.	Reduce a Generalized Additive Models to the minimum adequate number of predictors using a step-wise procedure.
+
+## *Before you start*
+The practical will be run using *RStudio cloud* to avoid individual machine troubleshooting. This means you **need** to have an account for *RStudio cloud*.
+
+However, remember to have [`R`](https://cran.r-project.org) and [R-studio](http://www.rstudio.com/) in your/room computer so you can work on the project after class.
+
+**You should have also **
+1. Read chapter 18 of Crawley the R book.
+2. Done the Tutorial for this week.
+
+## *The way it's going to be run*
+
+In this 3h practical you will to implement what you have learned in the class about Regression Analyses in `R`.
+
+You will be building and **R-Markdown** document during the class. **R-Markdown** documents allows you to combine your code, its results, and your prose commentary into a single document. If you manage to produce a document your code works. The resulting file (a html) is what you will hand-in at the end of the practical.
+
+This 3h practical is divided into seven parts (24 tasks in total). Also try to write your own `R`-code and run it **DO NOT COPY THE CODE OF SOMEONE ELSE**. Writing your code and figuring out why it does not work is the best way to understand the dynamics of the `R` language and the tasks you are doing. Also, you have an excellent teaching assistant resource - ask him and/or me all the questions you have.
+
+The final document will have three classes of boxes
+
+<div class="alert alert-info">
+<p class="text-center"; style = "font-size: 20px">
+The text in the blue filled box marked as <strong>Your task</strong> states what you need to do
+</p>
+</div>
+
+```{r }
+#
+# The code in the window marked like this shows where you need to write your code
+#
+
+```
+
+<div class="alert alert-success">
+<p class="text-center"; style = "font-size: 20px">
+The text in the green filled box marked as <strong>Question</strong> phrases a question, and where you will place the answer to the <strong>question</strong> is marked as ***PLACE YOUR ANSWER HERE**. </p>
+</div>
+
+## About the data you will use.
+
+The data to be used in this week practical is a combination of the biodiversity data  from the [Biowide](https://ecos.au.dk/forskningraadgivning/temasider/biowide) project, which aimed at collecting biodiversity data from 130 terrestrial sampling sites across Denmark. The data-set contains data for Plants (vascular plants and bryophytes), fungi (lichens and macrofungi), gastropods, and arthropods. You can get the [biodiversity data](https://www.gbif.org/dataset/cd4eb3ec-0a18-42b4-bda4-155716ddd7b1#description) from the Danish Biodiversity Information Facility. For further information on the project check the publication.
+
+Although environmental variables were collected as part of Biowide, this data is not available for our use. The data on environmental variables included in the table you will use comes from multiple Geospatial data-sets I complied for this course.
+
+Here you will focus on the flowing variables:
+
+**1) decimalLongitude**: East-West position in decimal-degrees of a sample site coming from [Biowide](https://ecos.au.dk/forskningraadgivning/temasider/biowide).
+
+**2) decimalLatitude**: North-South position in decimal-degrees of a sample site coming from [Biowide](https://ecos.au.dk/forskningraadgivning/temasider/biowide). 
+
+**3) S.AllGrp**: The total species richness of a sample site (sum of the unique species of all sampled groups in a site) coming from [Biowide](https://ecos.au.dk/forskningraadgivning/temasider/biowide).
+
+**4) landsdele**: Regional political unit of Denmark coming form the Database of Global Administrative Areas [GADAM](https://gadm.org).
+
+**5) Geology**: Geological formation coming from the [Denamrk's geological service](https://eng.geus.dk/products-services-facilities/data-and-maps/maps-of-denmark).
+
+**6) logitNatDensBasMp**: logit transformed Density of natural land cover types as defined by [BASEMAP](https://envs.au.dk/en/research-areas/society-environment-and-resources/land-use-and-gis/basemap).
+
+**7) log10Dis2Cost**: log10 transformed Distance in km of a sampled site to the coast estimated by me using Denmark high resolution contour map coming form the Database of Global Administrative Areas [GADAM](https://gadm.org).
+
+**8) HII**: [Human Influence Index](https://sedac.ciesin.columbia.edu/data/set/wildareas-v2-human-influence-index-geographic), a measurement of the anthropogenic impacts on the environment.
+
+**9) log10Slope30mAgg**: log10 of the maximum rate of change in value from that cell to its neighbours estimated based on the [SRTM-30m DEM](https://www2.jpl.nasa.gov/srtm/).
+
+**10) PrecSea**: Seasonality of precipitation measured as the variability of monthly values (using the CV) coming the [CHELSA-climatologies](https://chelsa-climate.org) .
+
+
+## 1) The first step: Loading the data
+
+<div class = "alert alert-info">
+**Your task:**
+
+Load the data in *Biowide_AllSppRich.csv*, located in the files of the project
+
+Use `read.csv` to load the file - The file is comma-separated
+
+Save the object as an object named `DK.Biodiv`.
+</div>
+
+```{r LoadData}
+# Read the file and save it as an object named `DK.Biodiv`
+DK.Biodiv <-  read.csv("Data/Biowide_AllSppRich.csv")
+# Use the function head to print the five first rows
+head(DK.Biodiv)
+```
+
+## 2) How does my response variable change as a function of each predictor?
+
+<div class = "alert alert-info">
+**Your task:**
+
+Graphically explore how `S.AllGrp` changes as a function of either `logitNatDensBasMp`, `log10Dis2Cost`, `HII`, `log10Slope30mAgg`, `PrecSea`. For this, you will:
+
+* Plot a scatter plots for each `S.AllGrp ~` *predictor* combination.
+
+* Build a Generalized linear model using the function `?glm()`. Remember to use the right `family` given the response variable type.
+
+* Plot a line representing the linear association between `S.AllGrp` **AND** *predictor*.
+
+* Build a Generalized Additive Model (GAM) for each `S.AllGrp ~` *predictor* combination using the function `gam()`. Remember to use the right `family` given the response variable type.
+
+* Plot a line representing the smoothed association between `S.AllGrp` **AND** *predictor*.
+
+**YOU WILL USE a `for()` loop to make this figure**.
+
+</div>
+  
+```{r UnivarRel1, fig.height = 10}
+# Start by setting a plotting space with three (3) rows and two (2) columns, making sure that plots are added row-wise
+par(mfrow = c(3, 2)) # add a vector with the number of rows and number of columns in the plotting space
+
+# start a for() Loop
+for (Var in c("logitNatDensBasMp", "log10Dis2Cost", "HII", "log10Slope30mAgg", "PrecSea")){ 
+# Scatter plot of S.AllGrp vs the evaluated predictor using the test.
+ plot(x = DK.Biodiv[,Var], # The values for the predictor
+      y = DK.Biodiv[,"S.AllGrp"], # The values for the response, 
+      pch = 19, # make the points filled circles   
+      main = Var,  # Add a title to the figure
+      ylab = "Species Richness", # Y-axis name
+      xlab = Var # X-axis name
+      )
+
+ # Build a linear regression object created with the glm() function.
+  Reg.Tmp <- glm(formula(paste0("S.AllGrp ~",Var)),
+                 data = DK.Biodiv,
+                 family = "poisson")
+    
+# Add a trend line using the predict() function on the glm model created above
+  lines(x=sort(DK.Biodiv[,Var]), # the ordered predictor
+        y=predict(Reg.Tmp,type="response")[order(DK.Biodiv[,Var])], # the predictions ordered by the predictor
+        col="red", # the colour of the line
+        lwd = 2,  # the width of the line
+        lty = 2) # the type of the line
+
+# Build a generalized additive model regression object created with the gam() function.
+  GAM.Tmp <- gam(formula(paste0("S.AllGrp ~ s(",Var,",k=10)")),
+                 data = DK.Biodiv,
+                 family = "poisson")
+# Add a trend line using the predict() function on the gam model created above  
+  lines(x=sort(DK.Biodiv[,Var]),
+        y=predict(GAM.Tmp,type="response")[order(DK.Biodiv[,Var])],
+        col="blue",
+        lwd = 2,  # the width of the line
+        lty = 2) # the type of the line
+  }
+```
+
+<div class="alert alert-success">
+**Question:** Based on these graphical representations, what do you see?
+
+For the GLM, It appears that there is a weak relation between `S.AllGrp` and most predictors.
+The GAM, generates a model with a wiggleness that match the response variable
+
+</div>
+
+
+<div class = "alert alert-info">
+**Your task:**
+Create a table where you compare the deviance explained by by each predictor based on your GLM and GAM models.
+
+**YOU WILL USE a `sapply()` loop to make this table**.
+
+</div>
+
+```{r DeviTbl}
+# table comparing the deviance explained by by each predictor based on your GLM and GAM
+# Save the table as an object named DevTable
+DevTable <- sapply(c("logitNatDensBasMp", "log10Dis2Cost", "HII", "log10Slope30mAgg", "PrecSea"),
+       function(Var){
+
+# Build a linear regression object created with the glm() function.
+  GLMM.Tmp <- glm(formula(paste0("S.AllGrp ~",Var)),
+                 data = DK.Biodiv,
+                 family = "poisson")
+
+# Build a generalized additive model regression object created with the gam() function.
+  GAM.Tmp <- gam(formula(paste0("S.AllGrp ~ s(",Var,",k=10)")),
+                 data = DK.Biodiv,
+                 family = "poisson")
+
+# Build a GLM model with (NO PREDICTORS) - the null model
+  Null.mod <- glm("S.AllGrp ~1",
+                 data = DK.Biodiv,
+                 family = "poisson")
+
+# Extract the deviances explained per model
+  GLMM.Dev.Tmp <- deviance(GLMM.Tmp)
+  GAM.Dev.Tmp <- deviance(GAM.Tmp)
+  Null.Dev.Tmp <- deviance(Null.mod)
+
+  # Estimate deviance  explained per model
+  GLMM.Dev.Exp <- (Null.Dev.Tmp - GLMM.Dev.Tmp)/Null.Dev.Tmp
+  GAM.Dev.Exp <- (Null.Dev.Tmp - GAM.Dev.Tmp)/Null.Dev.Tmp
+
+  # Generate a table with the outputs 
+    data.frame(Predictor = Var,
+               GLMM.Dev.Exp,
+               GAM.Dev.Exp)
+       })
+# Call DevTable
+DevTable
+
+```
+
+<div class="alert alert-success">
+**Question:** Based on the explained deviance which model is better?
+
+For all predictors the GAM model has a higher Explained deviance. 
+</div>
+
+
+## 3) Building a Poisson regression.
+
+<div class = "alert alert-info">
+**Your task:**
+
+* Use the `glm()` function to evaluate a poisson regression with all the **CONTINOUS** predictors,as non-interacting terms, but **DO NOT**include `latitude` and `longitude`
+  
+* Use the `gam()` function to evaluate a poisson regression with all the **CONTINOUS** predictors,as non-interacting smoothing function, but **DO NOT**include `latitude` and `longitude`.
+
+* Remember to include the adequate error `family` for the type of data in `S.AllGrp`.
+
+</div>
+  
+```{r glmMod}
+# Build a glm to predict S.AllGrp based on a linear combination of logitNatDensBasMp, log10Dis2Cost, HII, log10Slope30mAgg, PrecSea
+# Save the Model as an object named DK.Biodiv.glm
+DK.Biodiv.glm <- glm(S.AllGrp ~ logitNatDensBasMp + log10Dis2Cost + HII + log10Slope30mAgg + PrecSea, #  the Equations defining the response and additive combination of predictors
+                  data = DK.Biodiv, # specify the Object where the data is in
+                  family = "poisson") # Argument defining the adequate error `family` given the type of the response variable (quasi)binomial for presence/absence and proportion data, and (quasi)Poisson for counts.
+# Print the summary of the glm model
+summary(DK.Biodiv.glm)
+
+# Build a gam to predict S.AllGrp based on a linear combination of logitNatDensBasMp, log10Dis2Cost, HII, log10Slope30mAgg, PrecSea as smoothed terms - remember to adjust the maximum smooth term for each predictor variable.
+# Save the Model as an object named DK.Biodiv.gam
+DK.Biodiv.gam <- gam(S.AllGrp ~ s(logitNatDensBasMp, k=10) + s(log10Dis2Cost, k=10) + s(HII, k=10) + s(log10Slope30mAgg, k=10) + s(PrecSea, k=10), #  the Equations defining the response and additive combination of predictors
+                  data = DK.Biodiv, # specify the Object where the data is in
+                  family = "poisson", # Argument defining the adequate error `family` given the type of the response variable (quasi)binomial for presence/absence and proportion data, and (quasi)Poisson for counts.
+                  method ="REML")
+# Print the summary of the gam model
+summary(DK.Biodiv.gam)
+```
+
+<div class="alert alert-success">
+**Question:** Based on the explained deviance which model is better?
+
+It is clear that the GAM model is better as it explains ~39% of the deviance, while the GLM explains only ~7% of the deviance. 
+</div>
+
+
+## 4) Check you initinal GAM model
+<div class = "alert alert-info">
+**Your task:**
+
+* Use the function `gam.check()` to assess `DK.Biodiv.gam`:
+  1) Distribution of the residuals,
+  2) Homogeneity of variances.
+  3) Goodness of fit of your model.
+  
+</div>
+
+```{r GAMCheck1, fig.height = 8}
+#Use the function `gam.check()` to assess the model
+par(mfcol= c(2,2))
+gam.check(DK.Biodiv.gam, # a fitted gam 
+          type = "deviance", # type of residuals 
+          rep = 500)
+
+```
+
+<div class="alert alert-success">
+**Question:** Based on the figure you just created and the *Printout* of running the function `gam.check()` :
+
+1) Are the residuals random? [look at the table of Basis dimension (k) printed by the function `gam.check()`]
+
+Yes!! the table shows that model residuals are random as the p-values are large..
+
+2) Are the residuals normally distributed?
+The histogram looks normal but the qqplot shows that this is not the case
+
+3) Is there Homogeneity of variances?
+Yes there is no trend in the residuals
+
+4) Is this a good model?
+Yes, The relation is fairly linear
+
+</div>
+
+
+## 5) Check for concurvity
+
+<div class = "alert alert-info">
+**Your task:**
+
+* Use the function `concurvity()` of the `mgcv` package to test for **concurvity** of the `DK.Biodiv.gam` model.
+
+  1) Set the `full` argument to `TRUE` to establish the pairwise concurvity for each smooth for all variables.
+  
+  2) Set the `full` argument to `FALSE` to establish the overall concurvity for all pairwise combinations of variables.
+
+
+Remember that **concurvity** is the extra analysis in **GAMs** that complements the collinearity assessments. 
+Here you are testing if one predictors is a smooth curve of another.
+
+Also if the values is over 0.8, there is a problem.
+</div>
+
+```{r Concurvity}
+
+# test for the overall concurvity 
+concurvity(DK.Biodiv.gam,
+           full = TRUE)
+
+# test for the pairwise concurvity 
+concurvity(DK.Biodiv.gam,
+           full = FALSE)
+
+```
+
+<div class="alert alert-success">
+**Question:** is there a **concurvity** problem with your predictors?
+
+NO!; both the pairwise and overall concurvity assessments show values below the 0.8 threshold. 
+
+</div>
+
+## 6) Adding interacting terms
+
+<div class = "alert alert-info">
+**Your task:**
+
+* Use the `gam()` function to evaluate a poisson regression with all the **CONTINOUS** predictors,
+
+* Now add `latitude` and `longitude`as an interacting term as a Bivariate thin plate spline.
+
+* Remember to include the adequate error `family` for the type of data in `S.AllGrp`.
+
+</div>
+
+```{r glmMod_Interact}
+
+# Build a gam to predict S.AllGrp based on a linear combination of logitNatDensBasMp, log10Dis2Cost, HII, log10Slope30mAgg, PrecSea as smoothed terms - remember to adjust the maximum smooth term for each predictor variable.
+# Save the Model as an object named DK.Biodiv.gam.2
+DK.Biodiv.gam.2 <- gam(S.AllGrp ~ s(logitNatDensBasMp,k=10) + s(log10Dis2Cost,k=10) + s(HII,k=10) + s(log10Slope30mAgg,k=10) + s(PrecSea,k=10) + s(decimalLongitude,decimalLatitude, bs="tp"), #  the Equations defining the response and additive combination of predictors
+                  data = DK.Biodiv, # specify the Object where the data is in
+                  family = "poisson", # Argument defining the adequate error `family` given the type of the response variable (quasi)binomial for presence/absence and proportion data, and (quasi)Poisson for counts.
+                  method ="REML")
+# Print the summary of the gam model
+summary(DK.Biodiv.gam.2)
+```
+  
+<div class="alert alert-success">
+**Question:** How much did your model improved by adding the spatial context?
+
+There was an improvement of ~26% in explained deviance. now the model explains ~65% of the Deviance.
+
+</div>
+
+## 7) Check you expanded  GAM model
+<div class = "alert alert-info">
+**Your task:**
+* Use the function `gam.check()` to assess `DK.Biodiv.gam.2`:
+  1) do you have the right number of basis functions for each smoother.
+  2) Distribution of the residuals,
+  3) Homogeneity of variances.
+  4) Goodness of fit of your model.
+  
+</div>
+
+```{r GAMCheck2, fig.height = 8}
+#Use the function `gam.check()` to assess the model
+par(mfcol= c(2,2))
+gam.check(DK.Biodiv.gam.2, # a fitted gam 
+          type = "deviance", # type of residuals 
+          rep = 500)
+```
+
+<div class="alert alert-success">
+**Question:** Based on the figure you just created and the *Printout* of running the function `gam.check()` :
+
+1) Are the residuals random? [look at the table of Basis dimension (k) printed by the function `gam.check()`]
+
+Yes!! the table shows that model residuals are random as the p-values are large.
+
+2) Are the residuals normally distributed?
+The histogram looks more normal but the qqplot still shows that this is not the case
+
+3) Is there Homogeneity of variances?
+Yes there is no trend in the residuals
+
+4) Is this a good model?
+Yes, The relation is fairly linear
+</div>
+
+
+## 8) Simplify your model
+
+<div class = "alert alert-info">
+**Your task:**
+* Read the help file fo the function `gam()` from the `mgcv` package and try to understand what does the `select` argument does.
+
+* Now update you `DK.Biodiv.gam.2` gam model to include the `select` argument. for this use the function `update()`.
+  
+</div>
+
+```{r AddSelect}
+# Now update you `DK.Biodiv.gam.2` gam model to include the `select` argument.
+# Save the updated model as DK.Biodiv.gam.3
+
+DK.Biodiv.gam.3 <- update(DK.Biodiv.gam.2, # the model to update
+                          select = TRUE ) #add an extra penalty to each term so that it can be penalized to zero
+
+# Print the summary of the DK.Biodiv.gam.3 object
+summary(DK.Biodiv.gam.3)
+```
+
+<div class="alert alert-success">
+**Question:** What is different between `DK.Biodiv.gam.2` and `DK.Biodiv.gam.3`?
+
+First, `DK.Biodiv.gam.3` explains a slight larger percentage of the deviance, also the edf of the soothing functions is slightly higher.
+
+</div>
+
+## 9) Which variables to keep 
+
+<div class = "alert alert-info">
+**Your task:**
+
+* Evaluate which soothers you need to keep in you model by comparing the deviance of your fill model `DK.Biodiv.gam.3` to models that remove only one of the smoothing functions.   
+
+</div>
+
+```{r VarKeep}
+# Update the full model to a simpler models - with one variable removed -  use the function update() to remove variables from the full model.
+UpdateMod <- lapply(strsplit(as.character(formula(DK.Biodiv.gam.3))[[3]]," [+] ")[[1]],
+                    function(x){
+                      update(DK.Biodiv.gam.3, # the model to update
+                           formula(paste('. ~ . - ',x)))# Updated formula
+                    })
+# Evaluate the change in deviance of simpler models - with one variable removed - use the function anova() to contrast the full gam to those with one less variable now stored in UpdateMod
+DevChng <- sapply(UpdateMod,
+                  function(x){
+                    out <- anova(x, # Reduced model
+                                 DK.Biodiv.gam.3, # Full Model
+                                 test="Chisq" # type of test
+                                 )
+                    c(Deviance = out$Deviance[2],
+                      Pval = out[2,'Pr(>Chi)'])
+                    })
+# Contrast the AIC of the full and reduced models stored in UpdateMod
+AIC.Dif <- sapply(UpdateMod,
+                  function(x){
+                    AIC(x, # Reduced model
+                        DK.Biodiv.gam.3)$AIC # Full Model)
+                  })
+# create  data.frame to summarize the deviance tests 
+ data.frame (VarRem = strsplit(as.character(formula(DK.Biodiv.gam.3))[[3]]," [+] ")[[1]],
+             t(round(DevChng, 3)),
+             AIC.Reduced = AIC.Dif[1,],
+             AIC.full = AIC.Dif[2,])
+```
+
+
+<div class="alert alert-success">
+**Question:** based on these test, do you need to remove any smoother?
+
+NO, the full model is significantly different than a simpler model, and has a lower AIC
+</div>
+
+
+## 10) Plot the Best model
+
+<div class = "alert alert-info">
+**Your task:**
+
+* Plot the best model selected in the previous step using the function `plot()`.
+
+</div>
+
+```{r PlotGAM, fig.dim = c(8,6)}
+# Plot the best model
+plot(DK.Biodiv.gam.3,
+     pages = 1, # the number of pages over which to spread the output
+     scheme = 2, # produces a heat-map, with overlaid contours and
+     shade = TRUE) # produce shaded regions as confidence bands
+```
+
+<div class="alert alert-success">
+**Question:** Make an interpretation of the plotted output.
+
+The lines indicate how the response variable (Species richness) changes as a smoothed function of each predictor. 
+
+</div>
+
+## 11) Make predictions using your GAM - Data preparation
+
+<div class = "alert alert-info">
+**Your task:**
+
+* Load the rasters with the spatial information for:
+
+  **1) Density of natural land cover types** - *NatDensBasMp.tif*
+  **2) Distance to the coast** - *Dis2Cost.tif*
+  **3) Human Influence Index** - *HII.tif*
+  **4) Slope** - *Slope30mAgg.tif*
+  **5) Seasonality of precipitation** - *PrecSea.tif*
+
+</div>
+
+
+```{r Rast-load}
+# Load the NatDensBasMp raster
+NatDensBasMpRst <- raster("Data/NatDensBasMp.tif")
+# Load the Dis2Cost raster
+Dis2CostRst <- raster("Data/Dis2Cost.tif")
+# Load the HII raster
+HIIRst <- raster("Data/HII.tif")
+# Load the Slope30mAgg raster
+Slope30mAggRst <- raster("Data/Slope30mAgg.tif")
+# Load the PrecSea raster
+PrecSeaRst <- raster("Data/PrecSea.tif")
+```
+
+<div class="alert alert-success">
+**Question:** Can you stack these rasters?
+
+No, because come of these are in different projections.
+
+</div>
+
+
+<div class = "alert alert-info">
+**Your task:**
+
+* Stack the loaded rasters with the spatial information into a object named `Pred.Rast`.
+
+Here remember that some of these are not in the required projection *ETRS89 / UTM zone 32N*. use the function `projectRaster()` to re-project those rasters that need to be re-projected.
+
+Also, make sure that all rasters have the same extend and number of cells. Those rasters that are initialised can be corrected using the function `resample()`.
+
+</div>
+
+
+```{r CorectRast}
+# Re project the rasters that need to be place in *ETRS89 / UTM zone 32N*
+HIIRst <- projectRaster(from = HIIRst,
+                        to = NatDensBasMpRst)
+Slope30mAggRst <- projectRaster(from = Slope30mAggRst,
+                        to = NatDensBasMpRst)
+
+# Stack the corrected rasters
+Pred.Rast <- stack(NatDensBasMpRst, # Nature Density Raster
+                   Dis2CostRst, # Distance to coast Raster
+                   HIIRst, # HII to coast
+                   Slope30mAggRst, # Slope to coast
+                   PrecSeaRst # Precipitation seasonality to coast
+                   )
+# call the Pred.Rast object
+Pred.Rast
+
+```
+
+<div class="alert alert-success">
+**Question:** Are you missing any of the variables used in your model?
+
+Yes, Latitude and longitude
+</div>
+
+<div class = "alert alert-info">
+**Your task:**
+
+* Create the rasters you are missing using the information in `Pred.Rast`.
+
+* Append these rasters to  `Pred.Rast`.
+
+</div>
+
+```{r MissVar}
+# Create the missing variable(s). 
+# Create a empt raster with the same attributes as Pred.Rast using the function raster 
+LatRast <- raster(Pred.Rast) 
+## re-project the created raster
+LatRast <- projectRaster(from = LatRast, # Transformation 
+                             crs = CRS("+proj=longlat +datum=WGS84 +no_defs") # CRS object
+                        )
+## Add the values to the created raster
+LatRast[] <- coordinates(LatRast)[,"y"]
+## re-project created raster
+LatRast <- projectRaster(from = LatRast,
+                         to = Pred.Rast)
+## Append new rasters to Pred.Rast
+Pred.Rast <- stack(Pred.Rast,
+                    LatRast) # new Raster 1
+
+# Create a empt raster with the same attributes as Pred.Rast using the function raster 
+LongRast <- raster(Pred.Rast) 
+## re-project the created raster
+LongRast <- projectRaster(from = LongRast, # Transformation 
+                          crs = CRS("+proj=longlat +datum=WGS84 +no_defs") # CRS object
+                        )
+## Add the values to the created raster
+LongRast[] <- coordinates(LongRast)[,"y"]
+
+## re-project created raster
+LongRast <- projectRaster(from = LongRast,
+                         to = Pred.Rast)
+
+## Append new rasters to Pred.Rast
+Pred.Rast <- stack(Pred.Rast,
+                    LongRast) # new Raster 1
+
+# call the Pred.Rast object
+Pred.Rast
+```
+
+
+## 12) Make predictions using your GAM - Use your model on a `RasterStack`
+
+<div class="alert alert-success">
+**Question:** Are the rasters you have compiled into a `RasterStack` in the same units as the predictions in your model?
+
+No.
+
+1) `NatDensBasMpRst` needs to be transformed into `logitNatDensBasMpRst`
+2) `Dis2CostRst` needs to be transformed into `log10Dis2CostRst`
+3) `Slope30mAggRst` needs to be transformed into `log10Slope30mAgg`
+
+</div>
+
+<div class = "alert alert-info">
+**Your task:**
+
+* Transform those rasters that need transformation into the units of the predictors used in your model.
+
+* Add the transformed rasters to `Pred.Rast`.
+
+</div>
+
+```{r RestTras}
+# Transform those rasters that need transformation
+## Transform NatDensBasMpRst 
+logitNatDensBasMpRst <- calc(NatDensBasMpRst,
+                             function(x){
+                               ifelse(!is.na(x),
+                                      car::logit(x),
+                                      NA)
+                             })
+## Add logitNatDensBasMpRst to Pred.Rast
+Pred.Rast <- stack(Pred.Rast,
+                   logitNatDensBasMpRst)
+
+## Transform Dis2CostRst 
+log10Dis2CostRst <- log10(Dis2CostRst)
+## Add log10Dis2CostRst to Pred.Rast
+Pred.Rast <- stack(Pred.Rast,
+                   log10Dis2CostRst)
+
+## Transform Slope30mAggRst 
+log10Slope30mAggRst <- log10(Slope30mAggRst)
+## Add log10Slope30mAggRst to Pred.Rast
+Pred.Rast <- stack(Pred.Rast,
+                   log10Slope30mAggRst = log10Slope30mAggRst)
+
+# call the Pred.Rast object
+Pred.Rast
+```
+
+<div class = "alert alert-info">
+**Your task:**
+
+* Use the function `predict()` to implement your gam model (`DK.Biodiv.gam.3`) using the data in `Pred.Rast` for this:
+
+  1) Make sure the names of the layers in `Pred.Rast` match the names of the predictors in `DK.Biodiv.gam.3`. If they do not match use the function `names()` to change these.
+  2) Read the help function of the function `predict()` to see how implement it with raster data (type `?predict` to check this). **Remember you made a *poisson* regression, so you need to back transform the predictions**.
+  3) Save the output as a object named `DK.BiodivMap`
+
+</div>
+
+```{r ModelPredict}
+# Check names
+names(Pred.Rast)
+# Change names
+names(Pred.Rast) <- c("NatDensBasMp",
+                      "Dis2Cost",
+                      "HII",
+                      "Slope30mAgg",
+                      "PrecSea",
+                      "decimalLatitude",
+                      "decimalLongitude",
+                      "logitNatDensBasMp",
+                      "log10Dis2Cost",
+                      "log10Slope30mAgg")
+# Predict model
+DK.BiodivMap <- predict(object = Pred.Rast,
+                        model = DK.Biodiv.gam.3,
+                        type = "response")
+# Plot your predictions
+plot(log10(abs(DK.BiodivMap)))
+
+```

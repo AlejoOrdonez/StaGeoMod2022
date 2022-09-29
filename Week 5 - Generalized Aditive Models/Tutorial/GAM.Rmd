@@ -1,0 +1,1229 @@
+---
+title: "Generalized Linear Models and Generalized Aditive Models (GAMs) for count data"
+subtitle: "Statistical and Geospatial Modelling"
+author: "Alejandro Ordonez"
+documentclass: "report"
+fontsize: 10pt
+output: 
+  html_document:
+    toc: true
+    toc_depth: 1
+geometry: "left = 2cm, right = 2cm, bottom = 1.5cm, top = 2cm"
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, eval = TRUE, warning = FALSE, tidy = 'styler', tidy.opts = list(strict = TRUE), fig.width = 8, fig.height = 6)
+```
+
+# Instructions
+
+## Before you start.
+The practical will be run using *RStudio cloud* to avoid individual machine troubleshooting. Therefore, you **need** to have an account for *RStudio cloud*.
+
+However, remember to have `R` (<https://cran.r-project.org>) and R-studio (<http://www.rstudio.com/>) in your/room computer so you can work on the project after class.
+
+## The goal.
+The practical goal is to implement what you have learned in the class about generalised linear regressions in `R`. You should have read the chapters I uploaded beforehand **(You should have read chapter 18 of Crawley, M.J., 2012. the R-book.**
+
+## Learning objectives.
+1. Discriminate when? How? and why? Smothers can be used in regression analyses.
+2. Implement different types of smothers in `R`.
+3. Explore your dataset to avoid common statistical problems when performing a simple/multiple Generalised Additive Model.
+4. Implement as simple/multiple Generalised Additive Model in `R`.
+5. Determine the fit of a Generalised Additive Model and establish how good a model is.
+6. Reduce a model to the minimum adequate number of predictors using a stepwise procedure.
+
+## The way it's going to be run.
+A 3h practical. You will need to write your own `R` and run it - this is what you will hand in. I know you will struggle, but that is the best way to learn to use `R`. Also, remember that you have an excellent teaching assistant - ask all the questions you have, but **WE WILL NOT WRITE YOUR CODE!!.**
+
+<div class = "alert alert-info">
+The text in the blue box marked as **Your task:** states what you need to do
+</div>
+
+```{r}
+# The code in the window marked like this shows where you need to write your code
+#
+# If I ask you to assess the result, you should write the text here as a comment starting with two hashes (##)
+```
+
+## Assessment:
+Submit your `R-markdown` file via BrightSpace - **Before the next practical!**
+**The assessment is a Pass/Fail based on how you write and annotate the code - You need to show us you know what you are doing and NOT copying someone else's code.**
+
+# Key things to remember.
+
+Until now, your work with regressions has focused on building models as linear functions, linearised parametric transformations, or through various link functions. All these approaches are built on a basic principle, *there is a parametric form of the function to be fitted to the data* - that is, you assume the form of the response ~ predictor relationship. However, you might have no *a priori* reason to choose a way to describe the shape of the relationship between the response variable and the explanatory variable(s).
+
+Here is when smoothers and Generalised additive models become a useful tool because they allow you to capture the shape of a relationship between$y$and$x$without prejudging the issue by choosing a particular parametric form.
+
+With this brief reminder of some essential points on GLM's and GAM's, you are ready to start writing some code.
+
+
+# Using GAM's with count data – Effects of patch area and habitat on bird abundances
+*[Loyn, R.H. (1987) Effects of patch area and habitat on bird abundances, species numbers and tree health in fragmented Victorian forests. In: Nature Conservation: The Role of Remnants of Native Vegetation (Saunders, D.A., Arnold, G.W., Burbidge, A.A.&Hopkins, A.J.M. eds.), pp. 65–77. Surrey Beatty & Sons, Chipping Norton, NSW.]*
+
+The focus of Loyn (1987) was establishing what characteristics of habitat were related to the abundance and diversity of forest birds. For this exercise, we will focus on 56 selected forest patches in south-eastern Victoria (Australia). Loyn (1987) recorded in these patches the abundance of forest birds (`ABUND`) in each patch as a response variable. The predictor variables recorded for each patch included: area (ha; `AREA`), the number of years since the patch was isolated by clearing (years; `YR.ISOL`), the distance to the nearest patch (km; `DIST`), the distance to the nearest larger patch (km; `LDIST`), an index of stock grazing history (`GRAZE`) ranging from 1 (light) to 5 (heavy), and mean altitude (m; `ALT`). Three of the predictors (patch area or `AREA`, distance to nearest patch or `DIST`, distance to nearest larger patch or `LDIST`) were highly skewed, producing observations
+with high leverage, so these variables were transformed to log~10~. These transformed variables are named `L10AREA` (log~10~ transformation of `LAREA`), `L10DIST` (log~10~ transformation of `DIS`), and `L10LDIST` (log~10~ transformation of `LDIS`).
+
+This exercise aims to examine this dataset, seeking to understand which aspects of habitat and human activity affect the biodiversity and abundance of organisms within remnant patches of forest.
+
+## The first step: Loading the data
+
+The first step you will have to take when making any data analysis is to load your data. During last week session, you practized how to do this.
+
+<div class = "alert alert-info">
+**Your task:**
+
+Using the function `read.csv`, load the data from *loyn.csv*, located in the Web URL <https://raw.githubusercontent.com/AlejoOrdonez/StaGeoMod2021/main/loyn.csv>. For this:
+
+* Define an object named URL.Loc with the string of the Web URL.
+
+* Use `read.csv` to load the file - The file is comma-separated 
+</div>
+
+```{r DataLoad}
+## Define an object named URL.Loc with the string of the Web URL
+URL.Loc <- "https://raw.githubusercontent.com/AlejoOrdonez/StaGeoMod2021/main/loyn.csv"
+ 
+## Use `read.csv` to load the file and save it as an object named loyn
+## The file loyn.csv is a Comma-separated file 
+loyn <- read.csv(URL.Loc)
+```
+
+## Data Exploration - predictor variance 
+
+With the data in memory (saved as an object named `loyn`), you will first explore the distributions of the predictor variables that have been transformed. 
+
+<div class = "alert alert-info">
+**Your task:**
+
+Use the `boxplot()` functions to compare the variability and distribution of `AREA` and its transformed version `L10AREA`.
+
+Based on the figure, do you understand why the area needs to be transformed?
+</div>
+
+
+```{r ExplAREA}
+# set-up a plotting space with one-rows and two-columns.
+par(mfcol = c(1, 2))
+
+# boxplot of the original.
+boxplot(loyn$AREA, # Which variable is plotted
+        main = "Original AREA"# the Figure main title
+)
+
+# boxplot of the transformed data
+boxplot(loyn$L10AREA, # Which variable is plotted
+        main = "Transformed AREA" # the Figure main title
+)
+# Based on the figure, do you understand why the variable `AREA` needs to be transformed?
+## The figures show that the relation for the original dataset is not linear, and hence using it will be a violation of the regression assumption
+```
+
+If you compare the other variables, you will see a similar pattern - relations become more linear when the transformed predictors are used.
+
+```{r, ExplAREA2, echo = FALSE}
+VarUse <- c("AREA", 
+            "L10AREA", 
+            "DIST", 
+            "L10DIST", 
+            "LDIST", 
+            "L10LDIST")
+## box plots
+par(mfrow = c(3, 2), mar = c(2, 4, 3, 1))
+for ( i in c(1, 3, 5)){
+# boxplot of the Original data
+boxplot(loyn[ , VarUse[i]], # Which variable is plotted
+        main = VarUse[i]) # the Figure main title
+# boxplot of the transformed data
+boxplot(loyn[ , VarUse[i+1]], # Which variable is plotted
+        main = VarUse[i+1]) # the Figure main title
+}
+```
+
+<div class = "alert alert-info">
+**Your task:**
+
+Write some `R` code to generate the figures above?. However, instead of generating each plot individually, use `for()` loops to automate the process.
+</div>
+
+## Data Exploration - Collinearity
+
+Now it is clear why some of the predictor variables (`AREA`, `DIST`, and `LDIST`) have been log~10~ transformed ( remove observations with large leverage and make the relations between the predictors and response variables linear), you an move to assess the collinearity almost these. 
+
+Remember why we do this?  A regression assumption relevant for multiple linear regression (both GLM's and GAM's) is that the predictor variables must be uncorrelated. Collinearity among the predictors causes computational problems when using maximum likelihood approaches. Also, it will result in *concurvity* (non-linear dependencies among the predictor variables) when fitting a generalised additive model (GAM). Concurvity in GAM's result in the instability of the estimated coefficients in GAM's - this is analogue to inflated errors in regression coefficients in a GLM.
+
+<div class = "alert alert-info">
+**Your task:**
+
+Using a correlation matrix, assess if there are large, moderate, or weak correlations between the predictors. **Remember to use the transformed predictors**.
+
+Does the correlation matrix indicate some degree of correlation between predictors?
+
+</div>
+
+```{r Collin1}
+# estimate the Pearson correlation between predictors. Save it as CorMat
+CorMat <- cor(loyn[ , c("L10AREA", # Log Area
+                        "L10DIST", # Log distance to nearest patch
+                        "L10LDIST", # Log distance to nearest larger patch
+                        "YR.ISOL", # years since isolation
+                        "GRAZE", # grazing stock
+                        "ALT" # Altitude
+                        )
+                   ]
+              )
+# print CorMat but with only three decimal points
+round(CorMat, 
+      digits = 3)
+# Does the correlation matrix indicate some degree of correlation between predictors?
+## A correlation matrix indicated moderate correlations between predictors, especially between log10 of DIST and log10 LDIST, log10 or AREA, ALT and GRASE and YR.ISOL.
+```
+
+<div class = "alert alert-info">
+**Your task:**
+
+Now estimate the tolerance of each of the predictors. **Remember to use the transformed predictors**. However, instead of writing a function, use the `vif()` function of the `car` package this time.
+
+Should you omit any variable due to high collinearity?
+</div>
+
+```{r Collin2}
+## Estimate the VIF using the `vif()` function of the `car` package. save this as an object named VIF
+VIF <- car::vif(lm(ABUND ~ L10AREA + L10DIST + L10LDIST + YR.ISOL + GRAZE + ALT, # an additive formula with all the predictors
+                   data = loyn# The object with all the data
+                  )
+                )
+VIF
+
+# Estimate the tolerance that is the inverse of the VIF. Save this as an object named TolLoyn.
+TolLoyn = 1/VIF
+TolLoyn
+
+# Should you omit any variable due to high collinearity?
+## The tolerances were very low, suggesting that collinearity may not be an issue for this data set despite some correlations among the predictors. Therefore, using all variables is OK.
+```
+
+## How does my response variable change as a function of each predictor?
+
+In the step above, you found that some variables are mildly correlated. However, you will use **ALL** the variables in the rest of the practical.
+
+<div class = "alert alert-info">
+**Your task:**
+
+Using scatter plots (build using the `plot()` function), graphically explore how `ABUND` changes as a function of `L10AREA`. You will add to this figure a loess-smoother mean and 95% confidence interval.
+
+</div>
+
+```{r Scatterplot1}
+# plot the scatter plots of ABUND vs L10AREA
+plot(ABUND ~ L10AREA, # a formula defining the response ~ predictor relation
+     data = loyn, # an object with the data
+     pch = 19# make the points a filled circle
+)
+
+# Build a Local Polynomial Regression using the loess() function. Save it as Loess.LArea
+Loess.LArea <- loess(ABUND ~ L10AREA, # a formula defining the response ~ predictor relation
+                     data = loyn # an object with the 
+                     )
+
+# Build a data.frame with a Dummy L10AREA dataset with 100 point between -1 and 3. Name this data.frame Dummy.L10AREA
+Dummy.L10AREA <- data.frame(L10AREA = seq(from = -1, # start point
+                                          to = 3, # end point
+                                          length.out = 100 # number of points in the sequence
+                                          )
+                            )
+head(Dummy.L10AREA)
+
+# Using the predict function, generate the predictions from the loess fit, with its' standard errors.
+Loess.Pred <- predict(Loess.LArea, # the model to predict
+                      newdata = Dummy.L10AREA, # the data.frame used to generate the predictors.
+                      se = TRUE# compute the standard errors?
+                      )
+
+# plot the mean predictions from the loess fit.
+# The lines() function adds a line to an existing plot
+lines(y = Loess.Pred$fit, # The predictions
+      x = Dummy.L10AREA[ , 1], # The dummy variable
+      lwd = 2, # the line width
+      lty = 1, # the line type
+      col = "red"# the line colour
+      )
+
+# plot the lower CI predictions from the loess fit.
+# generate a vector with the low confidence interval predictions
+LowCI <- Loess.Pred$fit - (qnorm(0.975) * Loess.Pred$se)
+#plot the low confidence interval predictions
+lines(y = LowCI, # The predictions
+      x = Dummy.L10AREA[ , 1], # The dummy variable
+      lwd = 2, # the line width
+      lty = 2, # the line type
+      col = "red"# the line colour
+      )
+
+# plot the Higher CI predictions from the loess fit.
+# generate a vector with the High confidence interval predictions
+HighCI <- Loess.Pred$fit + (qnorm(0.975) * Loess.Pred$se)
+#plot the low confidence interval predictions
+lines(y = HighCI, # The predictions
+      x = Dummy.L10AREA[ , 1], # The dummy variable
+      lwd = 2, # the line width
+      lty = 2, # the line type
+      col = "red" # the line colour
+      )
+# just for contrast add a linear fit using an abline() function of a lm() object
+abline(lm(ABUND ~ L10AREA, data = loyn), # model source of the regression coefficients
+       col = "blue", # the line colour
+       lwd = 2# the line width
+      )
+```
+
+This figure shows how `ABUND` changes as a function of `L10AREA`. The figure indicates that a linear fit might be as good as a smoothing function for the mean but not extreme values. *What about the other variables?*
+
+<div class = "alert alert-info">
+**Your task:**
+
+Using scatter plots (build using the plot() function), graphically explore how `ABUND` changes as a function of `L10AREA`, `L10DIST`, `L10LDIST`, `YR.ISOL`, `GRAZE`, and `ALT`. You will add to this figure the loess smoother mean prediction and 95% confidence interval.
+
+Based on these graphical representations, what do you see?
+</div>
+
+
+```{r Scatterplot2}
+## Make a 2 rows 3 columns Plotting space
+par(mfrow = c(2, 3))
+
+# Start a for() loop with var as the iterator - The iterator should cycle through the six predictor.
+for(var in c("L10AREA", 
+            "L10DIST", 
+            "L10LDIST", 
+            "YR.ISOL", 
+            "GRAZE", 
+            "ALT")){
+# Create a Temp data.frame with ABUND and the predictor 
+  Temp.loyn <- loyn[ , c("ABUND", var)]
+# Change the name of the second col to VAR
+  names(Temp.loyn)[2] <- "VAR"
+
+# plot the scatter plots of ABUND vs the predictor. Make the points a filled circle and add the evaluated variable name as a figure title.
+  plot(ABUND ~ VAR, # a formula defining the response ~ predictor relation
+      data = Temp.loyn, # an object with the 
+      pch = 19, # make the points a filled circle
+      main = var # The figure title
+      )
+
+# Build a Local Polynomial Regression using the loess() function linking ABUND and the individual predictor - Name this model Loess.temp. Use Temp.loyn to specify the response and predictor variable in your loess model.
+  Loess.temp <- loess(ABUND ~ VAR, # a formula defining the response ~ predictor relation
+                      data = Temp.loyn # an object with the data
+                      )
+
+# Build a data.frame with a Dummy dataset with 100 point between the minimum and maximum values of the evaluated predictor (that is the variable VAR in Temp.loyn. Make sue that the variable name in the data frame is VAR.
+  Dummy.Var <- data.frame(VAR = seq(from = min(Temp.loyn$VAR), # start point (minimum of VAR)
+                                    to = max(Temp.loyn$VAR), # end point (maximum of VAR)
+                                    length.out = 100 # number of points in the sequence
+                                    )
+                          )
+  
+# Using the predict function, generate the predictions from the loess fit, with its' standard errors
+  Loess.Pred <- predict(Loess.temp, # the model to predict
+                        newdata = Dummy.Var, # the data.frame used to generate the predictors.
+                        se = TRUE # compute the standard errors?
+                        )
+
+# plot the mean predictions from the loess fit as a solid red line, of width 2. For this, use the lines() function.
+  lines(y = Loess.Pred$fit, # The predictions
+        x = Dummy.Var[ , 1], # The dummy variable
+        lwd = 2, # the line width
+        lty = 1, # the line type
+        col = "red" # the line colour
+        )
+
+# generate a vector with the low confidence interval predictions
+  LowCI <- Loess.Pred$fit - (qnorm(0.975) * Loess.Pred$se)
+# plot the low confidence interval predictionsas a dashed red line, of width 2. For this, use the lines() function.
+  lines(y = LowCI, # The predictions
+        x = Dummy.Var[ , 1], # The dummy variable
+        lwd = 2, # the line width
+        lty = 2, # the line type
+        col = "red" # the line colour
+        )
+
+# generate a vector with the High confidence interval predictions
+  HighCI <- Loess.Pred$fit + (qnorm(0.975) * Loess.Pred$se)
+# plot the low confidence interval predictions as a dashed red line, of width 2. For this, use the lines() function.
+  lines(y = HighCI, # The predictions
+        x = Dummy.Var[ , 1], # The dummy variable
+        lwd = 2, # the line width
+        lty = 2, # the line type
+        col = "red" # the line colour
+        )
+  }
+
+# Based on these graphical representations, what do you see?
+## While L10Area, ALT and YR.ISOL show an association that resembles a linear trend, L10DIST and GRAZE show a non-linear relation. L10LDIST shows no relation with ABUND
+```
+
+## Building a GLM.
+
+So far, we have been treating bird abundances like a continuous predictor, **but abundances are counts**. Some people would say that you can model counts using a normal distributions model if you have a large enough sample size. However, counts are described by a Poisson probability distribution, where the mean equals the variance, and therefore linear models based on normal distributions are not appropriate. This means building a GLM model with a Poisson error term.
+
+You will do so now, using only the additive combination of individual predictors. You might ask **Why not use interactions?** well, a multiple linear regression model relating the abundance of forest birds to all six predictor variables, plus their interactions, would have 64 terms in addition to an intercept and would be unwieldy to interpret.
+
+<div class = "alert alert-info">
+**Your task:**
+
+Use the `glm()` function to evaluate the proposed Poisson regression. Remember to include the adequate error family for the type of data in `ABUDN`.
+
+Print the summary of the `glm` model, and try to interpret the regression coefficients?
+</div>
+
+```{r GLMPoisson}
+
+# Build a GLM to predict ABUND based on a linear combination of `L10AREA`, `L10DIST`, `L10LDIST`, `YR.ISOL`, `GRAZE`, and `ALT`.
+# Save the model as an object named loyn.glm
+loyn.glm <- glm(ABUND ~ L10AREA + L10DIST + L10LDIST + YR.ISOL + GRAZE + ALT, # the Equations defining the response and additive combination of predictors.
+                data = loyn, # specify the object where the data is in
+                family = "poisson" # Argument defining the adequate error `family` given the type of the response variable (quasi)binomial for presence/absence and proportion data, and (quasi)Poisson for counts.
+                )
+# print a summary of the GLM model
+summary(loyn.glm)
+
+# Interpret the regression coefficients?
+## Of all the predictors, only the partial regression slopes of L10LDIST was NOT significant. Also, the partial regression slopes align with what we see in the smoother plots for AREA (+ relation), YR.ISOL (+ relation), ALT (+ relation), and GRAZE (- relation). However, L10DIST and L10LDIST show opposite trends [even after removing  L10LDIST]. It is important to highlight that the values of the partial regression slopes CAN NOT be compared as these are not standardised!!
+```
+
+## How good is this initial GLM? - 1
+
+Now that you have estimated the regression parameters is time to start reporting and assessing how "good" are abundances (`ABUND`) predicted by this model. The first two lines tell us which model has been fitted, which is handy if you save the output into a word processor document. Basic numerical information on the residuals is also provided (see `Deviance Residuals`). Then we get a series of regression estimates and their Std.Errors. You also get a z-statistic (remember the Wald statistic from the GLM's lesson?) and the corresponding p-value for testing the null hypothesis (H~0~) that the slope (and intercept) is equal to 0.
+
+Last, the `summary()` function prints the null (coming from a model with only an intercept) and residual (coming from the evaluated model) deviances. A reminder: is the maximum likelihood equivalents of the total sum of squares (a measure of the total variability of the dataset) and the residual sum of squares (a measure of how good are the model predictions). Both the null and residual deviances are the ones you will use next to assess how good your model is.
+
+We do not have an R^2^ in GLM models, but the closest we can get is the explained deviance, which is calculated as:
+
+<center>$100 X \displaystyle\frac{(Null~dev - Res~dev)}{Null~Dev}$.</center> 
+
+This type of assessment of the proportional increase in explained deviance is called a pseudo R^2^.
+
+
+<div class = "alert alert-info">
+**Your task:**
+
+Estimate the pseudo R^2^ for your initial `glm()` model (`loyn.glm`) to determine how much of the variation in `ADUND` does this model explain.
+</div>
+
+```{r ExpDev}
+# Extract the Null Deviance  (use the null.deviance subscript for this)
+Null.Dev <- summary(loyn.glm)$null.deviance
+
+# Extract the Residual Deviance  (use the deviance subscript for this)
+Res.Dev <- summary(loyn.glm)$deviance
+
+# Estimate the explained deviance using the formula in the text above.
+ExpDev <- 100 * ((Null.Dev - Res.Dev) / Null.Dev)
+ExpDev
+
+# How much of the variation in `ADUND` does the initial `glm()` model explain.
+## the model explains 57% of the variation in `ADUND`.
+```
+
+## How good is this initial GLM? - 1
+
+Although the implemented pseudo R^2^ gives you a first approximation to how much extra variation is explained by adding the selected predictors, it does not determine if the "fit" of the chosen model is significantly actually better than that of an intercept only model (also called constant model). For this, you will compare the fit (the log-likelihood) of the implemented model to that of your intercept only model using a G^2^ statistic (we discussed these in the GLM class).
+
+
+<div class = "alert alert-info">
+**Your task:**
+
+For your initial `glm()` model (`loyn.glm`), estimate the G^2^ statistic to determine if the implemented model has a significantly better fit than a model with no predictors (an intercept only or constant model).
+
+There are many ways to do this, but you will make this contrast "by hand" to practice some basic concepts of `R`.
+</div>
+
+```{r DevTest}
+# Extract the Log-Likelihood of the **FULL** model (use the function logLik() for this), and save it as an object named Full.LogLike
+Full.LogLike <- logLik(loyn.glm)
+Full.LogLike
+
+# Build a GLM to predict ABUND based on a NO PREDICTOR save this as an object named Const.glm
+# Here, I use the update() function instead of bundling a new model as the the update() function will update and re-fit a model
+Const.glm <- update(loyn.glm, # Model to be updated
+                    "~ 1") # the New formula
+
+# Extract the Log-Likelihood of the **CONSTANT** model (use the function logLik() for this), and save it as Const.LogLike
+Const.LogLike <- logLik(Const.glm)
+Const.LogLike
+
+# Estimate the G2 statistic to contrast the **FULL**  and **CONSTANT** models using the formula [- 2(log-likelihood constant - log-likelihood full)]. Name this G2.full
+G2.full <- -2 * (Full.LogLike - Const.LogLike)
+G2.full
+
+# Estimate the G2 statistic significance using a Chi-squared distribution.
+# The `pchisq()` function gives the$p$-value for a defined quantile of the chi-square distribution, and the 1-$p$-value is because we define the chances that the observed values are higher than the critical value <https://rpubs.com/mdlama/spring2017-lab6supp1>.
+1 - pchisq(q = abs(G2.full), # The G2 statistic defines the quantile of the Chi-squared distribution used.
+           df = 3) # The d.f. are defined based on the difference  in the number of predictors between contrasted models
+
+# An easy alternative is to use the anova() function to contrast two models
+anova(loyn.glm, # The FULL model
+      Const.glm, # the Constant model
+      test = "Chisq"# What test to use
+      )
+
+# Is the implemented model better than a CONSTANT model?
+## Based on the test, the full model is significantly better (significantly lower log-likelihood) than the constant model.
+```
+
+## Sketching the GLM
+
+Now that it is clear that the GLM is better than a model without predictors, a way to see what the model is doing is to plot the predicted values over specific response-predictor plots. In the case of a model with only one predictor, this is easy. However, when you have multiple predictors, the question is how to define the "predicted" value to plot over the response-predictor plots.
+
+The way to do this is to show the relationship between a given predictor variable and the response variable, given that other predictor variables are also in the model **but at their mean level**. These lots are called "effect_plots". 
+
+<div class = "alert alert-info">
+**Your task:**
+
+Construct a plot showing how your initial `glm()` model predicts the change in `ABUND` as a function of `L10AREA`. 
+
+</div>
+
+```{r EffPlt}
+# plot the scatter plots of ABUND vs L10AREA
+plot(ABUND ~ L10AREA, # a formula defining the response ~ predictor relation
+  data = loyn, # an object with the
+  pch = 19 # make the points a filled circle
+) 
+
+# Build a data.frame with a Dummy L10AREA dataset with 100 point between -1 and 3. Name this data.frame Dummy.L10AREA
+Dummy.L10AREA <- data.frame(
+  L10AREA = seq(from = -1, # start point
+                to = 3, # end point
+                length.out = 100 # number of points in the sequence
+                )
+  ) 
+
+# Add to this data.frame a column for each of the other predictors setting the value to the mean of all observations. USE A FOR LOOP FOR THIS
+for( Var in c("L10DIST", "L10LDIST", "YR.ISOL", "GRAZE", "ALT")){
+# Add the value to Dummy.L10AREA for the Variable evaluated
+# note that R assumes that you want the same value for all the observations in the data.frame 
+  Dummy.L10AREA[ , Var] <- mean(loyn[ , Var])
+}
+head(Dummy.L10AREA)
+
+# Using the predict function, generate the predictions from the GLM model, with its' standard errors
+# Is important to note that for glm's, you need to specify the `type  = ` argument, as you can scale of the linear predictors (that is what you get after implementing the link function), or by the response variable (that is back transforming it to the original scale of the response)
+glm.Pred <- predict(loyn.glm, # the model to predict
+                    newdata = Dummy.L10AREA, # the data.frame used to generate the predictors.
+                    se.fit = TRUE, # compute the standard errors?
+                    type = "response" # set the Type of prediction values
+                    )
+
+# plot the mean predictions from the GLM fit.
+# The lines() function adds a line to an existing plot
+lines(y = glm.Pred$fit, # The predictions
+      x = Dummy.L10AREA[ , 1], # The dummy variable
+      lwd = 2, # the line width
+      lty = 1, # the line type
+      col = "red" # the line colour
+      )
+
+# plot the lower CI predictions from the GLM fit.
+# generate a vector with the low confidence interval predictions
+LowCI <- glm.Pred$fit - (qnorm(0.975) * glm.Pred$se)
+# plot the low confidence interval predictions
+lines(y = LowCI, # The predictions
+      x = Dummy.L10AREA[ , 1], # The dummy variable
+      lwd = 2, # the line width
+      lty = 2, # the line type
+      col = "red" # the line colour
+      )
+
+# plot the Higher CI predictions from the loess fit.
+# generate a vector with the High confidence interval predictions
+HighCI <- glm.Pred$fit + (qnorm(0.975) * glm.Pred$se)
+# plot the low confidence interval predictions
+lines(y = HighCI, # The predictions
+      x = Dummy.L10AREA[ , 1], # The dummy variable
+      lwd = 2, # the line width
+      lty = 2, # the line type
+      col = "red" # the line colour
+      )
+```
+
+The approach presented above might be cumbersome for all the variables, even when done with efficient and clever scripting. There is some good news; a package can make these figures with just one single function. The Analysis and Presentation of Social Scientific Data package (`jtools`) function `effect_plot()` does this.
+
+```{r, jtoolsEffPlt, echo = FALSE}
+pred.area <- jtools::effect_plot(model = loyn.glm, pred = "L10AREA", plot.points = TRUE, interval = TRUE)
+pred.dist <- jtools::effect_plot(model = loyn.glm, pred = "L10DIST", plot.points = TRUE, interval = TRUE)
+pred.ldist <- jtools::effect_plot(model = loyn.glm, pred = "L10LDIST", plot.points = TRUE, interval = TRUE)
+pred.Yr<- jtools::effect_plot(model = loyn.glm, pred = "YR.ISOL", plot.points = TRUE, interval = TRUE)
+pred.Grz <- jtools::effect_plot(model = loyn.glm, pred = "GRAZE", plot.points = TRUE, interval = TRUE)
+pred.alt <- jtools::effect_plot(model = loyn.glm, pred = "ALT", plot.points = TRUE, interval = TRUE)
+ggpubr::ggarrange (pred.area, pred.dist, pred.ldist, pred.Yr, pred.Grz, pred.alt)
+```
+
+These figures might look slightly different from those we have done before as these are built on the data visualisation package `ggplot2`. We will not use it during the course as my goal is to make you "speak" `R` before I ask you to talk its' different dialects. For those curious about this package, I encourage you to look at the `ggplot2` site by clicking [HERE.](https://ggplot2.tidyverse.org/index.html) 
+
+
+## Finding the Optimal Model
+
+We want to know which explanatory variables are important, and because some terms are not significant, it is time for a model selection. The process is similar to the one used for linear regression. You can use either a selection criterion like the AIC or BIC based on a stepwise selection procedure. The `setp()` function focuses on selecting the best model based on AIC criteria.
+
+Alternatively, you can use a hypothesis testing approach (G^2^ statistic) - that is the preferred approach. For the hypothesis testing approach, you have three options::
+
+1) Test the null hypothesis H~0~:$\beta_i = 0$using the *z*-statistic - that is, remove the least significant term and then refit the model to determine whether there are still non-significant terms in the model.
+
+2) Use the `drop1(glm.model, test = "Chi")` command, which drops one explanatory variable in turn. For each removed variable, it does an analysis of deviance (G^2^ test) comparing the full and reduced model.
+
+3) Use the `anova(glm.model)` command, which applies a series of analyses of deviance tests by removing each term sequential.
+
+<div class = "alert alert-info">
+**Your task:**
+
+Using the `drop1()` function, assess which explanatory variable you should be dropped first from the `loyon.glm` model.
+
+</div>
+
+```{r ModSel1}
+drop1(loyn.glm, # THe GLM model to assess
+      test = "Chisq" # specify which test statistic should be used to contrast each reduced model 
+      ) 
+
+# Which explanatory variable you should drop first from the `loyon.glm` model?
+### Based on the drop1 table, L10LDIST is the variable to remove
+```
+
+<div class = "alert alert-info">
+**Your task:**
+
+Using the `aonva()` function, assess which explanatory variable you should drop first from the `loyon.glm` model.
+
+</div>
+
+```{r ModSel21}
+# create a Summary data.frame for the series of anova tests
+DevSummTbl <- data.frame(Var = names(coef(loyn.glm)[-1]), # names of the variables
+                         Dev.Dif = NA, # the difference between the full and reduced model deviances
+                         p.val = NA # THe p-value of the test
+                         )
+for (var in names(coef(loyn.glm)[-1])){
+# Estimate a reduced model using the update(). function.
+# Instead of creating a new model the larger model is updated by removing the evaluated var
+  Red.glm <- update(loyn.glm, paste0(". ~ . -", var))
+# Do an analysis of deviance test contrasting the full and reduced model
+  Dev.tst <- anova(loyn.glm, # THe GLM model to assess
+                   Red.glm, # the reduced model
+                   test = "Chisq" # specify which test statistic should be used to contrast each reduced model 
+                   )
+# Append the result to the summary table  
+  DevSummTbl[DevSummTbl$Var == var, ] <- data.frame(Var = var, # evaluated Variable
+                                                  Dev.Dif = round(Dev.tst[2, "Deviance"], 3), # deviance difference
+                                                  p.val = round(Dev.tst[2, "Pr(>Chi)"], 3) # p-value
+                                                  )
+}
+DevSummTbl
+
+# Which explanatory variable you should drop first from the `loyon.glm` model?
+## Based on the analysis of deviance, adding L10LDIST does not make the full model better.
+```
+
+Based on your model selection procedure results, you now have a clear idea of which variable is the first to be removed. But *do you need to remove any variable after removing the least significant variable?*. Rerun the analysis above using a reduced version of the `loyn.glm` model.
+
+## What about overdispersion?
+
+One thing you have not considered is overdispersion. So far, the models above state that the `overdispersion parameter for Poisson family taken to be 1` (this comes straight out the summary output). This does not mean that the overdispersion is one; it just says it was taken as one. 
+
+Overdispersion is a problem we spoke about during class, focusing on why it matters. As a reminder, overdispersion is when the variance is greater than expected based on the chosen probability distribution. This is a problem as it can affect parameter estimates and significance tests.
+
+You can see if your model suffers from overdispersion by contrasting the model residual deviance and its' degrees of freedom. If the ratio between these two values is is about 1, then you can safely assume there is no overdispersion and proceed to the model selection process. *But is this the case here?*
+
+<div class = "alert alert-info">
+**Your task:**
+
+Assess if `loyon.glm` model suffers from overdispersion.
+
+</div>
+
+```{r overdis}
+# extract the model Residual deviance
+ResDev <- summary(loyn.glm)$deviance
+
+## extract the model Residual deviance degrees of freedom
+ResDevDF <- summary(loyn.glm)$df.residual
+
+# Estimate how different is the estimated variance is larger than the mean.
+ResDev/ResDevDF
+
+# is there overdispersion?
+# In this case, the ratio is larger than one and provides evidence for overdispersion.
+```
+
+You have now identified that there is an overdispersion problem. This means you can now put all the results presented so far in the bin.
+
+But, **where does the overdispersion come from?** It can come from missing covariates or interactions, outliers in the response variable, non-linear effects of covariates entered as linear terms in the systematic part of the model, and choice of the wrong link function. All the reasons above are causes of *apparent overdispersion* and can be solved by changing the model specification. By comparison, *real overdispersion* exists when we cannot identify any of the previously mentioned causes. This can be because the variation in the data really is larger than the mean. Or there may be many zeros (which may, or not, cause overdispersion), clustering of observations, or correlation between observations.
+
+The easiest way to address an overdispersion issue is using a new model family - the `quasipoisson` - when specifying your `glm()` model. This new model family define the variance based on a relationship between the mean and variance of the response variable ($Y_i$). A Poisson model, by comparison, assumes that the mean is equal to variance (as in a Poisson distribution).
+
+This model will now correct the standard errors of the parameters by multiplying these by the square root of the overdispersion parameter ($\phi$)). For example, if$\phi$is equal to 9, then all standard errors are multiplied by 3, and the parameters become less significant. By contrast, a small correction, let's say 1.5, will make no difference if the parameters of the GLM are highly significant, but not if the significance is lower (e.g., *p*-value = 3).
+
+One last point to explain before you move on to some coding is how the overdispersion parameter$\phi$in a Poisson GLM is estimated by `R`. It takes the Pearson residuals (we will talk about these later in the practical), squares them, adds them all up, and then divides the sum by$n – p$, where$n$is the number of observations and$p$the number of regression parameters (slopes) in the model.
+
+<div class = "alert alert-info">
+**Your task:**
+
+Now is time to refit the `loyon.glm` model using a `quasipoisson` family and determine:
+
+* How big is the "overdispersion" parameter?
+
+* Do the predictors "mean" values changed after accounting for overdispersion?
+
+* How is the significance of the predictors changing after accounting for overdispersion?
+
+</div>
+
+
+```{r ModCOmp}
+loyn.qp.glm <- glm(ABUND ~ L10AREA + L10DIST + L10LDIST + YR.ISOL + GRAZE + ALT, # the Equations defining the response and additive combination of predictors
+                   data = loyn, # specify the Object where the data is in
+                   family = "quasipoisson" # Argument defining the adequate error `family` given the type of the response variable (quasi)binomial for presence/absence and proportion data, and (quasi)Poisson for counts.
+                   )
+summary(loyn.qp.glm)
+
+# Now print the summary of the basic loan.glm
+summary(loyn.glm)
+
+#How big is the "overdispersion" parameter in your quasi-Poisson model?
+summary(loyn.qp.glm)$dispersion
+
+# Do the predictors "mean" values changed after accounting for overdispersion?
+## The mean values do not change between the Poisson and quasi-Poisson models
+
+# How is the significance of the predictors changing after accounting for overdispersion?
+## The significance of the coefficients is reduced when a quasi-Poisson model-family is used as the Std. Error is multiplied by a very large overdispersion" parameter.
+## Based on the quasi-Poisson model, `L10DIST`, `L10LDIST`, `GRAZE`, and `ALT` do not have a significant effect. 
+```
+
+A couple of important points to think about after you have addressed the overdispersion problem. 
+
+First, when you report these, you **do not write that you used a quasi-Poisson distribution**. What is reported can be divided into 3 points:
+
+* A Poisson GLM was used to model the response variable.
+
+* The coefficients standard errors were corrected using a quasi-GLM model.
+
+* This correction was done using an overdispersion parameter ($\phi$) equal to the value given by that reported in the quasi-Poisson model output.
+
+Second, your quasi-Poisson model could still have a larger than one residual deviance to degrees of freedom ratio. However, that is no longer a problem as you now allow for overdispersion (in the form of the overdispersion parameter), which has corrected all standard errors.
+
+## Model Selection in Quasi-Poisson
+
+The model selection process in quasi-Poisson GLM's is similar to Poisson GLM's; however, there are small but important differences. First of all, in quasi-Poisson models, the AIC is not defined - as estimations are done using quasi-likelihood approaches. This means that the `setp()` function does not work. That leaves you only with the hypothesis testing approach, but this is also slightly different. Namely, here you will not use a likelihood ratio test (as there is no likelihood) but an *F*-ratio test.
+
+What does this mean in practice? I will present an example based on the `drop1()` function, but the same applies to the analysis of deviance test using the `anova()` function. For both, what changes is the "`test` argument, as it needs to be defined now as `test  = "F"` to say you are using a *F*-ratio test.
+
+<div class = "alert alert-info">
+**Your task:**
+
+Using the `drop1()` function, iteratively estimate which variables need to be removed.
+
+</div>
+
+
+```{r ModSel}
+# assess the relevance of each term in the initial model
+drop1(loyn.qp.glm, # the model to test - Start with the Full quasi-Poisson model
+      test = "F") # define the test to use
+
+# Which variable to remove?
+## based on his L10LDIST needs to be removed as it is the least significant variable.
+
+# Define a reduced model
+loyn.qp.glm.red <- update(object = loyn.qp.glm, # the model to be updated
+                          formula = ".~ . -L10LDIST") # Define what to update
+
+# assess the relevance of each term in the reduced model
+drop1(loyn.qp.glm.red, # the model to test.
+      test = "F") # define the test to use
+
+# Which variable to remove?
+## based on his ALT needs to be removed as it is the least significant variable.
+
+# Define a reduced model
+loyn.qp.glm.red <- update(object = loyn.qp.glm.red, # the model to be updated
+                          formula = ".~ . -ALT") # Define what to update
+
+# assess the relevance of each term in the reduced model
+drop1(loyn.qp.glm.red, # the model to test.
+      test = "F") # define the test to use
+
+# Which variable to remove?
+## based on his L10DIST needs to be removed as it is the least significant variable.
+
+# Define a reduced model
+loyn.qp.glm.red <- update(object = loyn.qp.glm.red, # the model to be updated
+                          formula = ".~ . -L10DIST") # Define what to update
+
+# assess the relevance of each term in the reduced model
+drop1(loyn.qp.glm.red, # the model to test.
+      test = "F") # define the test to use
+
+# Which variable to remove?
+## based on his GRAZE needs to be removed as it is the least significant variable.
+
+# Define a reduced model
+loyn.qp.glm.red <- update(object = loyn.qp.glm.red, # the model to be updated
+                          formula = ".~ . -GRAZE") # Define what to update
+
+# assess the relevance of each term in the reduced model
+drop1(loyn.qp.glm.red, # the model to test.
+      test = "F") # define the test to use
+
+# Which variable to remove?
+## At this point, you can keep all variables!
+
+# Which variables should be removed?
+# The variables to remove are L10LDIST, ALT, L10DIST, and GRAZE.
+```
+
+<div class = "alert alert-info">
+**Your task:**
+
+Based on the results of the model selection done above, answer the following questions:
+
+* Which variables should be removed?
+
+* Is this model better than a full model? - use the function `anova()` to test this.
+
+</div>
+
+
+```{r ModSel2}
+#Is this model better than a full model?
+anova(loyn.qp.glm, 
+      loyn.qp.glm.red, 
+      test = "F")
+## Based on this test, the full model does not have a significantly better fit than the reduced model.
+```
+
+As you see from the model reduction exercise above, finding the best fixed-effect structure of a quasi-Poisson model can be tedious. However, with some clever coding, you can automate this.
+
+```{r LoopModSel, eval = F}
+## define the Fist variable to drop
+ModRed <- loyn.qp.glm # Define the Stating model
+end.Loop <- FALSE # determine the iterator to define start value
+while (end.Loop  == FALSE){ # USe  while loop so the looping is done unit all variables in the model are significant.
+  HypTst <- drop1(ModRed, test = "F") # assess each parameter significance individually
+# update the model
+    ModRed <- update(ModRed, # the model to be updated
+                 paste0(".~ . -", rownames(HypTst)[order(HypTst[ , "F value"])][1])) # Define what to update
+# assess if the loop needs to end [are all predictors significant?]
+    HypTst <- drop1(ModRed, test = "F")
+# Assess if the iterator will change value and end the while loop
+    end.Loop <- sum(HypTst[-1, "Pr(>F)"]<0.05)  ==  c(dim(HypTst)[1]-1)
+}
+loyn.qp.glm.red <- ModRed 
+```
+
+I would like to address one last point on (quasi)Poisson models residuals and their role in model validation. 
+
+GLM models generate multiple types of residuals: (i) the ordinary residuals ($y_i − \mu_i$), also
+called the response residuals, (ii) the Pearson residuals ($\frac{y_i − \hat{\mu_i}}{ \sqrt{\hat{\mu_i}}}$), where the ordinary residuals are scaled by the variance, and (iii) deviance residuals ($\hat\epsilon^{D} =  sign(y_i − \mu_i)\sqrt{d_i}$) where the ordinary residuals are scaled by the  contribution to the deviance ($d_i$). The notation "sign" stands for sign and has the value 1 if$y_i$is larger than$\mu_i$, and −1 if$y_i$is smaller than$\mu_i$.
+
+*So which one to use when evaluating the model?* Either Pearson or deviance (the default ones) residuals should be used when evaluating the model. However, it should be noted that you are not looking for normality in Pearson or deviance residuals (I mean, you are making a Poisson regression). What you are interred here is in patterns in the residuals.
+
+When you are assessing your (quasi)Poisson model (like in linear regressions), you will plot the residuals of choice (e.g. deviance) against: 
+
+* the fitted values (*to assess the existence of Homoscedasticity*), 
+
+* Each explanatory variable in the model (*to assess the independence of the observations*), 
+
+* Each explanatory variable not used in the model or dropped during the model selection procedure (*To assess if these need to be included in the model*).
+
+Your goal is that none of these figures shows any patterns.  If we do, then there is something wrong, and you need to work out what it is. For example, if there are patterns in the graph showing residuals against each explanatory variable used in the model, you could use a GAM.
+
+## Partial residual plot
+
+Partial residual plots attempt to show the relationship between a given independent variable and the response variable, given that other independent variables are also in the model, just like effect plots. However, partial residual plots also allow evaluating the extent of departures from linearity quickly. These plots are also considered useful in detecting influential outliers and inequality of variance. The partial residual plot for a particular covariate consists of a graph of the values of the covariate against its partial residuals.
+
+Partial residuals (*r~par~*) are estimated via the association of a predictor component ($\hat{\beta}_iX_i$) and the residual variation. Mathematically, this is described as:
+<center>$\hat{\beta}_iX_i + \mathrm{Residuals} \mathrm{\ vs.\ } X_i$</center> 
+
+Where$\mathrm{Residuals}$are residuals from the full model;$\hat{\beta}_i$are the regression coefficient from the i^th^ independent variable in the full model; and$X_i$= the i^th^ independent variable.
+
+If a partial residual plot is linear, then a linear assumption for this covariate is appropriate. However, if a partial residual plot is non-linear, this indicates that a linear assumption may not be appropriate. In that case, the shape of the curve can suggest an appropriate functional form for the covariate or the applicability of GAM's.
+
+<div class = "alert alert-info">
+**Your task:**
+
+Using your **quasi-Poisson** model, construct a partial residual plot for `L10AREA`. For this, you will:
+
+* Extract the *partial residuals* from the quasi-Poisson object.
+
+* Plot the *partial residuals* vs. `L10AREA`.
+
+* Add a linear and a smoothed fitted line to the plot
+
+</div>
+
+```{r PartRes1}
+# Extract the partial residuals directly residuals of the residuals() function.
+# As we are interested in "partial residuals", you need to specify that you are interested in the partial residuals by including the `type = ` argument.
+Res.loyn.glm <- residuals(loyn.qp.glm.red, # the quasi-poison model
+                          type = "partial") #  type of residuals which should be returned
+# these partial residuals in a GLM are a matrix of working residuals, where each column removes the effect of a given predictor
+
+# Make the Partial residual plot
+plot(y = Res.loyn.glm[ , "L10AREA"], # the practical residual for the variable of interest
+     x = loyn$L10AREA, # the values of the evaluated predictor
+     pch = 19, # make the points filled circles
+     xlab = "L10AREA", # x-axis label
+     ylab = "Partial residuals" # y-axis label
+     )
+
+# Add a linear trend line using abline
+abline(reg = lm(Res.loyn.glm[ , "L10AREA"] ~ loyn$L10AREA), # a regression object
+       col = "blue", # Set the line colour
+       lty = 2, # set the line type
+       lwd = 2 # set the line width
+       )
+
+# Add a smoother line
+LoessMod <- loess(Res.loyn.glm[ , "L10AREA"] ~ loyn$L10AREA) # build a loess smoother object
+
+# make a dummy data.frame to make the predictions
+DummyDF <- seq(from = min(loyn$L10AREA), # The lowest value for the predictor
+                                   to = max(loyn$L10AREA), # The highest value for the predictor
+                                   length = 100 # how many elements should the sequence have
+                                   )
+
+  # generate the predicted values to plot a trend line
+LoessPred <- predict(LoessMod, # the loess smoother object.
+                     newdata = DummyDF # the dummy data.frame to make the prediction
+                     ) 
+lines(y = LoessPred, # the predicted values
+      x = DummyDF, # the dummy data.frame used to make the prediction
+      col = "magenta",  # Set the line colour
+      lwd = 2 # set the line width
+      )
+```
+
+Like effect plots, the approach presented above might be a bit cumbersome for a model with many variables, even when done with efficient and clever scripting. There is a piece of good news; some packages can make these figures with just one single function. The Companion to Applied Regression package (`car`) is one such package. This package has the `crPlots()` function to generate **ALL** partial-residual plots, and the `crPlot()` function to generate a single one. Below you see how implementing these figures with the GLM-model created with the `loyn` data would look like.
+
+```{r PartRes2, echo = FALSE}
+car::crPlots(loyn.qp.glm.red, pch = 19)
+```
+
+From this, you can see that a linear approach might not be the best approach to model the changes in abundance as a function of `L10AREA` and `YR.ISOL`. This makes a case for the use of methods that can compute such none non-linearities.
+
+## Key things to remember regarding GAM's.
+
+Generalised Additive Models (GAM's) are non-parametric modifications of Generalised Linear Models (GLM's) where each predictor is included in the model as a non-parametric *smoothing* function. Here, the relation between response and predictors is mediated via a non-parametric model that specifies the relationship between a predictor and a response *separately from the smoothing function for any other predictor*. This is different from a GLM, where models are constrained to a parametric (linear) form.
+
+Regardless of how differently responses and predictors are linked in GAM's and GLM's, GAM's can be analysed using the same framework as linear and generalised linear models. The first important point to remember is the need for defining a link function (e.g., logistic, log-link, mean) linking the response and predictor variables. This link relates to the probability distribution for the response variable. Also, you can measure the fit of a particular GAM using measures like *deviance* and *AIC*. You can also compare models' fit (or deviance) with and without specific terms or combinations of terms to assess if a given variable is needed - just as you did for the G^2^ tests with GLM's.
+
+## The first GAM
+
+When implementing a GAM with a Poisson error distribution, you need to remember three assumptions:
+
+1.$Y_i$is Poisson distributed with mean$\mu_i$, and variance equal to the mean.
+
+2. The systematic part is given by$\eta(X_{i1}, . . ., X_{iq}) = \alpha + f1(X_{i1}) + . . . + fq(X_{iq})$, where the$f_{j}$s are smoothing functions.
+
+3. There is a logarithm link between the mean of$Y_i$and the predictor function$\eta(X_{i1}, . . ., X_{iq})$
+
+These are roughly the same assumptions as a Poisson GLM, except for assumption two, where the predictor function links to linear combinations of the$X_i$predictors. *What does this mean?* that when implementing a Poisson GAM, you will need to take the same steps as you did in a Poisson GLM.
+
+With this info, you are ready to implement a GAM with the Loyn data.
+
+
+<div class = "alert alert-info">
+**Your task:**
+
+Starting with a reduced set of the predictors (`L10AREA`, `L10DIST`, `YR.ISOL`, `ALT`), your task will be to build a Poisson GAM where each predictor is included using non-parametric smoothers rather than specified additive terms.
+
+</div>
+
+```{r gamBuild}
+# load the relevant package!
+library(mgcv)
+# Save the model as an object named loyn.gam
+loyn.gam <- gam(ABUND ~ s(L10AREA) + s(L10DIST) + s(YR.ISOL) + s(ALT), # the Equations defining the response and additive combination of predictors
+                data = loyn, # specify the Object where the data is in
+                family = "poisson"# Argument defining the adequate error `family` given the type of the response variable (quasi)binomial for presence/absence and proportion data, and (quasi)Poisson for counts.
+                )
+```
+
+<div class = "alert alert-info">
+**Your task:**
+
+Print the summary of the GAM you just created to evaluate:
+
+* How good is your model?
+
+* Which predictors make sense to keep as smoothed functions?
+
+</div>
+
+```{r gamEval1}
+# Print a summary of the model
+summary(loyn.gam)
+
+# How good is your model?
+## Based on the deviance explained, the model explains 81.5% of the variation in the data, which is way more than the 55.8% of a Poisson GLM model with the same predictors. 
+
+# Which predictors make sense to keep as smoothed functions?
+## Based on the smoothed terms effective degrees of freedom (df) values (all of these larger than 8), the relations between the predictors and ABUND are highly non-linear, and hence all these should be kept as smoothed functions
+```
+
+
+<div class = "alert alert-info">
+**Your task:**
+
+Using the `gam.check()` function plots determine
+
+* Do we have Homogeneity of variances?
+
+* Do we have a good model fit?
+
+</div>
+
+
+```{r gam3}
+# set a plotting space with two rows and two columns
+par(mfrow = c(2, 2))
+
+# run the gam.check() function to evaluate produces graphical diagnostics for the model
+gam.check(loyn.gam, # the gam model
+          pch = 19,  # a graphical parameter to define the type of point to plot
+          old.style = FALSE # make old fashioned plots for simplicity
+          )
+
+# Do we have Homogeneity of variances?
+## Although the figure shows a good spread; we see that larger predictions have larger variability - so there is heteroscedasticity - perhaps due to overdispersion [more on this later!].  
+
+# Do we have a good model fit?
+## The bottom right plot shows that there is a tight "straight line" association between observed (response) values and those "fitted" by the model - this is supported by the high deviance explained.
+
+```
+
+## Sketching the GAM - 1
+
+Now that you have a working GAM model is time to zoom into those smoothed predictors and assess how these determine the changes in `ABUND`. For this, you just plot the GAM model object using the `plot()` function. The plots generated in this way are partial effect plots. They show the component effect of each of the smooth or linear terms in the model, which add up to the overall prediction. 
+
+<div class = "alert alert-info">
+**Your task:**
+
+Using the `plot()` function, generate the partial effect plots for all predictors in the initial GAM.
+
+</div>
+
+
+```{r gamplot}
+# Set a two rows to columns plotting space
+par(mfrow = c(2, 2), 
+    mar = rep(3, 4), 
+    oma = c(1.5, 1.5, 0, 0))
+# Plots the component smooth functions that make up a GAM model
+plot(loyn.gam, # The GAM Object
+     residuals = T, # add the residuals to the plot
+     pch = 19, cex = 0.5, # some graphical controls of point type (pch) and point size (cex)
+     lwd = 2, # set the line width
+     seWithMean = TRUE, # shown with confidence intervals that include the uncertainty about the overall mean.
+     shade = TRUE, shade.col = "grey", # some graphical controls for plotting SE (make it as a shaded polygon?) and what colour should the shade be. 
+     xpd = NA)
+```
+
+Based on these figures above, the non-linearity of the predictors is not apparent - however, the non-linearity was apparent based on the GAM summary!!. This is **perhaps because you have too many predictors**!   
+
+Before moving on, it is important to discuss a few things about these GAM plots.
+
+1) If you focus on the y-axis, it does not match the range of values of `ABUND`, and all of these are "centred" at zero (0). This is because the response has been centred (that is, the mean has been set to Zero), so it is easy to contrast how much each predictor increases or decreases the predicted mean as it increases. 
+
+2) If you look at each of the panels' y-axis legend, there is a combination of the predictor and a number (e.g., `s(L10AREA, 9)`). The number represents the effective degrees of freedom (edf) for that particular component smooths - that is *the amount of smoothing of that particular smoother*. The higher the EDF, the more non-linear is the smoothing spline.
+
+3) The etchings on the x-axis are called rugs and indicate the locations of measurements of x values on each axis.
+
+4) Those filled dots are partial residuals on the plots. As a reminder, partial residuals are the difference between the partial effect and the data after all other partial effects have been accounted for.
+
+5) The shaded areas around the component smooths show the 95% confidence interval for the mean shape of the effect.
+
+
+## Model optimisation and selection.
+
+Based on the `summary(loyn.gam)` output, all the predictors of your GAM are significant. But your partial effect plots show that some of your predictors are perhaps better described by a linear function. We also have a heteroscedasticity problem.
+
+This might be because we have an overdispersion problem - *just like we had in or original GLM*. So how do we go about assessing if there is an overdispersion problem in a GAM?. Just like you did in a GLM, that is via contrasting the deviance to its' degrees of freedom.
+
+The problem is that the output of the `summary()` function on a GAM object does not return the residual deviance or its degrees of freedom. That does not mean that you can not extract these aspects of the model. In true `R` fashion, you use the `deviance()` function to extract the deviance of a model. The residual degrees of freedom can be extracted using the `df.residual()` function. With this, you have all you need to assess if the model suffers from overdispersion. 
+
+<div class = "alert alert-info">
+**Your task:**
+
+Assess if `loyon.gam` model suffers from overdispersion.
+
+</div>
+
+```{r gamoverdis}
+# extract the model Residual deviance
+ResDev <- deviance(loyn.gam)
+
+## extract the model Residual deviance degrees of freedom
+ResDevDF <- df.residual(loyn.gam)
+
+# Assess if the estimated variance is larger than the mean.
+ResDev/ResDevDF
+
+# Is there overdispersion?
+# In this case, the ratio is larger than one and provides evidence for overdispersion.
+```
+
+Given what we know from the GLM model is no surprise that there is overdispersion! How to solve this? The same way you did for the GLM model: use the `quasypoisson` family.
+
+
+<div class = "alert alert-info">
+**Your task:**
+
+Refit your `loyon.gam` model using a `quasipoisson` family to address the overdispersion problem.
+
+</div>
+
+```{r}
+# Build a quasypoisson GAM
+loyn.qp.gam <- gam(ABUND ~ s(L10AREA) + s(L10DIST) + s(YR.ISOL) + s(ALT), # the Equations defining the response and additive combination of predictors
+                   data = loyn, # specify the Object where the data is in
+                   family = "quasipoisson"# Argument defining the adequate error `family` given the type of the response variable (quasi)binomial for presence/absence and proportion data, and (quasi)Poisson for counts.
+                   )
+# Print the summary of the quasi-Poisson GAM
+summary(loyn.qp.gam)
+```
+
+If you now focus on the summary output, it is clear that only two of the evaluated predictors are significant. Also, the deviance explained has decreased. Moreover, the effective degrees of freedom are now close to one for most predictors, indicating that a non-linear approach is not the most appropriate way to include these parameters in the model.
+
+<div class = "alert alert-info">
+**Your task:**
+
+Start by plotting `loyon.qp.gam` to see the shape of the partial effect plots for the quasi-Poisson model. 
+
+Then, refit your `loyon.qp.gam` by redefining your systematic component. For this, consider the shape of the figures you just made and for which components the effective degrees of freedom suggest that a linear model is a better fit.
+
+</div>
+
+```{r qpgamplot}
+# Set a two rows to columns plotting space
+par(mfrow = c(2, 2), 
+    mar = rep(3, 4), 
+    oma = c(1.5, 1.5, 0, 0))
+
+# Plots the component smooth functions that make up a qpgam model
+plot(loyn.qp.gam, # The GAM Object.
+     lwd = 2, # set the line width
+     seWithMean = TRUE, # shown with confidence intervals that include the uncertainty about the overall mean.
+     shade = TRUE, shade.col = "grey", # some graphical controls for plotting SE (make it as a shaded polygon?) and what colour should the shade be. 
+     xpd = NA)
+
+# Now Build a quasi-Poisson GAM
+loyn.qp2.gam <- gam(ABUND ~ s(L10AREA) + L10DIST + YR.ISOL + ALT, # the Equations defining the response and additive combination of predictors
+                   data = loyn, # specify the Object where the data is in
+                   family = "quasipoisson"# Argument defining the adequate error `family` given the type of the response variable (quasi)binomial for presence/absence and proportion data, and (quasi)Poisson for counts.
+                   )
+
+# Print the summary of the quasi-Poisson GAM
+summary(loyn.qp2.gam)
+```
+
+With this change now you are ready to jump in the model selection wagon, as you now have an appropriate model to begin. But where to start? There is no automated way of doing this, so you will need to go the deviance test approach, where you sequentially remove terms and assess if there is a significant change in the deviance (here, you will use a *F*-test).  
+
+Alternative, you can compare two modes based on the generalised cross-validation score, indicated by `GCV` in the output and obtained by the `summary()` function. As for an `AIC` contrast, the best model is the one with the lower`GCV`. The only issue with this approach is that you will not get a *p*-value to assess if the difference is significant.
+
+<div class = "alert alert-info">
+**Your task:**
+
+Simplify `loyn.qp2.gam` to generate the minimum adequate model. Remember to remove terms sequentially based on the significance level (less significant factors first).
+
+At each step of the process, answer the question: *Does the fit (Deviance) of the model significantly improved by adding the evaluated variable?*.
+
+</div>
+
+
+```{r qpModSel}
+# Remove L10DIST from loyn.qp2.gam
+qpgam.Red <- update(loyn.qp2.gam, ". ~ .-L10DIST")
+
+# Compare the full and reduced model
+anova(loyn.qp2.gam, # full model
+      qpgam.Red, # reduced model
+       test = "F") # select the test to use
+
+# extract the generalised cross validation score for the Full model
+summary(loyn.qp2.gam)$sp.criterion
+
+# extract the generalised cross-validation score for the reduced model
+summary(qpgam.Red)$sp.criterion
+
+# Does the fit (Deviance) of the model significantly improve by adding the evaluated variable?*
+## As the two models do not show significant differences due to the parsimony principle (simple is best), L10DIST is not necessary for the model. Also, the reduced model has a lower GCV, which indicates that it fits the data batter.
+
+# Remove ALT from loyn.qp2.gam
+qpgam.Red2 <- update(qpgam.Red, ". ~ .-ALT")
+
+# Do a likelihood-ratio test to compare the full and reduced model
+anova(qpgam.Red, # full model
+      qpgam.Red2, # reduced model
+       test = "F") # select the test to use
+
+# extract the generalised cross-validation score for the Full model
+summary(qpgam.Red)$sp.criterion
+
+# extract the generalised cross-validation score for the reduced model
+summary(qpgam.Red2)$sp.criterion
+
+# Does the fit (Deviance) of the model significantly improve by adding the evaluated variable?*
+## As the two models show significant differs removing ALT makes the model worst. Also, the reduced model has a higher GCV, which indicates that it fits the data worst.
+## If you do this procedure for the other variables, the same trend emerges
+```
+
+## Model assumptions Final check
+
+To fish, you will look at some diagnostic information about the fitting procedure and results of this last GAM. For this, you will use the `gamm.check()` function again.
+
+
+<div class = "alert alert-info">
+**Your task:**
+
+Using the `gam.check()` function plots determine for the reduced quasi-Poisson GAM.
+
+* Do we have Homogeneity of variances?
+
+* Do we have a good model fit?
+</div>
+
+
+```{r qpgamcheck}
+# set a plotting space with two rows and two columns
+par(mfrow = c(2, 2))
+
+# run the gam.check() function to evaluate produces graphical diagnostics for the model
+gam.check(qpgam.Red2, # the GAM model
+          pch = 19, # a graphical parameter to define the type of point to plot
+          old.style = FALSE, # make old fashioned plots for simplicity
+          xpd = NA)
+
+# Do we have Homogeneity of variances?
+## The figure shows a good spread of residuals. This is due to the selection of predictors and the use of a quasi-Poisson model.
+
+# Do we have a good model fit?
+## The bottom right plot shows that there is a "straight line" association between observed (response) values and those "fitted" by the model - this is supported by the deviance explained. However, there is quite some spread of the predictors.
+```
+
+But hey, you also created a quasi-Poisson GLM model (`loyn.qp.glm.red`)!! Which one of these two fits better the data? That is a difficult question to answer!!
+
+You could focus on the explained deviances [(Null~Deviance~ - Residual~Deviance~) / Null~Deviance~]. This would mean that a GAM is a better model. However, are these differences significant? This would require comparing the differences between the GLM and GAM deviances are larger than expected by random, and you can only do this via simulations - I leave that to the keen student!
+
+## Final thoughts 
+
+GAM's can be very useful, both as an exploratory tool that extends the idea of smoothing functions and as a more formal model fitting procedure that lets the data determine many aspects of the final model structure.
+
+However, it is important to remember that problems encountered for generalised linear models (GLM's) can also cause trouble in generalised additive modelling (GAM's) (e.g. violation of independence, heterogeneity, and nested data). Also, their application is not straightforward. First, we must choose a smoothing function for each predictor and also a smoothing parameter for each smoothing function. Second, we must make the same decisions as for GLM's: which probability distribution and link function combination is appropriate or use quasi-likelihood models.
+
+
+

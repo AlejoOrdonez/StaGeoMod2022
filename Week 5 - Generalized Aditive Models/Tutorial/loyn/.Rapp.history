@@ -1,0 +1,1231 @@
+Abs.Chng.AntopCover <- lapply(1:c(nlayers(AntopCoverSum)-1)),function(x){AntopCoverSum[[x+1]]-AntopCoverSum[[x]]})
+Abs.Chng.AntopCover <- lapply(1:c(nlayers(AntopCoverSum)-1),function(x){AntopCoverSum[[x+1]]-AntopCoverSum[[x]]})
+Abs.Chng.AntopCover
+Abs.Chng.AntopCover.List <- lapply(1:c(nlayers(AntopCoverSum)-1),function(x){AntopCoverSum[[x+1]]-AntopCoverSum[[x]]})#
+Abs.Chng.AntopCover <- do.call("stack",Abs.Chng.AntopCover.List)
+plot(Abs.Chng.AntopCover)
+plot(Abs.Chng.AntopCover[1])
+plot(Abs.Chng.AntopCover[[1]])
+AntopCoverSum
+x
+AntopCoverSum[[x]]
+plot(AntopCoverSum[[x]])
+SpatGrad.dz.dx <- focal(AntopCoverSum[[x]], w=matrix(1,3,3), fun=function(x){if(is.na(x[5])){out<-NA}#
+																			 else{out <- mean(c(x[3],x[6],x[6],x[9],-x[1],-x[4],-x[4],-x[7]),na.rm=T)}#
+																			 return(out)#
+																 			  })
+SpatGrad.dz.dx
+plot(SpatGrad.dz.dx)
+hist(SpatGrad.dz.dx)
+hist(abs(SpatGrad.dz.dx))
+hist(log10(abs(SpatGrad.dz.dx)))
+plot(log10(abs(SpatGrad.dz.dx)))
+SpatGrad.dz.dx <- focal(AntopCoverSum[[x]], w=matrix(1,3,3), fun=function(x){if(is.na(x[5])){out<-NA}#
+																			 else{out <- mean(c(x[3],x[6],x[6],x[9],-x[1],-x[4],-x[4],-x[7]),na.rm=T)}#
+																			 return(out)#
+																 			  })#
+SpatGrad.dz.dy <- focal(AntopCoverSum[[x]], w=matrix(1,3,3), fun=function(x){if(is.na(x[5])){out<-NA}#
+																			 else{out <- mean(c(x[7],x[8],x[8],x[9],-x[1],-x[2],-x[2],-x[3]),na.rm=T)}#
+																			 return(out)#
+																 			  })
+SpatGrad.Loarie <- sqrt((SpatGrad.dz.dx^2)+(SpatGrad.dz.dy^2))
+SpatGrad.Loarie
+plot(SpatGrad.Loarie)
+plot(log10(SpatGrad.Loarie+1))
+rm(Abs.Chng.AntopCover.List)
+Time.Chng.AntopCover.List <- lapply(1:c(nlayers(AntopCoverSum)-1),function(x){AntopCoverSum[[x+1]]-AntopCoverSum[[x]]})#
+Time.Chng.AntopCover <- do.call("stack",Time.Chng.AntopCover.List)#
+#
+Space.Chng.AntopCover.List <- lapply(1:c(nlayers(AntopCoverSum)-1),function(x){#
+		SpatGrad.dz.dx <- focal(AntopCoverSum[[x]], w=matrix(1,3,3), fun=function(x){if(is.na(x[5])){out<-NA}#
+																		   else{out <- mean(c(x[3],x[6],x[6],x[9],-x[1],-x[4],-x[4],-x[7]),na.rm=T)}#
+																		   return(out)#
+																		   })#
+		SpatGrad.dz.dy <- focal(AntopCoverSum[[x]], w=matrix(1,3,3), fun=function(x){if(is.na(x[5])){out<-NA}#
+																		   else{out <- mean(c(x[7],x[8],x[8],x[9],-x[1],-x[2],-x[2],-x[3]),na.rm=T)}#
+																		   return(out)#
+																		   })#
+		SpatGrad.Loarie <- sqrt((SpatGrad.dz.dx^2)+(SpatGrad.dz.dy^2)) #
+		return(SpatGrad.Loarie)})#
+Space.Chng.AntopCover <- do.call("stack",Space.Chng.AntopCover.List)
+Space.Chng.AntopCover
+plot(Space.Chng.AntopCover)
+plot(Space.Chng.AntopCover[[1]])
+plot(Space.Chng.AntopCover[[1]]==0)
+require(raster)#
+#
+##### Land cover variable names#
+# primf: forested primary land#
+# primn: non-forested primary land#
+# secdf: potentially forested secondary land#
+# secdn: potentially non-forested secondary land#
+#
+# c3ann: C3 annual crops#
+# c4ann: C4 annual crops#
+# c3per: C3 perennial crops#
+# c4per: C4 perennial crops#
+# c3nfx: C3 nitrogen-fixing crops#
+#
+# pastr: managed pasture#
+# range: rangeland#
+# urban: urban land#
+#
+# forested primary land#
+PrimForestCover <- stack("~/Dropbox/Aarhus  Assistant Professor/Projects/CLIMLAN/Data/Land cover/Land-Use Harmonization V2/Historical 850-2015/high/states.nc",varname="primf")#
+PrimForestCover <- PrimForestCover[[1121:1166]]#
+#
+# potentially forested secondary land#
+SecondForestCover <- stack("~/Dropbox/Aarhus  Assistant Professor/Projects/CLIMLAN/Data/Land cover/Land-Use Harmonization V2/Historical 850-2015/high/states.nc",varname="secdf")#
+SecondForestCover <- SecondForestCover[[1121:1166]]#
+#
+# non-forested primary land#
+PrimNoForestCover <- stack("~/Dropbox/Aarhus  Assistant Professor/Projects/CLIMLAN/Data/Land cover/Land-Use Harmonization V2/Historical 850-2015/high/states.nc",varname="primn")#
+PrimNoForestCover <- PrimNoForestCover[[1121:1166]]#
+#
+# potentially non-forested secondary land#
+SecondNoForestCover <- stack("~/Dropbox/Aarhus  Assistant Professor/Projects/CLIMLAN/Data/Land cover/Land-Use Harmonization V2/Historical 850-2015/high/states.nc",varname="secdn")#
+SecondNoForestCover <- SecondNoForestCover[[1121:1166]]#
+#
+##### Urban land cover #
+UrbanCover <- stack("~/Dropbox/Aarhus  Assistant Professor/Projects/CLIMLAN/Data/Land cover/Land-Use Harmonization V2/Historical 850-2015/high/states.nc",varname="urban")#
+UrbanCover <- UrbanCover[[1121:1166]]#
+#
+##### Managed pastures cover #
+PasturesCover <- stack("~/Dropbox/Aarhus  Assistant Professor/Projects/CLIMLAN/Data/Land cover/Land-Use Harmonization V2/Historical 850-2015/high/states.nc",varname="pastr")#
+PasturesCover <- PasturesCover[[1121:1166]]#
+#
+##### Rangelands cover #
+RangelandCover <- stack("~/Dropbox/Aarhus  Assistant Professor/Projects/CLIMLAN/Data/Land cover/Land-Use Harmonization V2/Historical 850-2015/high/states.nc",varname="range")#
+RangelandCover <- RangelandCover[[1121:1166]]#
+#
+# C3 annual crops#
+C3annCover <- stack("~/Dropbox/Aarhus  Assistant Professor/Projects/CLIMLAN/Data/Land cover/Land-Use Harmonization V2/Historical 850-2015/high/states.nc",varname="c3ann")#
+C3annCover <- C3annCover[[1121:1166]]#
+#
+# C4 annual crops#
+C4annCover <- stack("~/Dropbox/Aarhus  Assistant Professor/Projects/CLIMLAN/Data/Land cover/Land-Use Harmonization V2/Historical 850-2015/high/states.nc",varname="c4ann")#
+C4annCover <- C4annCover[[1121:1166]]#
+#
+# C3 perennial crops#
+C3perCover <- stack("~/Dropbox/Aarhus  Assistant Professor/Projects/CLIMLAN/Data/Land cover/Land-Use Harmonization V2/Historical 850-2015/high/states.nc",varname="c3per")#
+C3perCover <- C3perCover[[1121:1166]]#
+#
+# C4 perennial crops#
+C4perCover <- stack("~/Dropbox/Aarhus  Assistant Professor/Projects/CLIMLAN/Data/Land cover/Land-Use Harmonization V2/Historical 850-2015/high/states.nc",varname="c4per")#
+C4perCover <- C4perCover[[1121:1166]]#
+#
+# C3 nitrogen-fixing crops#
+C3nfxCover <- stack("~/Dropbox/Aarhus  Assistant Professor/Projects/CLIMLAN/Data/Land cover/Land-Use Harmonization V2/Historical 850-2015/high/states.nc",varname="c3nfx")#
+C3nfxCover <- C3nfxCover[[1121:1166]]#
+#
+#######################################################################################################################
+## Forest cover#
+ForestCoverSum.list <- lapply(1:46, function(x){sum(stack(PrimForestCover[[x]],#
+																	SecondForestCover[[x]]))})#
+ForestCoverSum <- do.call("stack", ForestCoverSum.list) #
+dev.new(width=10,hight=6)#
+plot(ForestCoverSum[[46]],main="Forest cover")#
+#
+## No forest cover#
+NoForestCoverSum.list <- lapply(1:46, function(x){sum(stack(PrimNoForestCover[[x]],#
+																	   SecondNoForestCover[[x]]))})#
+NoForestCoverSum <- do.call("stack", NoForestCoverSum.list) #
+dev.new(width=10,hight=6)#
+plot(NoForestCoverSum[[46]], main="No forest cover")#
+#
+## Antopogenic pastures cover#
+AntoPastCoverSum.list <- lapply(1:46, function(x){sum(stack(PasturesCover[[x]],#
+																	   RangelandCover[[x]]))})#
+AntoPastCoverSum <- do.call("stack", AntoPastCoverSum.list) #
+dev.new(width=10,hight=6)#
+plot(AntoPastCoverSum[[46]], main="Antopogenic pastures cover")#
+#
+## Crop cover#
+CropsCoverSum.list <- lapply(1:46, function(x){sum(stack(C3nfxCover[[x]],#
+																	C4perCover[[x]],#
+																	C3perCover[[x]],#
+																	C4annCover[[x]],#
+																	C3annCover[[x]]))})#
+CropsCoverSum <- do.call("stack", CropsCoverSum.list) #
+dev.new(width=10,hight=6)#
+plot(CropsCoverSum[[46]], main="Crop cover")#
+#
+# Antropogenic #
+AntopCoverSum.list <- lapply(1:46, function(x){sum(stack(CropsCoverSum[[x]],#
+																	AntoPastCoverSum[[x]],#
+																	UrbanCover[[x]]))})#
+AntopCoverSum <- do.call("stack", AntopCoverSum.list) #
+dev.new(width=10,hight=6)#
+plot(AntopCoverSum[[46]], main="Anthropogenic cover")#
+#
+dev.new(width=10,hight=6)#
+plot(abs(TimeVar.AntopCover),main="Temporal heterogeneity - Anthropogenic")#
+#
+# Natural Vegetation #
+NatVegCoverSum.list <- lapply(1:46, function(x){sum(stack(ForestCoverSum[[x]],#
+																	NoForestCoverSum[[x]]))})#
+NatVegCoverSum <- do.call("stack", NatVegCoverSum.list) #
+dev.new(width=10,hight=6)#
+plot(NatVegCoverSum[[46]], main="Natural vegetation")
+## Change between years change #
+Time.Chng.AntopCover.List <- lapply(1:c(nlayers(AntopCoverSum)-1),function(x){AntopCoverSum[[x+1]]-AntopCoverSum[[x]]})#
+Time.Chng.AntopCover <- do.call("stack",Time.Chng.AntopCover.List)
+Space.Chng.AntopCover.List <- lapply(1:c(nlayers(AntopCoverSum)-1),function(x){#
+		SpatGrad.dz.dx <- focal(AntopCoverSum[[x]], w=matrix(1,3,3), fun=function(x){if(is.na(x[5])){out<-NA}#
+																		   else{out <- mean(c(x[3],x[6],x[6],x[9],-x[1],-x[4],-x[4],-x[7]),na.rm=T)}#
+																		   return(out)#
+																		   })#
+		SpatGrad.dz.dy <- focal(AntopCoverSum[[x]], w=matrix(1,3,3), fun=function(x){if(is.na(x[5])){out<-NA}#
+																		   else{out <- mean(c(x[7],x[8],x[8],x[9],-x[1],-x[2],-x[2],-x[3]),na.rm=T)}#
+																		   return(out)#
+																		   })#
+		SpatGrad.Loarie <- sqrt((SpatGrad.dz.dx^2)+(SpatGrad.dz.dy^2)) #
+		return(SpatGrad.Loarie)})#
+Space.Chng.AntopCover <- do.call("stack",Space.Chng.AntopCover.List)
+Dist <- raster("~/Dropbox/Aarhus  Assistant Professor/Projects/CLIMLAN/Data/Distance/Dist.tif")
+plot(Space.Chng.AntopCover[[1]]/Dist)
+plot(Time.Chng.AntopCover[[1]]/(Space.Chng.AntopCover[[1]]/Dist))
+plot(abs(Time.Chng.AntopCover[[1]]/(Space.Chng.AntopCover[[1]]/Dist)))
+plot(log10(abs(Time.Chng.AntopCover[[1]]/(Space.Chng.AntopCover[[1]]/Dist))))
+## Change between years change #
+Time.Chng.NatVegCover.List <- lapply(1:c(nlayers(NatVegCoverSum)-1),function(x){NatVegCoverSum[[x+1]]-NatVegCoverSum[[x]]})#
+Time.Chng.NatVegCover <- do.call("stack",Time.Chng.NatVegCover.List)#
+#
+## Change in space#
+Space.Chng.NatVegCover.List <- lapply(1:c(nlayers(NatVegCoverSum)-1),function(x){#
+		SpatGrad.dz.dx <- focal(NatVegCoverSum[[x]], w=matrix(1,3,3), fun=function(x){if(is.na(x[5])){out<-NA}#
+																		   else{out <- mean(c(x[3],x[6],x[6],x[9],-x[1],-x[4],-x[4],-x[7]),na.rm=T)}#
+																		   return(out)#
+																		   })#
+		SpatGrad.dz.dy <- focal(NatVegCoverSum[[x]], w=matrix(1,3,3), fun=function(x){if(is.na(x[5])){out<-NA}#
+																		   else{out <- mean(c(x[7],x[8],x[8],x[9],-x[1],-x[2],-x[2],-x[3]),na.rm=T)}#
+																		   return(out)#
+																		   })#
+		SpatGrad.Loarie <- sqrt((SpatGrad.dz.dx^2)+(SpatGrad.dz.dy^2)) #
+		return(SpatGrad.Loarie)})#
+Space.Chng.NatVegCover <- do.call("stack",Space.Chng.NatVegCover.List)#
+#
+Dist <- raster("~/Dropbox/Aarhus  Assistant Professor/Projects/CLIMLAN/Data/Distance/Dist.tif")#
+#
+plot(log10(abs(Time.Chng.NatVegCover[[1]]/(Space.Chng.NatVegCover[[1]]/Dist))))
+Time.Chng.AntopCover
+Time.Chng.AntopCover[[1]]
+a<-Time.Chng.AntopCover[[1]]
+Time.Chng.NatVegCover
+a<-Time.Chng.NatVegCover[[1]]
+a <- Time.Chng.NatVegCover[[1]]
+plot(a)
+plot(abs(a))
+a <- abs(Time.Chng.NatVegCover[[1]])
+Space.Chng.NatVegCover.List <- lapply(1:c(nlayers(NatVegCoverSum)-1),function(x){#
+		SpatGrad.dz.dx <- focal(NatVegCoverSum[[x]], w=matrix(1,3,3), fun=function(x){if(is.na(x[5])){out<-NA}#
+																		   else{out <- mean(c(x[3],x[6],x[6],x[9],-x[1],-x[4],-x[4],-x[7]),na.rm=T)}#
+																		   return(out)#
+																		   })#
+		SpatGrad.dz.dy <- focal(NatVegCoverSum[[x]], w=matrix(1,3,3), fun=function(x){if(is.na(x[5])){out<-NA}#
+																		   else{out <- mean(c(x[7],x[8],x[8],x[9],-x[1],-x[2],-x[2],-x[3]),na.rm=T)}#
+																		   return(out)#
+																		   })#
+		SpatGrad.Loarie <- sqrt((SpatGrad.dz.dx^2)+(SpatGrad.dz.dy^2)) #
+		return(SpatGrad.Loarie)})#
+Space.Chng.NatVegCover <- do.call("stack",Space.Chng.NatVegCover.List)
+Space.Chng.NatVegCover.List <- lapply(1:5),function(x){#
+		SpatGrad.dz.dx <- focal(NatVegCoverSum[[x]], w=matrix(1,3,3), fun=function(x){if(is.na(x[5])){out<-NA}#
+																		   else{out <- mean(c(x[3],x[6],x[6],x[9],-x[1],-x[4],-x[4],-x[7]),na.rm=T)}#
+																		   return(out)#
+																		   })#
+		SpatGrad.dz.dy <- focal(NatVegCoverSum[[x]], w=matrix(1,3,3), fun=function(x){if(is.na(x[5])){out<-NA}#
+																		   else{out <- mean(c(x[7],x[8],x[8],x[9],-x[1],-x[2],-x[2],-x[3]),na.rm=T)}#
+																		   return(out)#
+																		   })#
+		SpatGrad.Loarie <- sqrt((SpatGrad.dz.dx^2)+(SpatGrad.dz.dy^2)) #
+		return(SpatGrad.Loarie)})#
+Space.Chng.NatVegCover <- do.call("stack",Space.Chng.NatVegCover.List)
+Space.Chng.NatVegCover.List <- lapply(1:c(nlayers(NatVegCoverSum)-1),function(x){
+SpatGrad.dz.dx <- focal(NatVegCoverSum[[x]], w=matrix(1,3,3), fun=function(x){if(is.na(x[5])){out<-NA}#
+																		   else{out <- mean(c(x[3],x[6],x[6],x[9],-x[1],-x[4],-x[4],-x[7]),na.rm=T)}#
+																		   return(out)#
+																		   })
+SpatGrad.dz.dy <- focal(NatVegCoverSum[[x]], w=matrix(1,3,3), fun=function(x){if(is.na(x[5])){out<-NA}#
+																		   else{out <- mean(c(x[7],x[8],x[8],x[9],-x[1],-x[2],-x[2],-x[3]),na.rm=T)}#
+																		   return(out)#
+																		   })
+SpatGrad.Loarie <- sqrt((SpatGrad.dz.dx^2)+(SpatGrad.dz.dy^2))
+return(SpatGrad.Loarie)})
+Time.Chng.NatVegCover
+gc()
+!ls()%in%c("NatVegCoverSum", "AntopCoverSum")
+ls()[!ls()%in%c("NatVegCoverSum", "AntopCoverSum")]
+rm(list=ls()[!ls()%in%c("NatVegCoverSum", "AntopCoverSum")])
+gc()
+Time.Chng.NatVegCover.List <- lapply(1:2),function(x){NatVegCoverSum[[x+1]]-NatVegCoverSum[[x]]})#
+Time.Chng.NatVegCover <- do.call("stack",Time.Chng.NatVegCover.List)
+NatVegCoverSum
+Time.Chng.NatVegCover.List <- lapply(1:2),function(x){NatVegCoverSum[[x+1]]-NatVegCoverSum[[x]]})
+Time.Chng.NatVegCover.List <- lapply(1:2,function(x){NatVegCoverSum[[x+1]]-NatVegCoverSum[[x]]})
+Time.Chng.NatVegCover <- do.call("stack",Time.Chng.NatVegCover.List)
+Space.Chng.NatVegCover.List <- lapply(1:2),function(x){#
+		SpatGrad.dz.dx <- focal(NatVegCoverSum[[x]], w=matrix(1,3,3), fun=function(x){if(is.na(x[5])){out<-NA}#
+																		   else{out <- mean(c(x[3],x[6],x[6],x[9],-x[1],-x[4],-x[4],-x[7]),na.rm=T)}#
+																		   return(out)})#
+		SpatGrad.dz.dy <- focal(NatVegCoverSum[[x]], w=matrix(1,3,3), fun=function(x){if(is.na(x[5])){out<-NA}#
+																		   else{out <- mean(c(x[7],x[8],x[8],x[9],-x[1],-x[2],-x[2],-x[3]),na.rm=T)}#
+																		   return(out)#
+																		   })#
+		SpatGrad.Loarie <- sqrt((SpatGrad.dz.dx^2)+(SpatGrad.dz.dy^2)) #
+		return(SpatGrad.Loarie)})#
+Space.Chng.NatVegCover <- do.call("stack",Space.Chng.NatVegCover.List)
+Space.Chng.NatVegCover.List <- lapply(1:2,function(x){#
+		SpatGrad.dz.dx <- focal(NatVegCoverSum[[x]], w=matrix(1,3,3), fun=function(x){if(is.na(x[5])){out<-NA}#
+																		   else{out <- mean(c(x[3],x[6],x[6],x[9],-x[1],-x[4],-x[4],-x[7]),na.rm=T)}#
+																		   return(out)})#
+		SpatGrad.dz.dy <- focal(NatVegCoverSum[[x]], w=matrix(1,3,3), fun=function(x){if(is.na(x[5])){out<-NA}#
+																		   else{out <- mean(c(x[7],x[8],x[8],x[9],-x[1],-x[2],-x[2],-x[3]),na.rm=T)}#
+																		   return(out)#
+																		   })#
+		SpatGrad.Loarie <- sqrt((SpatGrad.dz.dx^2)+(SpatGrad.dz.dy^2)) #
+		return(SpatGrad.Loarie)})
+Space.Chng.NatVegCover.List
+x<-1
+SpatGrad.dz.dx <- focal(NatVegCoverSum[[x]], w=matrix(1,3,3), fun=function(x){if(is.na(x[5])){out<-NA}#
+																		   else{out <- mean(c(x[3],x[6],x[6],x[9],-x[1],-x[4],-x[4],-x[7]),na.rm=T)}#
+																		   return(out)})
+SpatGrad.dz.dy <- focal(NatVegCoverSum[[x]], w=matrix(1,3,3), fun=function(x){if(is.na(x[5])){out<-NA}#
+																		   else{out <- mean(c(x[7],x[8],x[8],x[9],-x[1],-x[2],-x[2],-x[3]),na.rm=T)}#
+																		   return(out)#
+																		   })#
+		SpatGrad.Loarie <- sqrt((SpatGrad.dz.dx^2)+(SpatGrad.dz.dy^2))
+gc()
+ls()
+a <- abs(Time.Chng.NatVegCover[[1]])
+b<-SpatGrad.Loarie
+Dist <- raster("~/Dropbox/Aarhus  Assistant Professor/Projects/CLIMLAN/Data/Distance/Dist.tif")
+b
+plot(b)
+plot(a)
+plot(Dist)
+Dist <- mask(Dist,b)
+plot(Dist)
+plot((a/b)* Dist)
+hist((a/b)* Dist)
+hist(log10((a/b)* Dist))
+plot(log10((a/b)* Dist))
+plot(abs(log10((a/b)* Dist))<3)
+log10(150)
+VelVect <- (a/b)* Dist
+log10(0.001)
+VelVect[] <= log10(0.001)
+VelVect[VelVect[] <= log10(0.001)]
+VelVect[c(VelVect[] <= log10(0.001))]
+c(VelVect[] <= log10(0.001))
+VelVect[which(c(VelVect[] <= log10(0.001)))]
+which(c(VelVect[] <= log10(0.001)))
+c(VelVect[] <= log10(0.001))
+VelVect[]
+VelVect[][c(VelVect[] <= log10(0.001))]
+VelVect[][c(VelVect[] <= log10(0.001))]<-0.001
+VelVect <- (a/b)* Dist#
+VelVect[c(VelVect[] <= 0.01)]<-0.01#
+VelVect[c(VelVect[] >= 150)]<-150
+plot(log10(VelVect))
+plot(VelVect==0)
+VelVect
+VelVect <- (a/b)* Dist
+VelVect
+plot(VelVect==Inf)
+plot(b==0)
+100/0
+hist(b)
+quantile(b,0.01,na.rm=T)
+quantile(b,0.05,na.rm=T)
+quantile(b[],0.05,na.rm=T)
+quantile(b[],0.1,na.rm=T)
+jitter(b[]
+)
+min(jitter(b[]),na.rm=T)
+1/0.005
+1/0.001
+0
+0.001
+b[b[]<0.001]<-0.001
+VelVect <- (a/b)* Dist#
+VelVect[c(VelVect[] <= 0.01)]<-0.01#
+VelVect[c(VelVect[] >= 150)]<-150#
+#
+plot(log10(VelVect))
+plot(a)
+gc()
+plot(NatVegCoverSum[[1]])
+plot(NatVegCoverSum[[1]]==0)
+plot(NatVegCoverSum[[2]]==0)
+plot(NatVegCoverSum[[1]])
+plot(a)
+plot(log10(VelVect))
+b.1<-focal(NatVegCoverSum[[1]],w=matrix(1,3,3), fun=function(x){mean(sqrt((x[5])^2-(x[-5])^2),na.rm=T)})
+warnings()
+b.1<-focal(NatVegCoverSum[[1]],w=matrix(1,3,3), fun=function(x){mean(sqrt(na.omit((x[5])^2-(x[-5])^2)))})
+warnings()
+b.1<-focal(NatVegCoverSum[[1]],w=matrix(1,3,3), fun=function(x){mean(sqrt(na.omit((x[5])^2+(x[-5])^2)))})
+plot(b.1)
+plot(b)
+b <- SpatGrad.Loarie
+plot(b)
+b[b[]<0.001]<-0.001
+plot(b)
+Dist <- raster("~/Dropbox/Aarhus  Assistant Professor/Projects/CLIMLAN/Data/Distance/Dist.tif")#
+Dist <- mask(Dist,b)
+VelVect <- (a/b)* Dist#
+VelVect[c(VelVect[] <= 0.01)]<-0.01#
+VelVect[c(VelVect[] >= 150)]<-150#
+#
+plot(log10(VelVect))
+b1<- focal(NatVegCoverSum[[1]],function(x){ifelse(!is.na(x[5]),abs(x[5]-x[-5],NA)})
+b1<- focal(NatVegCoverSum[[1]],function(x){ifelse(!is.na(x[5]),abs(x[5]-x[-5],NA))})
+b1<- focal(NatVegCoverSum[[1]],w=matrix(1,3,3), function(x){ifelse(!is.na(x[5]),abs(x[5]-x[-5],NA))})
+b1<- focal(NatVegCoverSum[[1]],w=matrix(1,3,3),function(x){ifelse(!is.na(x[5]),abs(x[5]-x[-5],NA))})
+b1<- focal(NatVegCoverSum[[1]],w=matrix(1,3,3),function(x){ifelse(!is.na(x[5]),abs(x[5]-x[-5]),NA)})
+plot(b1)
+b1<- focal(NatVegCoverSum[[1]],w=matrix(1,3,3),function(x){ifelse(!is.na(x[5]),abs(mean(x[5]-x[-5])),NA)})
+plot(b1)
+b
+b1
+b1[b1[]<0.001]<-0.001
+NatVegCoverSum
+yr<-45
+yr<-45#
+a1<-NatVegCoverSum[[yr+1]]-NatVegCoverSum[[yr]]
+b1<- focal(NatVegCoverSum[[yr]],w=matrix(1,3,3),function(x){ifelse(!is.na(x[5]),abs(mean(x[5]-x[-5])),NA)})#
+b1[b1[]<0.001]<-0.001
+Dist <- raster("~/Dropbox/Aarhus  Assistant Professor/Projects/CLIMLAN/Data/Distance/Dist.tif")#
+Dist <- mask(Dist,b)
+Dist <- raster("~/Dropbox/Aarhus  Assistant Professor/Projects/CLIMLAN/Data/Distance/Dist.tif")#
+Dist <- mask(Dist,b1)
+VelVect <- (a1/b1)* Dist
+VelVect
+plot(log10(VelVect))
+VelVect[c(VelVect[] <= 0.01)]<-0.01#
+VelVect[c(VelVect[] >= 150)]<-150#
+plot(log10(VelVect))
+rm(list=ls());gc()#
+require(raster)#
+require(maptools)#
+data(wrld_simpl)#
+#
+Crop.1700.2005 <- stack("~/Dropbox/Aarhus  Assistant Professor/Projects/CLIMLAN/Data/Land cover/Harmonized Global Land Use/Data/Historical 1700-2005/cropland/LUHa_u2t1.v1_gcrop.nc4")#
+#
+Crop.1970.2000 <- Crop.1700.2005[[match(c(1970:2000),1700:2005)]]#
+#
+Crop.1970.2000.TimeSlope <- calc(Crop.1970.2000,function(x){ifelse(is.na(x[1]),NA,coef(lm(x~I(1:31)))[2])})#
+#
+Crop.1970.2000.TimeSlope.Masked <- mask(Crop.1970.2000.TimeSlope, wrld_simpl[wrld_simpl$NAME!="Antarctica",])#
+#
+plot(Crop.1970.2000.TimeSlope.Masked)#
+sum ((Crop.1970.2000.TimeSlope.Masked<0)[],na.rm=T)#
+sum ((Crop.1970.2000.TimeSlope.Masked>0)[],na.rm=T)#
+sum ((Crop.1970.2000.TimeSlope.Masked==0)[],na.rm=T)#
+######
+rm(list=ls()[!ls()%in%c("Crop.1970.2000.TimeSlope.Masked","Crop.1970.2000","wrld_simpl")]);gc()#
+PriLnd.1700.2005 <- stack("~/Dropbox/Aarhus  Assistant Professor/Projects/CLIMLAN/Data/Land cover/Harmonized Global Land Use/Data/Historical 1700-2005/primary land/LUHa_u2t1.v1_gothr.nc4")#
+#
+PriLnd.1970.2000 <- PriLnd.1700.2005[[match(c(1970:2000),1700:2005)]]#
+#
+PriLnd.1970.2000.TimeSlope <- calc(PriLnd.1970.2000,function(x){ifelse(is.na(x[1]),NA,coef(lm(x~I(1:31)))[2])})#
+#
+PriLnd.1970.2000.TimeSlope.Masked <- mask(PriLnd.1970.2000.TimeSlope, wrld_simpl[wrld_simpl$NAME!="Antarctica",])#
+#
+plot(PriLnd.1970.2000.TimeSlope.Masked)#
+sum ((PriLnd.1970.2000.TimeSlope.Masked<0)[],na.rm=T)#
+sum ((PriLnd.1970.2000.TimeSlope.Masked>0)[],na.rm=T)#
+sum ((PriLnd.1970.2000.TimeSlope.Masked==0)[],na.rm=T)#
+rm(list=ls()[!ls()%in%c("Crop.1970.2000.TimeSlope.Masked","Crop.1970.2000","wrld_simpl","PriLnd.1970.2000.TimeSlope.Masked","PriLnd.1970.2000")]);gc()#
+#
+######
+#
+Urban.1700.2005 <- stack("~/Dropbox/Aarhus  Assistant Professor/Projects/CLIMLAN/Data/Land cover/Harmonized Global Land Use/Data/Historical 1700-2005/urban land/LUHa_u2t1.v1_gurbn.nc4")#
+#
+Urban.1970.2000 <- Urban.1700.2005[[match(c(1970:2000),1700:2005)]]#
+#
+Urban.1970.2000.TimeSlope <- calc(Urban.1970.2000,function(x){ifelse(is.na(x[1]),NA,coef(lm(x~I(1:31)))[2])})#
+#
+Urban.1970.2000.TimeSlope.Masked <- mask(Urban.1970.2000.TimeSlope, wrld_simpl[wrld_simpl$NAME!="Antarctica",])#
+#
+plot(Urban.1970.2000.TimeSlope.Masked*100)#
+sum ((Urban.1970.2000.TimeSlope.Masked<0)[],na.rm=T)#
+sum ((Urban.1970.2000.TimeSlope.Masked>0)[],na.rm=T)#
+sum ((Urban.1970.2000.TimeSlope.Masked==0)[],na.rm=T)#
+#
+rm(list=ls()[!ls()%in%c("Crop.1970.2000.TimeSlope.Masked","Crop.1970.2000","wrld_simpl","PriLnd.1970.2000.TimeSlope.Masked","PriLnd.1970.2000","Urban.1970.2000.TimeSlope.Masked","Urban.1970.2000")]);gc()
+list.files("~/Dropbox/Aarhus  Assistant Professor/Projects/CLIMLAN/Data/Land cover/Harmonized Global Land Use/Data/Historical 1700-2005/")
+rm(list=ls());gc()#
+require(raster)#
+require(maptools)#
+data(wrld_simpl)#
+#
+Crop.1700.2005 <- stack("~/Dropbox/Aarhus  Assistant Professor/Projects/CLIMLAN/Data/Land cover/Harmonized Global Land Use/Data/Historical 1700-2005/cropland/LUHa_u2t1.v1_gcrop.nc4")#
+#
+Crop.1970.2000 <- Crop.1700.2005[[match(c(1970:2000),1700:2005)]]#
+#
+Crop.1970.2000.TimeSlope <- calc(Crop.1970.2000,function(x){ifelse(is.na(x[1]),NA,coef(lm(x~I(1:31)))[2])})#
+#
+Crop.1970.2000.TimeSlope.Masked <- mask(Crop.1970.2000.TimeSlope, wrld_simpl[wrld_simpl$NAME!="Antarctica",])#
+#
+plot(Crop.1970.2000.TimeSlope.Masked)
+rm(list=ls());gc()#
+require(raster)#
+require(maptools)#
+data(wrld_simpl)#
+#
+Crop.1700.2005 <- stack("~/Dropbox/Aarhus  Assistant Professor/Projects/CLIMLAN/Data/Land cover/Harmonized Global Land Use/Data/Historical 1700-2005/cropland/LUHa_u2t1.v1_gcrop.nc4")#
+#
+Crop.1970.2000 <- Crop.1700.2005[[match(c(1970:2000),1700:2005)]]
+wrld_simpl$NAME
+sort(wrld_simpl$NAME)
+wrld_simpl$NAME!=c("Antarctica","Greenland")
+rm(list=ls());gc()#
+require(raster)#
+require(maptools)#
+data(wrld_simpl)#
+#
+Crop.1700.2005 <- stack("~/Dropbox/Aarhus  Assistant Professor/Projects/CLIMLAN/Data/Land cover/Harmonized Global Land Use/Data/Historical 1700-2005/cropland/LUHa_u2t1.v1_gcrop.nc4")#
+#
+Crop.1970.2000 <- Crop.1700.2005[[match(c(1970:2000),1700:2005)]]#
+#
+Crop.1970.2000 <- mask(Crop.1970.2000,wrld_simpl[!wrld_simpl$NAME%in%("Antarctica","Greenland"),])
+rm(list=ls());gc()#
+require(raster)#
+require(maptools)#
+data(wrld_simpl)#
+#
+Crop.1700.2005 <- stack("~/Dropbox/Aarhus  Assistant Professor/Projects/CLIMLAN/Data/Land cover/Harmonized Global Land Use/Data/Historical 1700-2005/cropland/LUHa_u2t1.v1_gcrop.nc4")#
+#
+Crop.1970.2000 <- Crop.1700.2005[[match(c(1970:2000),1700:2005)]]#
+#
+Crop.1970.2000 <- mask(Crop.1970.2000,wrld_simpl[!wrld_simpl$NAME%in%c("Antarctica","Greenland"),])
+plot(Crop.1970.2000)
+plot(Crop.1970.2000[[1]])
+Crop.1970.2000.TimeSlope <- calc(Crop.1970.2000,function(x){ifelse(is.na(x[1]),NA,coef(lm(x~I(1:31)))[2])})
+plot(Crop.1970.2000.TimeSlope)#
+plot(wrld_simpl,add=T)
+plot(Crop.1970.2000.TimeSlope)#
+plot(wrld_simpl,add=T)
+SpcHet.EastWest <- focal(mean(Crop.1970.2000[[1:10]]),#
+    						 w=matrix(1, nrow=3, ncol=3),#
+    						 fun=function(x){mean(c((x[2]-x[1]),(x[3]-x[2]),(x[5]-x[4]),(x[6]-x[5]),(x[8]-x[7]),(x[8]-x[9])),na.rm=T)},#
+    						 pad=TRUE, padValue=NA)
+SpcHet.NorthSouth <- focal(mean(Crop.1970.2000[[1:10]]),#
+    						   w=matrix(1, nrow=3, ncol=3),#
+    						   fun=function(x){mean(c((x[4]-x[1]),(x[7]-x[4]),(x[5]-x[2]),(x[8]-x[5]),(x[6]-x[3]),(x[9]-x[6])),na.rm=T)},#
+    						   pad=TRUE, padValue=NA)
+SpcHetPrec <- sqrt((SpcHet.NorthSouth^2)+(SpcHet.EastWest^2))/500)
+SpcHetPrec <- sqrt((SpcHet.NorthSouth^2)+(SpcHet.EastWest^2))/500)
+SpcHetPrec <- sqrt((SpcHet.NorthSouth^2)+(SpcHet.EastWest^2))/500
+Crop.1970.2000.TimeSlope/SpcHetPrec
+Vel<-abs(Crop.1970.2000.TimeSlope/SpcHetPrec)
+plot(log10(Vel))
+Vel
+plot(Vel)
+Vel[Vel[]>500]<-500
+plot(Vel)
+plot(log10(Vel))
+hist(log10(Vel))
+Vel[Vel[]<0.005]<-0.005#
+hist(log10(Vel))
+plot(log10(Vel))
+plot(log10(Vel+1))
+plot(log10(Vel))
+plot(log10(Vel))
+rm(list=ls());gc()
+data.in <- read.csv("~/Dropbox/Courses_&_Conferences/2018/Courses/Statistical & Geospatial modeling/Lectures/Week - 38/Exercise/Part_2/loyn.csv")
+my.var <- "AREA"  # you can change the variable name here to see the different plots#
+shapiro.result <- shapiro.test(data.in[, my.var])$p.value#
+skew <- mean(data.in[, my.var])/median(data.in[, my.var])  ## The balance between mean and median show the skewness #
+title <- paste(my.var, ifelse(shapiro.result > 0.05, "normal,", "not normal,"), "skewness:", round(skew, 3))#
+hist(data.in[, my.var], breaks=20, main=title)#
+#
+## alternate 2a solution using for loop#
+par(mfrow=c(3, 2))#
+for (my.var in c("AREA","YR.ISOL","DIST","LDIST","GRAZE","ALT")) {#
+  shapiro.result <- shapiro.test(data.in[, my.var])$p.value#
+  skew <- mean(data.in[, my.var])/median(data.in[, my.var])  ## The balance between mean and median show the skewness #
+  title <- paste(my.var, ifelse(shapiro.result > 0.05, "normal,", "not normal,"), "skewness:", round(skew, 3))#
+  hist(data.in[, my.var], breaks=20, main=title)#
+}#
+par(mfrow=c(1, 1))#
+#
+# 2b.	Make a list where you define is a given predictor show skewness or not? #
+### Almost all predictors show a strong skewness #
+# - only ALT show a normal distribution the strongest problem is for DIST, DIST, and AREA#
+list(AREA=T, YR.ISOL=T, DIST=T, LDIST=T, GRAZE=T, ALT=F)#
+#
+# 2c.	Lets transform the skew predictors, which is the best transformation to use? #
+#
+### AREA, DIST and LDIST all have what we call a right skew or a positive skew.#
+### for positive skew, square root or log transformations are often good#
+hist(sqrt(data.in$AREA))  # not really better#
+hist(log10(data.in$AREA))  # much better#
+#
+hist(sqrt(data.in$DIST))  # not really better#
+hist(log10(data.in$DIST))  # much better#
+#
+hist(sqrt(data.in$LDIST))  # not really better#
+hist(log10(data.in$LDIST))  # much better#
+#
+### luckily log10 transformations of these variables are already in the dataset,#
+### so we will just use those from now on#
+#
+### YR.ISOL has what we call a left skew or a negative skew.#
+### for negative skew, we can use exponential transformation, #
+### but YR.ISOL is in years, so it does not really make sense to transform#
+### in the same way GRAZE is an index value, so does not really make sense to transform#
+#
+#d.	How does the distribution of the skew predictors look after being transformed?#
+### they look more centered and with mean-median more balanced - but still not fully normal in the case of DIST.#
+par(mfrow=c(3, 2))#
+for (my.var in c("L10AREA","YR.ISOL","L10DIST","L10LDIST","GRAZE","ALT")) {#
+  shapiro.result <- shapiro.test(data.in[, my.var])$p.value#
+  skew <- mean(data.in[, my.var])/median(data.in[, my.var])  ## The balance between mean and median show the skewness #
+  title <- paste(my.var, ifelse(shapiro.result > 0.05, "normal,", "not normal,"), "skewness:", round(skew, 3))#
+  hist(data.in[, my.var], breaks=20, main=title)#
+}#
+par(mfrow=c(1, 1))#
+#
+# 3.	Now lets look at the collinearity between the predictors. #
+# Estimate the correlation between predictors#
+round(cor(data.in[, c("L10AREA", "YR.ISOL", "L10DIST", "L10LDIST", "GRAZE", "ALT")]), 3)#
+#           L10AREA YR.ISOL L10DIST L10LDIST  GRAZE  ALT#
+# L10AREA    1.000   0.278   0.302    0.382 -0.559  0.275#
+# YR.ISOL    0.278   1.000  -0.020   -0.161 -0.636  0.233#
+# L10DIST    0.302  -0.020   1.000    0.604 -0.143 -0.219#
+# L10LDIST   0.382  -0.161   0.604    1.000 -0.034 -0.274#
+# GRAZE     -0.559  -0.636  -0.143   -0.034  1.000 -0.407#
+# ALT        0.275   0.233  -0.219   -0.274 -0.407  1.000#
+#
+### no correlations above 0.7 or below -0.7, so looks pretty good.#
+#
+# 4.	Do we see any outliers or influential values?#
+loyn.glm.full <- glm(ABUND ~ L10AREA + YR.ISOL + L10DIST + L10LDIST + GRAZE + ALT, data=data.in, family="poisson")#
+par(mfcol=c(2,2))#
+plot(loyn.glm.full)#
+par(mfcol=c(1,1))#
+### overall it appears that there is no single observation with a very high influence (points 11, 47, and 18 are woth invesigation). Likewise, rows 11, 55, and 56 do appear to have a large leverage.#
+#
+# 5.	Do we see some large collinear variables? if so, which ones are these?#
+#
+# the code below builds linear models of each explanatory variable vs all the others#
+# and it then calulates 1-r.squared for each model#
+VarsUse <- c("L10AREA", "YR.ISOL", "L10DIST", "L10LDIST", "GRAZE", "ALT")#
+sapply(VarsUse, function(i) {round(1-summary(lm(formula(paste(i, "~", paste(VarsUse[! VarsUse%in%i], collapse="+"), sep="")), data=data.in))$r.squared, 3)})
+library(car)#
+vif <- vif(loyn.glm.full)#
+tolerances <- 1/vif  ########## Alejo?!?!?! why are these so different?!
+tolerances
+loyn.glm.full
+loyn.glm.full <- glm(ABUND ~ L10AREA + YR.ISOL + L10DIST + L10LDIST + GRAZE + ALT, data=data.in, family="gaussian")
+vif <- vif(loyn.glm.full)
+1/vif
+? vif
+vif
+rm(vif)
+vif
+loyn.glm.full <- glm(ABUND ~ L10AREA + YR.ISOL + L10DIST + L10LDIST + GRAZE + ALT, data=data.in, family="Gaussian")#
+model.matrix(loyn.glm.full)
+loyn.glm.full <- glm(ABUND ~ L10AREA + YR.ISOL + L10DIST + L10LDIST + GRAZE + ALT, data=data.in, family="poisson")#
+model.matrix(loyn.glm.full)
+loyn.glm.full <- glm(ABUND ~ L10AREA + YR.ISOL + L10DIST + L10LDIST + GRAZE + ALT, data=data.in, family="Gaussian")#
+model.matrix(loyn.glm.full)[1:10,]#
+loyn.glm.full <- glm(ABUND ~ L10AREA + YR.ISOL + L10DIST + L10LDIST + GRAZE + ALT, data=data.in, family="poisson")#
+model.matrix(loyn.glm.full)[1:10,]
+vif(loyn.glm.full)
+loyn.glm.full <- glm(ABUND ~ L10AREA + YR.ISOL + L10DIST + L10LDIST + GRAZE + ALT, data=data.in, family="poisson")
+1/vif(loyn.glm.full)
+loyn.glm.full <- glm(ABUND ~ L10AREA + YR.ISOL + L10DIST + L10LDIST + GRAZE + ALT, data=data.in, family="poisson")#
+model.matrix(loyn.glm.full)
+loyn.glm.full <- glm(ABUND ~ L10AREA + YR.ISOL + L10DIST + L10LDIST + GRAZE + ALT, data=data.in, family="poisson")#
+a<-model.matrix(loyn.glm.full)
+loyn.glm.full <- glm(ABUND ~ L10AREA + YR.ISOL + L10DIST + L10LDIST + GRAZE + ALT, data=data.in, family="Gaussian")#
+a-model.matrix(loyn.glm.full)[1:10,]
+a
+str(a)
+a-model.matrix(loyn.glm.full)
+data.std <- data.in#
+data.std[, c("L10AREA", "L10DIST", "L10LDIST", "ALT")] <- scale(data.std[, c("L10AREA", "L10DIST", "L10LDIST", "ALT")])#
+data.std[, c("YR.ISOL", "GRAZE")] <- scale(data.std[, c("YR.ISOL", "GRAZE")], center=TRUE, scale=FALSE)#
+# YR.ISOL and Graze are not continuos variables, and therefore should not be scaled, we can however center them,#
+# which I do here with the scale() function bbut using the scale=FALSE argument#
+loyn.glm.full.scaled <- glm(ABUND ~ L10AREA + YR.ISOL + L10DIST + L10LDIST + GRAZE + ALT, data=data.std, family="poisson")
+rm(list=ls());gc()#
+setwd("~/Dropbox/Courses_&_Conferences/2018/Courses/Statistical & Geospatial modeling/Lectures/Week - 38/Exercise/Part_2")  # different on your computer!#
+data.in <- read.csv("~/Dropbox/Courses_&_Conferences/2018/Courses/Statistical & Geospatial modeling/Lectures/Week - 38/Exercise/Part_2/loyn.csv")#
+# 2.	Before we start doing the analyses lets have a close look at the predictors.#
+# 2a.	Show the distribution of the predictors, and signal in the figure title if there are/not sings of skewness #
+#
+my.var <- "AREA"  # you can change the variable name here to see the different plots#
+shapiro.result <- shapiro.test(data.in[, my.var])$p.value#
+skew <- mean(data.in[, my.var])/median(data.in[, my.var])  ## The balance between mean and median show the skewness #
+title <- paste(my.var, ifelse(shapiro.result > 0.05, "normal,", "not normal,"), "skewness:", round(skew, 3))#
+hist(data.in[, my.var], breaks=20, main=title)#
+#
+## alternate 2a solution using for loop#
+par(mfrow=c(3, 2))#
+for (my.var in c("AREA","YR.ISOL","DIST","LDIST","GRAZE","ALT")) {#
+  shapiro.result <- shapiro.test(data.in[, my.var])$p.value#
+  skew <- mean(data.in[, my.var])/median(data.in[, my.var])  ## The balance between mean and median show the skewness #
+  title <- paste(my.var, ifelse(shapiro.result > 0.05, "normal,", "not normal,"), "skewness:", round(skew, 3))#
+  hist(data.in[, my.var], breaks=20, main=title)#
+}#
+par(mfrow=c(1, 1))#
+#
+# 2b.	Make a list where you define is a given predictor show skewness or not? #
+### Almost all predictors show a strong skewness #
+# - only ALT show a normal distribution the strongest problem is for DIST, DIST, and AREA#
+list(AREA=T, YR.ISOL=T, DIST=T, LDIST=T, GRAZE=T, ALT=F)#
+#
+# 2c.	Lets transform the skew predictors, which is the best transformation to use? #
+#
+### AREA, DIST and LDIST all have what we call a right skew or a positive skew.#
+### for positive skew, square root or log transformations are often good#
+hist(sqrt(data.in$AREA))  # not really better#
+hist(log10(data.in$AREA))  # much better#
+#
+hist(sqrt(data.in$DIST))  # not really better#
+hist(log10(data.in$DIST))  # much better#
+#
+hist(sqrt(data.in$LDIST))  # not really better#
+hist(log10(data.in$LDIST))  # much better#
+#
+### luckily log10 transformations of these variables are already in the dataset,#
+### so we will just use those from now on#
+#
+### YR.ISOL has what we call a left skew or a negative skew.#
+### for negative skew, we can use exponential transformation, #
+### but YR.ISOL is in years, so it does not really make sense to transform#
+### in the same way GRAZE is an index value, so does not really make sense to transform#
+#
+#d.	How does the distribution of the skew predictors look after being transformed?#
+### they look more centered and with mean-median more balanced - but still not fully normal in the case of DIST.#
+par(mfrow=c(3, 2))#
+for (my.var in c("L10AREA","YR.ISOL","L10DIST","L10LDIST","GRAZE","ALT")) {#
+  shapiro.result <- shapiro.test(data.in[, my.var])$p.value#
+  skew <- mean(data.in[, my.var])/median(data.in[, my.var])  ## The balance between mean and median show the skewness #
+  title <- paste(my.var, ifelse(shapiro.result > 0.05, "normal,", "not normal,"), "skewness:", round(skew, 3))#
+  hist(data.in[, my.var], breaks=20, main=title)#
+}#
+par(mfrow=c(1, 1))#
+#
+# 3.	Now lets look at the collinearity between the predictors. #
+# Estimate the correlation between predictors#
+round(cor(data.in[, c("L10AREA", "YR.ISOL", "L10DIST", "L10LDIST", "GRAZE", "ALT")]), 3)#
+#           L10AREA YR.ISOL L10DIST L10LDIST  GRAZE  ALT#
+# L10AREA    1.000   0.278   0.302    0.382 -0.559  0.275#
+# YR.ISOL    0.278   1.000  -0.020   -0.161 -0.636  0.233#
+# L10DIST    0.302  -0.020   1.000    0.604 -0.143 -0.219#
+# L10LDIST   0.382  -0.161   0.604    1.000 -0.034 -0.274#
+# GRAZE     -0.559  -0.636  -0.143   -0.034  1.000 -0.407#
+# ALT        0.275   0.233  -0.219   -0.274 -0.407  1.000#
+#
+### no correlations above 0.7 or below -0.7, so looks pretty good.#
+#
+# 4.	Do we see any outliers or influential values?#
+loyn.glm.full <- glm(ABUND ~ L10AREA + YR.ISOL + L10DIST + L10LDIST + GRAZE + ALT, data=data.in, family="poisson")#
+par(mfcol=c(2,2))#
+plot(loyn.glm.full)#
+par(mfcol=c(1,1))#
+### overall it appears that there is no single observation with a very high influence (points 11, 47, and 18 are woth invesigation). Likewise, rows 11, 55, and 56 do appear to have a large leverage.#
+#
+# 5.	Do we see some large collinear variables? if so, which ones are these?#
+#
+# the code below builds linear models of each explanatory variable vs all the others#
+# and it then calulates 1-r.squared for each model#
+VarsUse <- c("L10AREA", "YR.ISOL", "L10DIST", "L10LDIST", "GRAZE", "ALT")#
+sapply(VarsUse, function(i) {round(1-summary(lm(formula(paste(i, "~", paste(VarsUse[! VarsUse%in%i], collapse="+"), sep="")), data=data.in))$r.squared, 3)})#
+# L10AREA  YR.ISOL  L10DIST L10LDIST    GRAZE      ALT #
+# 0.523    0.554    0.604    0.498    0.396    0.681 #
+### all tolerances are well above 0.1 = no colinearity problems#
+#
+## alternative solution to 5.#
+library(car)#
+loyn..Gaussian.glm.full <- glm(ABUND ~ L10AREA + YR.ISOL + L10DIST + L10LDIST + GRAZE + ALT, data=data.in, family="Gaussian")#
+vif <- vif(loyn.glm.full)#
+tolerances <- 1/vif  ########## Alejo?!?!?! why are these so different?!#
+#
+# L10AREA   YR.ISOL   L10DIST  L10LDIST     GRAZE       ALT #
+# 0.4802754 0.6975339 0.5998987 0.5099832 0.4419712 0.6893743 #
+#
+# 6.	We will keep things simple as we build a model that predicts ABUND from L10AREA, YR.ISOL, DIST, LDIST, GRAZE, and ALT. #
+###log(ABUND) ~ L10AREA+YR.ISOL+L10DIST+L10LDIST+GRAZE+ALT#
+#
+# 7.	Based on what we discussed in the theory session:#
+# a.	Which is the best regression model to predict ABUND? [HINT: Look the type of variable the response variable ABUND]#
+### We will use a poisson, as Abundance is a count variabler#
+#
+# b.	How would the equation for this regression model look?. [HINT: remember the role of the link function (log) as a way to link the expected value of Y to the predictor(s) X in a glm]#
+### g(x) = log(ABUND) = L10AREA+YR.ISOL+L10DIST+L10LDIST+GRAZE+ALT#
+#
+# 8.	Based on this regression, which is the H0???s we are interested in testing?#
+### that neither of the proposed predictors explains the variation in Bird abundance#
+### B1(L10AREA) = B2(YR.ISOL) = B3(L10DIST) = B4(L10LDIST) = B5(GRAZE) = B6(ALT) = 0#
+#
+# 9.	Lets look now at that Poisson regression. Estimate the parameters for the proposed model. #
+# For this you will need to use the method glm, remembering to include the adequate error family #
+loyn.glm.full <- glm(ABUND ~ L10AREA + YR.ISOL + L10DIST + L10LDIST + GRAZE + ALT, data=data.in, family="poisson")#
+#
+# 10.	Fill the following table with the corresponding partial regression coefficients and also calculate the tolerance for each variable#
+q9.table <- round(data.frame(summary(loyn.glm.full)$coefficients[, 1:2], Tolerance=c(NA, tolerances), summary(loyn.glm.full)$coefficients[, 3:4]),3)#
+q9.table#
+#
+#             Estimate Std..Error Tolerance z.value Pr...z..#
+# (Intercept)   -9.224      1.150        NA  -8.023    0.000#
+# L10AREA        0.360      0.016     0.480  22.386    0.000#
+# YR.ISOL        0.007      0.001     0.698  13.025    0.000#
+# L10DIST       -0.086      0.029     0.600  -2.965    0.003#
+# L10LDIST      -0.037      0.024     0.510  -1.557    0.119#
+# GRAZE         -0.079      0.011     0.442  -7.462    0.000#
+# ALT            0.001      0.000     0.689   2.671    0.008#
+#
+# 11.	Now lets do the same but using standardized predictors <- NOTE that we are not standarizing the Response [ABUND] as we do in lm as standardized the vriables here is to "resacle" all the predictor variables  amn make coefficients comparable #
+data.std <- data.in#
+data.std[, c("L10AREA", "L10DIST", "L10LDIST", "ALT")] <- scale(data.std[, c("L10AREA", "L10DIST", "L10LDIST", "ALT")])#
+data.std[, c("YR.ISOL", "GRAZE")] <- scale(data.std[, c("YR.ISOL", "GRAZE")], center=TRUE, scale=FALSE)#
+# YR.ISOL and Graze are not continuos variables, and therefore should not be scaled, we can however center them,#
+# which I do here with the scale() function bbut using the scale=FALSE argument#
+loyn.glm.full.scaled <- glm(ABUND ~ L10AREA + YR.ISOL + L10DIST + L10LDIST + GRAZE + ALT, data=data.std, family="poisson")
+data.std <- data.in#
+data.std[, c("L10AREA", "L10DIST", "L10LDIST", "ALT")] <- scale(data.std[, c("L10AREA", "L10DIST", "L10LDIST", "ALT")])#
+data.std[, c("YR.ISOL", "GRAZE")] <- scale(data.std[, c("YR.ISOL", "GRAZE")], center=TRUE, scale=FALSE)#
+# YR.ISOL and Graze are not continuos variables, and therefore should not be scaled, we can however center them,#
+# which I do here with the scale() function bbut using the scale=FALSE argument#
+loyn.glm.full.scaled <- glm(ABUND ~ L10AREA + YR.ISOL + L10DIST + L10LDIST + GRAZE + ALT, data=data.std, family="poisson")
+warnings()
+vif <- vif(glm(ABUND ~ L10AREA + YR.ISOL + L10DIST + L10LDIST + GRAZE + ALT, data=data.std, family="gaussian"))
+tolerances <- 1/vif
+q10.table <- round(data.frame(summary(loyn.glm.full.scaled)$coefficients[, 1:2], Tolerance=c(NA, tolerances), summary(loyn.glm.full.scaled)$coefficients[, 3:4]),3)
+library(car)#
+vif <- vif(glm(ABUND ~ L10AREA + YR.ISOL + L10DIST + L10LDIST + GRAZE + ALT, data=data.std, family="gaussian"))#
+tolerances <- 1/vif  #
+q10.table <- round(data.frame(summary(loyn.glm.full.scaled)$coefficients[, 1:2], Tolerance=c(NA, tolerances), summary(loyn.glm.full.scaled)$coefficients[, 3:4]),3)#
+q10.table
+vif <- vif(~ L10AREA + YR.ISOL + L10DIST + L10LDIST + GRAZE + ALT, data=data.std,)
+? vif
+vif <- vif(model.matrix(loyn.glm.full.scaled))#
+tolerances <- 1/vif
+model.matrix(loyn.glm.full.scaled)
+vif <- vif(model.matrix(loyn.glm.full.scaled))
+rm(list=ls());gc()#
+require(raster)#
+require(maptools)#
+data(wrld_simpl)#
+#
+Crop.1700.2005 <- stack("~/Dropbox/Aarhus  Assistant Professor/Projects/CLIMLAN/Data/Land cover/Harmonized Global Land Use/Data/Historical 1700-2005/cropland/LUHa_u2t1.v1_gcrop.nc4")#
+#
+Crop.1970.2000 <- Crop.1700.2005[[match(c(1970:2000),1700:2005)]]#
+#
+Crop.1970.2000 <- mask(Crop.1970.2000,wrld_simpl[!wrld_simpl$NAME%in%c("Antarctica","Greenland"),])#
+#
+#### Define the Rate of change (change in units per time interval) for each cell#
+Crop.1970.2000.TimeSlope <- calc(Crop.1970.2000,function(x){ifelse(is.na(x[1]),NA,coef(lm(x~I(1:31)))[2])})
+Crop.1970.2000.TimeSlope <- calc(Crop.1970.2000,function(x){ifelse(is.na(x[1]),NA,coef(lm(x~I(1:31)))[2])})#
+plot(Crop.1970.2000.TimeSlope)#
+plot(wrld_simpl,add=T)#
+sum ((Crop.1970.2000.TimeSlope.Masked<0)[],na.rm=T)#
+sum ((Crop.1970.2000.TimeSlope.Masked>0)[],na.rm=T)#
+sum ((Crop.1970.2000.TimeSlope.Masked==0)[],na.rm=T)
+raster("~/Dropbox/Aarhus  Assistant Professor/Projects/CLIMLAN/Data/Distance/Dist.tif")
+ls()
+rm(list=ls());gc()#
+setwd("~/Dropbox/Courses_&_Conferences/2018/Courses/Statistical & Geospatial modeling/Lectures/Week - 38/Exercise/Part_2")  # different on your computer!#
+data.in <- read.csv("loyn.csv")
+my.var <- "AREA"  # you can change the variable name here to see the different plots#
+shapiro.result <- shapiro.test(data.in[, my.var])$p.value#
+skew <- mean(data.in[, my.var])/median(data.in[, my.var])  ## The balance between mean and median show the skewness #
+title <- paste(my.var, ifelse(shapiro.result > 0.05, "normal,", "not normal,"), "skewness:", round(skew, 3))#
+hist(data.in[, my.var], breaks=20, main=title)#
+#
+## alternate 2a solution using for loop#
+par(mfrow=c(3, 2))#
+for (my.var in c("AREA","YR.ISOL","DIST","LDIST","GRAZE","ALT")) {#
+  shapiro.result <- shapiro.test(data.in[, my.var])$p.value#
+  skew <- mean(data.in[, my.var])/median(data.in[, my.var])  ## The balance between mean and median show the skewness #
+  title <- paste(my.var, ifelse(shapiro.result > 0.05, "normal,", "not normal,"), "skewness:", round(skew, 3))#
+  hist(data.in[, my.var], breaks=20, main=title)#
+}#
+par(mfrow=c(1, 1))#
+#
+# 2b.	Make a list where you define is a given predictor show skewness or not? #
+### Almost all predictors show a strong skewness #
+# - only ALT show a normal distribution the strongest problem is for DIST, DIST, and AREA#
+list(AREA=T, YR.ISOL=T, DIST=T, LDIST=T, GRAZE=T, ALT=F)#
+#
+# 2c.	Lets transform the skew predictors, which is the best transformation to use? #
+#
+### AREA, DIST and LDIST all have what we call a right skew or a positive skew.#
+### for positive skew, square root or log transformations are often good#
+hist(sqrt(data.in$AREA))  # not really better#
+hist(log10(data.in$AREA))  # much better#
+#
+hist(sqrt(data.in$DIST))  # not really better#
+hist(log10(data.in$DIST))  # much better#
+#
+hist(sqrt(data.in$LDIST))  # not really better#
+hist(log10(data.in$LDIST))  # much better#
+#
+### luckily log10 transformations of these variables are already in the dataset,#
+### so we will just use those from now on#
+#
+### YR.ISOL has what we call a left skew or a negative skew.#
+### for negative skew, we can use exponential transformation, #
+### but YR.ISOL is in years, so it does not really make sense to transform#
+### in the same way GRAZE is an index value, so does not really make sense to transform#
+#
+#d.	How does the distribution of the skew predictors look after being transformed?#
+### they look more centered and with mean-median more balanced - but still not fully normal in the case of DIST.#
+par(mfrow=c(3, 2))#
+for (my.var in c("L10AREA","YR.ISOL","L10DIST","L10LDIST","GRAZE","ALT")) {#
+  shapiro.result <- shapiro.test(data.in[, my.var])$p.value#
+  skew <- mean(data.in[, my.var])/median(data.in[, my.var])  ## The balance between mean and median show the skewness #
+  title <- paste(my.var, ifelse(shapiro.result > 0.05, "normal,", "not normal,"), "skewness:", round(skew, 3))#
+  hist(data.in[, my.var], breaks=20, main=title)#
+}#
+par(mfrow=c(1, 1))#
+#
+# 3.	Now lets look at the collinearity between the predictors. #
+# Estimate the correlation between predictors#
+round(cor(data.in[, c("L10AREA", "YR.ISOL", "L10DIST", "L10LDIST", "GRAZE", "ALT")]), 3)#
+#           L10AREA YR.ISOL L10DIST L10LDIST  GRAZE  ALT#
+# L10AREA    1.000   0.278   0.302    0.382 -0.559  0.275#
+# YR.ISOL    0.278   1.000  -0.020   -0.161 -0.636  0.233#
+# L10DIST    0.302  -0.020   1.000    0.604 -0.143 -0.219#
+# L10LDIST   0.382  -0.161   0.604    1.000 -0.034 -0.274#
+# GRAZE     -0.559  -0.636  -0.143   -0.034  1.000 -0.407#
+# ALT        0.275   0.233  -0.219   -0.274 -0.407  1.000#
+#
+### no correlations above 0.7 or below -0.7, so looks pretty good.#
+#
+# 4.	Do we see any outliers or influential values?#
+loyn.glm.full <- glm(ABUND ~ L10AREA + YR.ISOL + L10DIST + L10LDIST + GRAZE + ALT, data=data.in, family="poisson")#
+par(mfcol=c(2,2))#
+plot(loyn.glm.full)#
+par(mfcol=c(1,1))#
+### overall it appears that there is no single observation with a very high influence (points 11, 47, and 18 are woth invesigation). Likewise, rows 11, 55, and 56 do appear to have a large leverage.#
+#
+# 5.	Do we see some large collinear variables? if so, which ones are these?#
+#
+# the code below builds linear models of each explanatory variable vs all the others#
+# and it then calulates 1-r.squared for each model#
+VarsUse <- c("L10AREA", "YR.ISOL", "L10DIST", "L10LDIST", "GRAZE", "ALT")#
+sapply(VarsUse, function(i) {round(1-summary(lm(formula(paste(i, "~", paste(VarsUse[! VarsUse%in%i], collapse="+"), sep="")), data=data.in))$r.squared, 3)})#
+# L10AREA  YR.ISOL  L10DIST L10LDIST    GRAZE      ALT #
+# 0.523    0.554    0.604    0.498    0.396    0.681 #
+### all tolerances are well above 0.1 = no colinearity problems#
+#
+## alternative solution to 5.#
+library(car)#
+vif <- vif(loyn.glm.full)#
+tolerances <- 1/vif  ########## Alejo?!?!?! why are these so different?!#
+#
+# L10AREA   YR.ISOL   L10DIST  L10LDIST     GRAZE       ALT #
+# 0.4802754 0.6975339 0.5998987 0.5099832 0.4419712 0.6893743 #
+#
+# 6.	We will keep things simple as we build a model that predicts ABUND from L10AREA, YR.ISOL, DIST, LDIST, GRAZE, and ALT. #
+###log(ABUND) ~ L10AREA+YR.ISOL+L10DIST+L10LDIST+GRAZE+ALT#
+#
+# 7.	Based on what we discussed in the theory session:#
+# a.	Which is the best regression model to predict ABUND? [HINT: Look the type of variable the response variable ABUND]#
+### We will use a poisson, as Abundance is a count variabler#
+#
+# b.	How would the equation for this regression model look?. [HINT: remember the role of the link function (log) as a way to link the expected value of Y to the predictor(s) X in a glm]#
+### g(x) = log(ABUND) = L10AREA+YR.ISOL+L10DIST+L10LDIST+GRAZE+ALT#
+#
+# 8.	Based on this regression, which is the H0???s we are interested in testing?#
+### that neither of the proposed predictors explains the variation in Bird abundance#
+### B1(L10AREA) = B2(YR.ISOL) = B3(L10DIST) = B4(L10LDIST) = B5(GRAZE) = B6(ALT) = 0#
+#
+# 9.	Lets look now at that Poisson regression. Estimate the parameters for the proposed model. #
+# For this you will need to use the method glm, remembering to include the adequate error family #
+loyn.glm.full <- glm(ABUND ~ L10AREA + YR.ISOL + L10DIST + L10LDIST + GRAZE + ALT, data=data.in, family="poisson")#
+#
+# 10.	Fill the following table with the corresponding partial regression coefficients and also calculate the tolerance for each variable#
+q9.table <- round(data.frame(summary(loyn.glm.full)$coefficients[, 1:2], Tolerance=c(NA, tolerances), summary(loyn.glm.full)$coefficients[, 3:4]),3)#
+q9.table
+data.std <- data.in#
+data.std[, c("L10AREA", "L10DIST", "L10LDIST", "ALT")] <- scale(data.std[, c("L10AREA", "L10DIST", "L10LDIST", "ALT")])#
+data.std[, c("YR.ISOL", "GRAZE")] <- scale(data.std[, c("YR.ISOL", "GRAZE")], center=TRUE, scale=FALSE)#
+# YR.ISOL and Graze are not continuos variables, and therefore should not be scaled, we can however center them,#
+# which I do here with the scale() function bbut using the scale=FALSE argument#
+loyn.glm.full.scaled <- glm(ABUND ~ L10AREA + YR.ISOL + L10DIST + L10LDIST + GRAZE + ALT, data=data.std, family="poisson")
+data.std <- data.in#
+data.std[, c("ABUND","L10AREA", "L10DIST", "L10LDIST", "ALT")] <- scale(data.std[, c("ABUND","L10AREA", "L10DIST", "L10LDIST", "ALT")])#
+data.std[, c("YR.ISOL", "GRAZE")] <- scale(data.std[, c("YR.ISOL", "GRAZE")], center=TRUE, scale=FALSE)
+loyn.glm.full.scaled <- glm(ABUND ~ L10AREA + YR.ISOL + L10DIST + L10LDIST + GRAZE + ALT, data=data.std, family="poisson")
+rm(list=ls());gc()#
+setwd("~/Dropbox/Courses_&_Conferences/2018/Courses/Statistical & Geospatial modeling/Lectures/Week - 38/Exercise/Part_2")  # different on your computer!#
+data.in <- read.csv("loyn.csv")#
+# 2.	Before we start doing the analyses lets have a close look at the predictors.#
+# 2a.	Show the distribution of the predictors, and signal in the figure title if there are/not sings of skewness #
+#
+my.var <- "AREA"  # you can change the variable name here to see the different plots#
+shapiro.result <- shapiro.test(data.in[, my.var])$p.value#
+skew <- mean(data.in[, my.var])/median(data.in[, my.var])  ## The balance between mean and median show the skewness #
+title <- paste(my.var, ifelse(shapiro.result > 0.05, "normal,", "not normal,"), "skewness:", round(skew, 3))#
+hist(data.in[, my.var], breaks=20, main=title)#
+#
+## alternate 2a solution using for loop#
+par(mfrow=c(3, 2))#
+for (my.var in c("AREA","YR.ISOL","DIST","LDIST","GRAZE","ALT")) {#
+  shapiro.result <- shapiro.test(data.in[, my.var])$p.value#
+  skew <- mean(data.in[, my.var])/median(data.in[, my.var])  ## The balance between mean and median show the skewness #
+  title <- paste(my.var, ifelse(shapiro.result > 0.05, "normal,", "not normal,"), "skewness:", round(skew, 3))#
+  hist(data.in[, my.var], breaks=20, main=title)#
+}#
+par(mfrow=c(1, 1))#
+#
+# 2b.	Make a list where you define is a given predictor show skewness or not? #
+### Almost all predictors show a strong skewness #
+# - only ALT show a normal distribution the strongest problem is for DIST, DIST, and AREA#
+list(AREA=T, YR.ISOL=T, DIST=T, LDIST=T, GRAZE=T, ALT=F)#
+#
+# 2c.	Lets transform the skew predictors, which is the best transformation to use? #
+#
+### AREA, DIST and LDIST all have what we call a right skew or a positive skew.#
+### for positive skew, square root or log transformations are often good#
+hist(sqrt(data.in$AREA))  # not really better#
+hist(log10(data.in$AREA))  # much better#
+#
+hist(sqrt(data.in$DIST))  # not really better#
+hist(log10(data.in$DIST))  # much better#
+#
+hist(sqrt(data.in$LDIST))  # not really better#
+hist(log10(data.in$LDIST))  # much better#
+#
+### luckily log10 transformations of these variables are already in the dataset,#
+### so we will just use those from now on#
+#
+### YR.ISOL has what we call a left skew or a negative skew.#
+### for negative skew, we can use exponential transformation, #
+### but YR.ISOL is in years, so it does not really make sense to transform#
+### in the same way GRAZE is an index value, so does not really make sense to transform#
+#
+#d.	How does the distribution of the skew predictors look after being transformed?#
+### they look more centered and with mean-median more balanced - but still not fully normal in the case of DIST.#
+par(mfrow=c(3, 2))#
+for (my.var in c("L10AREA","YR.ISOL","L10DIST","L10LDIST","GRAZE","ALT")) {#
+  shapiro.result <- shapiro.test(data.in[, my.var])$p.value#
+  skew <- mean(data.in[, my.var])/median(data.in[, my.var])  ## The balance between mean and median show the skewness #
+  title <- paste(my.var, ifelse(shapiro.result > 0.05, "normal,", "not normal,"), "skewness:", round(skew, 3))#
+  hist(data.in[, my.var], breaks=20, main=title)#
+}#
+par(mfrow=c(1, 1))#
+#
+# 3.	Now lets look at the collinearity between the predictors. #
+# Estimate the correlation between predictors#
+round(cor(data.in[, c("L10AREA", "YR.ISOL", "L10DIST", "L10LDIST", "GRAZE", "ALT")]), 3)#
+#           L10AREA YR.ISOL L10DIST L10LDIST  GRAZE  ALT#
+# L10AREA    1.000   0.278   0.302    0.382 -0.559  0.275#
+# YR.ISOL    0.278   1.000  -0.020   -0.161 -0.636  0.233#
+# L10DIST    0.302  -0.020   1.000    0.604 -0.143 -0.219#
+# L10LDIST   0.382  -0.161   0.604    1.000 -0.034 -0.274#
+# GRAZE     -0.559  -0.636  -0.143   -0.034  1.000 -0.407#
+# ALT        0.275   0.233  -0.219   -0.274 -0.407  1.000#
+#
+### no correlations above 0.7 or below -0.7, so looks pretty good.#
+#
+# 4.	Do we see any outliers or influential values?#
+loyn.glm.full <- glm(ABUND ~ L10AREA + YR.ISOL + L10DIST + L10LDIST + GRAZE + ALT, data=data.in, family="poisson")#
+par(mfcol=c(2,2))#
+plot(loyn.glm.full)#
+par(mfcol=c(1,1))#
+### overall it appears that there is no single observation with a very high influence (points 11, 47, and 18 are woth invesigation). Likewise, rows 11, 55, and 56 do appear to have a large leverage.#
+#
+# 5.	Do we see some large collinear variables? if so, which ones are these?#
+#
+# the code below builds linear models of each explanatory variable vs all the others#
+# and it then calulates 1-r.squared for each model#
+VarsUse <- c("L10AREA", "YR.ISOL", "L10DIST", "L10LDIST", "GRAZE", "ALT")#
+sapply(VarsUse, function(i) {round(1-summary(lm(formula(paste(i, "~", paste(VarsUse[! VarsUse%in%i], collapse="+"), sep="")), data=data.in))$r.squared, 3)})#
+# L10AREA  YR.ISOL  L10DIST L10LDIST    GRAZE      ALT #
+# 0.523    0.554    0.604    0.498    0.396    0.681 #
+### all tolerances are well above 0.1 = no colinearity problems#
+#
+## alternative solution to 5.#
+library(car)#
+vif <- vif(loyn.glm.full)#
+tolerances <- 1/vif  ########## Alejo?!?!?! why are these so different?!#
+#
+# L10AREA   YR.ISOL   L10DIST  L10LDIST     GRAZE       ALT #
+# 0.4802754 0.6975339 0.5998987 0.5099832 0.4419712 0.6893743 #
+#
+# 6.	We will keep things simple as we build a model that predicts ABUND from L10AREA, YR.ISOL, DIST, LDIST, GRAZE, and ALT. #
+###log(ABUND) ~ L10AREA+YR.ISOL+L10DIST+L10LDIST+GRAZE+ALT#
+#
+# 7.	Based on what we discussed in the theory session:#
+# a.	Which is the best regression model to predict ABUND? [HINT: Look the type of variable the response variable ABUND]#
+### We will use a poisson, as Abundance is a count variabler#
+#
+# b.	How would the equation for this regression model look?. [HINT: remember the role of the link function (log) as a way to link the expected value of Y to the predictor(s) X in a glm]#
+### g(x) = log(ABUND) = L10AREA+YR.ISOL+L10DIST+L10LDIST+GRAZE+ALT#
+#
+# 8.	Based on this regression, which is the H0???s we are interested in testing?#
+### that neither of the proposed predictors explains the variation in Bird abundance#
+### B1(L10AREA) = B2(YR.ISOL) = B3(L10DIST) = B4(L10LDIST) = B5(GRAZE) = B6(ALT) = 0#
+#
+# 9.	Lets look now at that Poisson regression. Estimate the parameters for the proposed model. #
+# For this you will need to use the method glm, remembering to include the adequate error family #
+loyn.glm.full <- glm(ABUND ~ L10AREA + YR.ISOL + L10DIST + L10LDIST + GRAZE + ALT, data=data.in, family="poisson")#
+#
+# 10.	Fill the following table with the corresponding partial regression coefficients and also calculate the tolerance for each variable#
+q9.table <- round(data.frame(summary(loyn.glm.full)$coefficients[, 1:2], Tolerance=c(NA, tolerances), summary(loyn.glm.full)$coefficients[, 3:4]),3)#
+q9.table#
+#
+#             Estimate Std..Error Tolerance z.value Pr...z..#
+# (Intercept)   -9.224      1.150        NA  -8.023    0.000#
+# L10AREA        0.360      0.016     0.480  22.386    0.000#
+# YR.ISOL        0.007      0.001     0.698  13.025    0.000#
+# L10DIST       -0.086      0.029     0.600  -2.965    0.003#
+# L10LDIST      -0.037      0.024     0.510  -1.557    0.119#
+# GRAZE         -0.079      0.011     0.442  -7.462    0.000#
+# ALT            0.001      0.000     0.689   2.671    0.008#
+#
+# 11.	Now lets do the same but using standardized predictors <- NOTE that we are not standarizing the Response [ABUND] as we do in lm as standardized the vriables here is to "resacle" all the predictor variables  amn make coefficients comparable #
+data.std <- data.in#
+data.std[, c("L10AREA", "L10DIST", "L10LDIST", "ALT")] <- scale(data.std[, c("L10AREA", "L10DIST", "L10LDIST", "ALT")])#
+data.std[, c("YR.ISOL", "GRAZE")] <- scale(data.std[, c("YR.ISOL", "GRAZE")], center=TRUE, scale=FALSE)#
+# YR.ISOL and Graze are not continuos variables, and therefore should not be scaled, we can however center them,#
+# which I do here with the scale() function bbut using the scale=FALSE argument#
+loyn.glm.full.scaled <- glm(ABUND ~ L10AREA + YR.ISOL + L10DIST + L10LDIST + GRAZE + ALT, data=data.std, family="poisson")
+rm(list=ls());gc()#
+setwd("~/Dropbox/Courses_&_Conferences/2018/Courses/Statistical & Geospatial modeling/Lectures/Week - 38/Exercise/Part_2")  # different on your computer!#
+data.in <- read.csv("loyn.csv")#
+# 2.	Before we start doing the analyses lets have a close look at the predictors.#
+# 2a.	Show the distribution of the predictors, and signal in the figure title if there are/not sings of skewness #
+#
+my.var <- "AREA"  # you can change the variable name here to see the different plots#
+shapiro.result <- shapiro.test(data.in[, my.var])$p.value#
+skew <- mean(data.in[, my.var])/median(data.in[, my.var])  ## The balance between mean and median show the skewness #
+title <- paste(my.var, ifelse(shapiro.result > 0.05, "normal,", "not normal,"), "skewness:", round(skew, 3))#
+hist(data.in[, my.var], breaks=20, main=title)#
+#
+## alternate 2a solution using for loop#
+par(mfrow=c(3, 2))#
+for (my.var in c("AREA","YR.ISOL","DIST","LDIST","GRAZE","ALT")) {#
+  shapiro.result <- shapiro.test(data.in[, my.var])$p.value#
+  skew <- mean(data.in[, my.var])/median(data.in[, my.var])  ## The balance between mean and median show the skewness #
+  title <- paste(my.var, ifelse(shapiro.result > 0.05, "normal,", "not normal,"), "skewness:", round(skew, 3))#
+  hist(data.in[, my.var], breaks=20, main=title)#
+}#
+par(mfrow=c(1, 1))#
+#
+# 2b.	Make a list where you define is a given predictor show skewness or not? #
+### Almost all predictors show a strong skewness #
+# - only ALT show a normal distribution the strongest problem is for DIST, DIST, and AREA#
+list(AREA=T, YR.ISOL=T, DIST=T, LDIST=T, GRAZE=T, ALT=F)#
+#
+# 2c.	Lets transform the skew predictors, which is the best transformation to use? #
+#
+### AREA, DIST and LDIST all have what we call a right skew or a positive skew.#
+### for positive skew, square root or log transformations are often good#
+hist(sqrt(data.in$AREA))  # not really better#
+hist(log10(data.in$AREA))  # much better#
+#
+hist(sqrt(data.in$DIST))  # not really better#
+hist(log10(data.in$DIST))  # much better#
+#
+hist(sqrt(data.in$LDIST))  # not really better#
+hist(log10(data.in$LDIST))  # much better#
+#
+### luckily log10 transformations of these variables are already in the dataset,#
+### so we will just use those from now on#
+#
+### YR.ISOL has what we call a left skew or a negative skew.#
+### for negative skew, we can use exponential transformation, #
+### but YR.ISOL is in years, so it does not really make sense to transform#
+### in the same way GRAZE is an index value, so does not really make sense to transform#
+#
+#d.	How does the distribution of the skew predictors look after being transformed?#
+### they look more centered and with mean-median more balanced - but still not fully normal in the case of DIST.#
+par(mfrow=c(3, 2))#
+for (my.var in c("L10AREA","YR.ISOL","L10DIST","L10LDIST","GRAZE","ALT")) {#
+  shapiro.result <- shapiro.test(data.in[, my.var])$p.value#
+  skew <- mean(data.in[, my.var])/median(data.in[, my.var])  ## The balance between mean and median show the skewness #
+  title <- paste(my.var, ifelse(shapiro.result > 0.05, "normal,", "not normal,"), "skewness:", round(skew, 3))#
+  hist(data.in[, my.var], breaks=20, main=title)#
+}#
+par(mfrow=c(1, 1))#
+#
+# 3.	Now lets look at the collinearity between the predictors. #
+# Estimate the correlation between predictors#
+round(cor(data.in[, c("L10AREA", "YR.ISOL", "L10DIST", "L10LDIST", "GRAZE", "ALT")]), 3)#
+#           L10AREA YR.ISOL L10DIST L10LDIST  GRAZE  ALT#
+# L10AREA    1.000   0.278   0.302    0.382 -0.559  0.275#
+# YR.ISOL    0.278   1.000  -0.020   -0.161 -0.636  0.233#
+# L10DIST    0.302  -0.020   1.000    0.604 -0.143 -0.219#
+# L10LDIST   0.382  -0.161   0.604    1.000 -0.034 -0.274#
+# GRAZE     -0.559  -0.636  -0.143   -0.034  1.000 -0.407#
+# ALT        0.275   0.233  -0.219   -0.274 -0.407  1.000#
+#
+### no correlations above 0.7 or below -0.7, so looks pretty good.#
+#
+# 4.	Do we see any outliers or influential values?#
+loyn.glm.full <- glm(ABUND ~ L10AREA + YR.ISOL + L10DIST + L10LDIST + GRAZE + ALT, data=data.in, family="poisson")#
+par(mfcol=c(2,2))#
+plot(loyn.glm.full)#
+par(mfcol=c(1,1))#
+### overall it appears that there is no single observation with a very high influence (points 11, 47, and 18 are woth invesigation). Likewise, rows 11, 55, and 56 do appear to have a large leverage.#
+#
+# 5.	Do we see some large collinear variables? if so, which ones are these?#
+#
+# the code below builds linear models of each explanatory variable vs all the others#
+# and it then calulates 1-r.squared for each model#
+VarsUse <- c("L10AREA", "YR.ISOL", "L10DIST", "L10LDIST", "GRAZE", "ALT")#
+sapply(VarsUse, function(i) {round(1-summary(lm(formula(paste(i, "~", paste(VarsUse[! VarsUse%in%i], collapse="+"), sep="")), data=data.in))$r.squared, 3)})#
+# L10AREA  YR.ISOL  L10DIST L10LDIST    GRAZE      ALT #
+# 0.523    0.554    0.604    0.498    0.396    0.681 #
+### all tolerances are well above 0.1 = no colinearity problems#
+#
+## alternative solution to 5.#
+library(car)#
+vif <- vif(loyn.glm.full)#
+tolerances <- 1/vif  ########## Alejo?!?!?! why are these so different?!#
+#
+# L10AREA   YR.ISOL   L10DIST  L10LDIST     GRAZE       ALT #
+# 0.4802754 0.6975339 0.5998987 0.5099832 0.4419712 0.6893743 #
+#
+# 6.	We will keep things simple as we build a model that predicts ABUND from L10AREA, YR.ISOL, DIST, LDIST, GRAZE, and ALT. #
+###log(ABUND) ~ L10AREA+YR.ISOL+L10DIST+L10LDIST+GRAZE+ALT#
+#
+# 7.	Based on what we discussed in the theory session:#
+# a.	Which is the best regression model to predict ABUND? [HINT: Look the type of variable the response variable ABUND]#
+### We will use a poisson, as Abundance is a count variabler#
+#
+# b.	How would the equation for this regression model look?. [HINT: remember the role of the link function (log) as a way to link the expected value of Y to the predictor(s) X in a glm]#
+### g(x) = log(ABUND) = L10AREA+YR.ISOL+L10DIST+L10LDIST+GRAZE+ALT#
+#
+# 8.	Based on this regression, which is the H0???s we are interested in testing?#
+### that neither of the proposed predictors explains the variation in Bird abundance#
+### B1(L10AREA) = B2(YR.ISOL) = B3(L10DIST) = B4(L10LDIST) = B5(GRAZE) = B6(ALT) = 0#
+#
+# 9.	Lets look now at that Poisson regression. Estimate the parameters for the proposed model. #
+# For this you will need to use the method glm, remembering to include the adequate error family #
+loyn.glm.full <- glm(ABUND ~ L10AREA + YR.ISOL + L10DIST + L10LDIST + GRAZE + ALT, data=data.in, family="poisson")#
+#
+# 10.	Fill the following table with the corresponding partial regression coefficients and also calculate the tolerance for each variable#
+q9.table <- round(data.frame(summary(loyn.glm.full)$coefficients[, 1:2], Tolerance=c(NA, tolerances), summary(loyn.glm.full)$coefficients[, 3:4]),3)#
+q9.table#
+#
+#             Estimate Std..Error Tolerance z.value Pr...z..#
+# (Intercept)   -9.224      1.150        NA  -8.023    0.000#
+# L10AREA        0.360      0.016     0.480  22.386    0.000#
+# YR.ISOL        0.007      0.001     0.698  13.025    0.000#
+# L10DIST       -0.086      0.029     0.600  -2.965    0.003#
+# L10LDIST      -0.037      0.024     0.510  -1.557    0.119#
+# GRAZE         -0.079      0.011     0.442  -7.462    0.000#
+# ALT            0.001      0.000     0.689   2.671    0.008#
+#
+# 11.	Now lets do the same but using standardized predictors <- NOTE that we are not standarizing the Response [ABUND] as we do in lm as standardized the vriables here is to "resacle" all the predictor variables  amn make coefficients comparable #
+data.std <- data.in#
+data.std[, c("L10AREA", "L10DIST", "L10LDIST", "ALT")] <- scale(data.std[, c("L10AREA", "L10DIST", "L10LDIST", "ALT")])#
+data.std[, c("YR.ISOL", "GRAZE")] <- scale(data.std[, c("YR.ISOL", "GRAZE")], center=TRUE, scale=FALSE)#
+# YR.ISOL and Graze are not continuos variables, and therefore should not be scaled, we can however center them,#
+# which I do here with the scale() function bbut using the scale=FALSE argument#
+loyn.glm.full.scaled <- glm(ABUND ~ L10AREA + YR.ISOL + L10DIST + L10LDIST + GRAZE + ALT, data=data.std, family="poisson")
+dim(data.std)
+loyn.glm.full.scaled <- glm(I(ABUND+runif(56)) ~ L10AREA + YR.ISOL + L10DIST + L10LDIST + GRAZE + ALT, data=data.std, family="poisson")
+warnings()
