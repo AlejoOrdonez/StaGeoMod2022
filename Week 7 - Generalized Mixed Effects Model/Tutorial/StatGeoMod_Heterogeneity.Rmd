@@ -1,0 +1,843 @@
+---
+title: "Dealing with Heterogeneity"
+subtitle: "Statistical and Geospatial Modelling"
+author: "Alejandro Ordonez"
+documentclass: "report"
+fontsize: 10pt
+output: 
+  html_document:
+    toc: true
+    toc_depth: 1
+geometry: "left = 2cm, right = 2cm, bottom = 1.5cm, top = 2cm"
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE, tidy='styler', tidy.opts=list(strict=TRUE))
+```
+
+# Instructions
+
+## Before you start.
+The practical will be run using *RStudio cloud* to avoid individual machine troubleshooting. Therefore,  you **need** to have an account for *RStudio cloud*.
+
+However, remember to have `R` (<https://cran.r-project.org>) and R-studio (<http://www.rstudio.com/>) in your/room computer so you can work on the project after class.
+
+## The goal.
+This practical aims to implement what you have learned in the class about generalised linear regressions in `R`. You should have read the chapters I uploaded beforehand **(You should have read chapter 19 of Crawley, M.J., 2012. The R-book**
+
+## Learning objectives.
+1.	Be able to distinguish if a model suffers from heterogeneity in the residual.
+2.  Discriminate between different strategies to address heterogeneity in the residuals.
+3.  Know how to Implement a generalised linear model in `R`, that can address heterogeneity in the residuals.
+
+## The way it's going to be run.
+A 3h practical. You will need to write your own `R` and run it - this is what you will hand in. I know you will struggle, but that is the best way to learn to use `R`. Also, remember that you have an excellent teaching assistant - ask all the questions you have, but **WE WILL NOT WRITE YOUR CODE!!.**
+
+<div class = "alert alert-info">
+The text in the blue box marked as **Your task:** states what you need to do
+</div>
+
+```{r, eval = FALSE}
+# The code in the window marked like this shows where you need to write your code
+#
+# If I ask you to assess the result, you should write the text here as a comment starting with two hashes (##)
+```
+
+## Assessment:
+Submit your `R-markdown` file via BrightSpace - **Before the next practical!**
+**The assessment is a Pass/Fail based on how you write and annotate the code - You need to show us you know what you are doing and NOT copying someone else's code.**
+
+# Key things to remember.
+
+Up to this point, we have treated all categorical explanatory variables as if they were the same. However, explanatory variables are not all created equal. There are fundamentally different sorts of explanatory variables *fixed effects* and *random effects*.
+
+The short version of the differences between these focuses on each of these explanatory variables ($X_i$) affecting your response variable ($Y$). While **fixed effects** influence only the mean of ($Y$), **random effects** influence only ($Y$) variance. *What does this mean in practical terms?* well, **fixed effects** define the mean response (the mean regression slopes). By comparison, **random effects** govern the variance of the response (you could say the covariance structure of the response variable, and hence their standard errors).
+
+One example of random effects is the hierarchical structure of a sample design that leads to pseudoreplication. To address this, you could concentrate on estimating means of our smaller subset of the data - but that will limit your capacity to draw meaningful conclusions from your data.  Much better to recognise them for what they are, random samples from a much larger population, and to concentrate on their variance - *This is the added variation
+caused by differences between the levels of the random effects*.
+
+However, sometimes the added and uneven variability can not be attributed to a random effect. In that case, you would need to model the variability to address the variability problem.
+
+Here is when *Mixed Effects* and * generalised least squares* (GLS) models come to the rescue. The difference is that mixed-effects models allow for nested hierarchical structured datasets and known covariates when modelling the extra variation/heterogeneity. If you use the current data to model the additional variation/heterogeneity, you have a GLS model.
+
+Now you will proceed to build both of these models. It is important to remember that we build from the general(ized) linear models knowledge gained over the last weeks. So I will not spend too much space explaining essential knowledge points about each task.
+
+
+# Benthic Biodiversity Experiment
+*[Ieno EN, Solan M, Batty P, Pierce GJ (2006) How biodiversity affects ecosystem functioning: roles of infaunal species richness, identity and density in the marine benthos. Marine Ecology Progress Series 311:263–271]*
+
+Here you will examine the hypothesis that changes in the composition of benthic macrofauna alter the biogeochemistry of coastal intertidal mudflats. For this, we will assess how changes in macrofauna density (`Biomass`, [mg] of the Polychaeta *Hediste diversicolor*), and habitat heterogeneity (`Treatment`, Algae/NoAlgae) changes the rates of sediment Nutrient release (`Concentration`, [mg-1 per l]), of three different `Nutrient`s (`Nutrient`, $NO_3$ [nitrate-nitrogen], $NH_4$ [Ammonium-nitrogen], $PO_3$ [phosphate-phosphorus]). To do so, we will use experimental data from Leno et al., (2006) and unpublished data from Oceanlab (University of Aberdeen). The original data also contained data on two other benthic invertebrates (*Hydrobia ulvae* [Gastropoda] and *Cerastoderma edule* [Bivalvia]) which will **NOT BE USED** here. 
+
+## The first step: Loading the data
+
+The first step you will have to take when making any data analysis is to load your data. During last week session, you practised how to do this.
+
+<div class = "alert alert-info">
+**Your task:**
+
+Using the function `read.csv`, load the data from *Biodiversity.csv*, located in the Web URL <https://raw.githubusercontent.com/AlejoOrdonez/StaGeoMod2021/main/Biodiversity.csv>. For this:
+
+* Define an object named URL.Loc with the string of the Web URL.
+
+* Use `read.csv` to load the file - The file is comma-separated 
+</div>
+
+```{r DataLoad, eval = TRUE}
+## Define an object named URL.Loc with the string of the Web URL
+URL.Loc <- "https://raw.githubusercontent.com/AlejoOrdonez/StaGeoMod2021/main/Biodiversity.csv"
+ 
+## Use `read.csv` to load the file and save it as an object named green
+## The file Biodiversity.csv is a Comma-separated file 
+ieno <- read.csv(URL.Loc)
+```
+
+## Data Exploration
+
+Now, explore how `Concentration` of each `Nutrient` changes as a function of `Biomass`, `Treatment`. 
+
+<div class = "alert alert-info">
+**Your task:**
+
+Using  the `coplot()` function evaluate how `Concentration` changes as a function of `Biomass` and `Nutrient`. Use the variable `Treatment` to define colours in your plot. Remember, if you do not know how to use a function, you can ask `R` using `?coplot`.
+
+Based on this figure, describe:
+
+* The pattern between `Nutrient`s in the response of `Concentration` to changes in `Biomass`.
+* What about the effect of Algal enrichment (`Treatment`)?
+</div>
+
+```{r DataExplo1, eval = TRUE}
+# Define the colours for Algae and NoAlgae (the treatments)
+ColPlot <- ifelse(ieno$Treatment=="Algae", # set the colours using Treatment 
+                  "red", "blue" # red = algae
+                  )
+# Use the coplot() function to evaluate how `Concentration` changes as a function of `Biomass` and `Nutrient
+coplot(Concentration ~ Biomass | Nutrient, #
+       data = ieno, # Specify the name of the object where the data can be found
+       columns = 3, # Number of columns in the panel layout array 
+       pch = 19, # Make the points filled circles
+       col = ColPlot # set the colours using Treatment 
+       )
+
+# Describe the pattern between `Nutrient`s in the response of `Concentration` to changes in `Biomass`.
+## There is a differential effect on the rates of sediment nutrient release based on the combination of macrofauna density and habitat heterogeneity. The available Nutrients modulate these differences. $NO_3$ decreases with macrofauna Biomass when there is no algae treatment but is unaffected when algae are present. Neither $NH_4$ nor $PO_3$ have any clear linear patterns in response to Biomass.
+
+# What about the effect of Algal enrichment (`Treatment`).
+## Algae treatment leads to increased release of $NH_4$ and $PO_3$, but decreases release of $NO_3$.
+```
+
+## A closer look at the response - predictor relation.
+
+You could analyse this dataset by focusing on each of the three measured `Nutrient`s independently. However, it is more interesting to combine all the different `Nutrient'-data and analyse it all simultaneously. We will use such an approach here as it allows you to test for interactions between nutrients and treatment levels. Before we do this, let’s look at the predictors one more time.
+
+<div class = "alert alert-info">
+**Your task:**
+
+Plot the changes in `Concentration` as a function of algal enrichment (`Treatment`) and `Nutrient`s using the `boxplot()` function.
+
+Do you see differences in the variation of `Concentration` per `Nutrient`-`Treatment` combination?
+</div>
+
+```{r Concent, eval = TRUE}
+# Use a boxplot to link nutrient concentration to the Nutrient/Treatment interaction.
+boxplot(Concentration ~ Nutrient*Treatment, # use formula to link Concentration to the  Nutrient/Treatment interaction.
+        data = ieno, # Specify the name of the object where the data can be found
+        cex.axis = 0.8, # Specify the side of the x-axis labels
+        ylab = "Concentration" # name of the variable in the y-axis
+        )
+
+# Do you see differences in the variation of `Concentration` per `Nutrient`-`Treatment` combination?
+### There is a considerable variation in $NH_4$ when there is Algae. All others have pretty low variation. This could complicate our assessment of biodiversity effects (Biomass) on the Concentration of evaluated Nutrients and justifies using a generalised least squares model.
+```
+
+One problem with the visualisation above is that the samples enriched with algae and NH~4~ have higher concentrations and more variation than the other combinations. One way to "visualise" the differences with the different Treatment/Nutrient combinations is plotting the Log~10~ or `Concentration` as a function of `Nutrient` and `Treatment`. I leave that task to the Inquisitive of you, but the output is presented below.
+
+```{r Concent1, echo = FALSE}
+# Use a boxplot to link nutrient concentration to the Nutrient/Treatment interaction.
+boxplot(log10(Concentration) ~ Nutrient*Treatment, # use formula to link Concentration to the  Nutrient/Treatment interaction.
+        data = ieno, # Specify the name of the object where the data can be found
+        cex.axis = 0.8, # Specify the side of the x-axis labels
+        ylab = "log10-Concentration" # name of the variable in the y-axis
+        )
+```
+
+## Visualising the Heteroscedasticity problem.
+
+The figure above indicates a major problem with the statistical analysis of the combined data. Due to the nature of the variables, we can expect massive differences in variation in concentrations per nutrient and enrichment combination. *What does this mean?* it means that we can not expect homogeneity of variances. On the plus side, the researchers did not measure the nutrients in the same container; hence there is no pseudoreplication!!
+
+<div class = "alert alert-info">
+**Your task:**
+
+Build a simple regression where `Concentration` is predicted by the individual and combined effects of `Biomass`, `Treatment`, and `Nutrient`s.
+
+Plot the fitted values vs. residuals (the first plot when using the `plot()` function on an lm() object).
+
+Assess if there is Heteroscedasticity?; if yes/no, explain why.
+
+</div>
+
+```{r Hetero1, eval = TRUE}
+# using the lm() function build a model where `Concentration` is predicted by the individual and combined effects of `Biomass`, `Treatment`, and `Nutrient`s
+lm.ieno <- lm(Concentration ~ Biomass*Treatment*Nutrient, # Formula to link Concentration - with the individual, two way and three-way interactions of the predictors  
+             data = ieno # Specify the name of the object with the data
+             )
+
+# Print the summary of the model
+summary(lm.ieno)
+
+# Plot the Residuals vs Fitted (look at ?plot.lm)
+plot(lm.ieno, # the lm object
+     which = c(1), # Which of the 4 diagnostic plots 
+     pch = 19, # make the Points a filled circle
+     add.smooth = FALSE # indicating if a smoother should be added 
+    )
+
+# Is there Heteroscedasticity?
+## WRITE YOUR ANSWER HERE
+```
+
+<div class = "alert alert-info">
+**Your task:**
+
+Build a simple regression where `log10(Concentration + 0.5)` is predicted by the individual and combined effects of `Biomass`, `Treatment`, and `Nutrient`.
+
+Plot the fitted values vs residuals (the first plot when using the `plot()` function on an lm object).
+
+Is there Heteroscedasticity?
+
+</div>
+
+```{r Hetero2, eval = TRUE}
+# using the lm() function build a model where the Log10 trasfomrtion of `Concentration` is predicted by the individual and combined effects of `Biomass`, `Treatment`, and `Nutrient`. Name this model lm.ieno.2
+lm.ieno.2 <- lm(log10(Concentration + 0.5) ~ Biomass*Treatment*Nutrient, # Formula to link Concentration - with the individual, two way and three-way interactions of the predictors  
+                 data = ieno # Specify the name of the object with the data
+             )
+
+# Plot the Residuals vs Fitted (look at ?plot.lm)
+# Here the colour of each dot should be defined by it's Treatment/Nutrient combination
+plot(lm.ieno.2, # the lm object
+     which = c(1), # Which of the 4 diagnostic plots 
+     pch = 19, # make the Points a filled circle
+     add.smooth = FALSE, # indicating if a smoother should be added 
+     col = as.factor(paste0(ieno$Treatment,ieno$Nutrient)) # Set colours based on Treatment/Nutrient combinations
+     )
+# Add a legend with the colours of the points based on the Treatment/Nutrient combination
+legend("bottomleft",
+       fill = 1:6,
+       legend = c("Algae-NH4", "Algae-NO3", "Algae-PO3", "NoAlgae-NH4", "NoAlgae-NO3","NoAlgae-PO3"))
+
+# Is there Heteroscedasticity?
+## a straightforward option to address the existence of Heteroscedasticity is the use of transformations. Even after the transformation, the enrichment × NO3 combination had lower variation than the other combinations.
+```
+
+The figure above shows that variance homogeneity is not obtained even after applying a transformation. There is large variability in the variation across groups even with a data transformation.
+
+Also, we want to avoid data transformations whenever possible. So, instead of transforming the data, we will allow for different variances by using GLS.
+
+
+## What about other regression assumptions?
+
+*Do you remember the main assumptions of linear regressions?* In the section above, you focused on one of them (homogeneity of variances). Now you will address three of the others: Normality of the residuals, linearity, and independence of observations. You will **NOT** focus on the collinearity assumptions as two of the three predictors are categorical.
+
+
+<div class = "alert alert-info">
+**Your task:**
+ 
+Using the model with **untransformed data**, you will now evaluate the other assumptions of linear regressions. For this, you will use diagnostic plots and determine if the model's residuals are normally distributed.
+
+</div>
+
+```{r regAssup1, eval = TRUE}
+
+#Determine if the residuals of the model are normally distributed.
+# Plot the Residuals vs Fitted (look at ?plot.lm)
+plot(lm.ieno, # the lm object
+     which = c(2), # Which of the 4 diagnostic plots 
+     pch = 19, # make the Points a filled circle
+     add.smooth = FALSE, # indicating if a smoother should be added
+     )
+
+# Now a statistical test for Normality
+shapiro.test(lm.ieno$residuals)
+
+# Are the residuals of the model are normally distributed?
+## No, the Normal Q-Q plot shows a large deviation from Normality. We can also see this with a Shapiro test:
+```
+
+<div class = "alert alert-info">
+**Your task:**
+ 
+Using the model with **untransformed data**, you will now evaluate the other assumptions of linear regressions. For this,  you will use diagnostic plots and establish if the relationship between `Concentration` and `Biomass` for each of the individual `Treatment:Nutrient` combinations.
+</div>
+
+```{r regAssup2, eval = TRUE}
+# Lets' do this as a a loop 
+# Create a 2-row vs. 3-column plotting space
+par(mfrow=c(2,3))
+
+# no the loops
+for (Treat in c("Algae", "NoAlgae")){ # Iterate over the treatments Algae/NoAlgae
+  for (Nut in c("NH4", "NO3", "PO3")){ # Iterate over the Nutrients NH4/NO3/PO3
+#Generate a temp data.frame with specific Treatment Nutrient combinations 
+    ieno.tmp <- ieno[c(ieno$Treatment==Treat & ieno$Nutrient == Nut),]
+
+# Plot the Concentration ~ Biomass combinations
+    plot(Concentration ~ Biomass, # a regression linking biomass to Concentration
+         data = ieno.tmp, # Specify the name of the object where the data can be found
+         pch = 19, # make the points filled circles
+         main = paste0(Treat, "-", Nut, "Combination\n", # add a Main title
+                       "[pearson = ",
+                       round(cor(ieno.tmp$Biomass,ieno.tmp$Concentration),2),"]"
+                       ) # Main figure title
+         )
+# Plot a linear fit 
+    abline(reg = lm(Concentration ~ Biomass, data = ieno.tmp), # a linear model
+           lwd = 2 # line widths
+           ) 
+  }
+}
+
+#Is there is a linear relationship between `Concentration` and the predictors?
+## Based on the figures, the relations appear to be linear but not very strong (based on Pearson coefficients)
+```
+
+<div class = "alert alert-info">
+**Your task:**
+ 
+Using the model with **untransformed data**, you will now evaluate the other assumptions of linear regressions. For this, you will use diagnostic plots and assess if the observations/residuals are independent.
+</div>
+
+```{r regAssup3, eval = TRUE}
+# set the plotting space to a 2-row vs. 2-column plotting area
+par(mfrow = c(2,2))
+
+# Is there a trend with Biomass?
+plot(lm.ieno$residuals~ieno$Biomass,
+     pch = 19)
+# add a horizontal line at the zero (0) level
+abline(h = 0, # the horizontal value
+       lty = 2, # the type of line
+       col = "red" # the colour of the line
+       )
+# build a smoother function
+Loess.mod <- loess(lm.ieno$residuals~ieno$Biomass) #build a smoother function
+
+# Plot the predictions of the smoother function smoother function
+lines(y=predict(Loess.mod, # the smoother function
+                newdata = seq(0,2,length.out = 100)), # the data used to predict 
+      x= seq(0,2,length.out = 100) # the data used to predict 
+      )
+
+# Is there a trend with Treatment?
+boxplot(lm.ieno$residuals~ieno$Treatment)
+# add a horizontal line at the zero (0) level
+abline(h = 0, # the horizontal value
+       lty = 2, # the type of line
+       col = "red" # the colour of the line
+       )
+
+# Is there a trend with Nutrient?
+boxplot(lm.ieno$residuals~ieno$Nutrient)
+# add a horizontal line at the zero (0) level
+abline(h = 0, # the horizontal value
+       lty = 2, # the type of line
+       col = "red" # the colour of the line
+       )
+
+# Are the observations/residuals are independent?
+## yes, based on the residuals predictor plots is clear that there is no trend in the residuals as a function of the predictors.
+```
+
+The analyses above mean that we only need to worry about the heterogeneity in the variances, so let's do this now. 
+
+## Which variable(s) is (are) driving the heterogeneity?
+
+All the analyses above show that you cannot use a simple model. One of these reasons is that there is heterogeneity in the data. You would like to control for this heterogeneity using a generalised least-squares modelling approach (as you have a clear set of covariates to attribute this heterogeneity). The question now is, *Which variable(s) is (are) driving the heterogeneity in the residuals? *.
+
+Focus again on the plot of the residuals (obtained using the `resid()` or `residuals()`) vs. the used predictor variables used to assess if your observations are independent.
+
+<div class = "alert alert-info">
+**Your task:**
+ 
+Redraw the residuals vs. predictor plots and define which predictors most likely drive the increase/decrease in spread.
+</div>
+
+```{r HetDriv, eval = TRUE}
+# Use a boxplot to show how the residuals change as a function of biomass
+boxplot(residuals(lm.ieno)~ieno$Biomass, # formula linking residuals to a predictor
+        ylab = "Residuals", # the y-axis label
+        xlab = "Biomass") # the x-axis label
+
+# Use a boxplot to show how the residuals change as a function of nutrients
+boxplot(residuals(lm.ieno)~ieno$Nutrient, # formula linking residuals to a predictor
+        ylab = "Residuals", # the y-axis label
+        xlab = "Nutrients") # the x-axis label
+
+# Use a boxplot to show how the residuals change as a function of treatment
+boxplot(residuals(lm.ieno)~ieno$Treatment, # formula linking residuals to a predictor
+        ylab = "Residuals", # the y-axis label
+        xlab = "Treatment") # the x-axis label
+
+# Use a boxplot to show how the residuals change as a function of nutrients & treatment
+boxplot(residuals(lm.ieno)~Nutrient*Treatment, # formula linking residuals to a predictor
+        data = ieno , # source of the predictor data
+        ylab = "Residuals", # the y-axis label
+        xlab = "Nutrients/Treatment") # the x-axis label
+
+
+# Which of the predictors drive the increase/decrease in spread.
+## The boxplot of Concentration vs. Biomass did not show any apparent increase or decrease in the spread. Still, the nutrients and/or enrichment show slight differences in the spread between groups.
+
+```
+
+## Find the best variance structure.
+
+Here you will start your modelling exercise based on the premise that variance heterogeneity is interesting ecological information.
+*Because it is statistically inconvenient, you should not throw away this information*. The question now is, *how to incorporate this heterogeneity?* For this, you will use multiple mathematical parametrisations to explain the observed variance structure given the predictors. 
+
+But remember that we cannot compare an `lm` object to a `gls` object (the one we will use to model the variance). Therefore you need to build the linear regression model again with the `gls()` function.
+
+<div class = "alert alert-info">
+**Your task:**
+ 
+Build the linear regression model again with the `gls()` function.
+
+For this, you will need to download and install the Linear and Nonlinear Mixed Effects Models (`nlme`) package (`install.packages("nlme", dependencies=TRUE))`), and then load it (`library(nlme)`)].*
+</div>
+
+```{r FirstGLS, eval = TRUE}
+# Load the nlme package
+library(nlme)
+
+# Apply the linear regression model again with the gls command
+gls.ieno <- gls(Concentration ~ Biomass*Treatment*Nutrient, # The regression object
+                 data = ieno) # The object with the data 
+gls.ieno
+```
+
+With this initial model ready, you are prepared to build a series of models describing the residual variance as a function of `Biomass`, `Treatment`, and/or `Nutrient`.
+
+<div class = "alert alert-info">
+**Your task:**
+ 
+Build a series of models where you describe the residual variance as:
+
+* One variance term per `Nutrient`.
+
+* One variance term per `Treatment`.
+
+* One variance term per `Nutrient`–`Treatment` combination.
+
+All models should have main terms, two-way interactions, and the three-way interaction term as a fixed component. 
+
+The residual variance will be model as a function of the categorical predictors using the `varIdent()` function.
+
+</div>
+
+```{r VarIndGLS, eval = TRUE}
+# Model 1: The variance changes between `Nutrient`.
+gls.Nut.ieno <- gls(Concentration ~ Biomass*Treatment*Nutrient, # The regression object
+                    data = ieno, # The object with the data 
+                       weights = varIdent(form =~ 1 | Nutrient))
+
+# Model 2: The variance changes between `Treatment`s.
+gls.Tre.ieno <- gls(Concentration ~ Biomass*Treatment*Nutrient, # The regression object
+                    data = ieno, # The object with the data 
+                    weights = varIdent(form =~ 1 | Treatment))
+
+# Model 3: The variance changes between `Treatment` and `Nutrient`.
+gls.NutTre.ieno <- gls(Concentration ~ Biomass*Treatment*Nutrient, # The regression object
+                    data = ieno, # The object with the data 
+                    weights = varIdent(form =~ 1 | Treatment*Nutrient))
+```
+
+With this, you now have all the components to assess which way to model the residual variance fits the data batter. *but how to do this?* the answer is the same way you compare linear models with a Gaussian (normal) distribution: **Log-likelihood ratio tests**.
+
+<div class = "alert alert-info">
+**Your task:**
+ 
+Use the `anova()` function to contrast the first linear regression model without any variance covariates (`gls.ieno`) to the models that model the residual variance as:
+
+* One variance term per `Nutrient`–`Treatment` combination.
+
+* One variance term per `Nutrient`.
+
+* One variance term per `Treatment`.
+
+</div>
+
+```{r ModComp, eval = TRUE}
+# Assess the fit of Model 1:
+anova(gls.ieno, # the first model
+      gls.Nut.ieno # the `Nutrient`. model
+      )
+
+# Is this model better than the first model?
+## YES!! Based on the Log-likelihood ratio test, the `Nutrient` model is better than one without a variance structure! [the test is significant and has lowed AIC]
+
+# Assess the fit of Model 2:
+anova(gls.ieno, # the first model
+      gls.Tre.ieno # the `Treatment`. model
+      )
+# Is this model better than the first model?
+## YES!! Based on the Log-likelihood ratio test, the `Treatment` model is better than one without a variance structure! [the test is significant and has lowed AIC]
+
+
+# Assess the fit of Model 3:
+anova(gls.ieno, # the first model
+      gls.NutTre.ieno # the `Treatment` and `Nutrient`. model
+      )
+# Is this model better than the first model?
+## YES!! Based on the Log-likelihood ratio test, the `Treatment` and `Nutrient` model is better than one without a variance structure! [the test is significant and has lowed AIC]
+```
+
+Based on the results above, you see that including a description of the residual variance results in a better model. Now the question is, which is the best variance structure?.
+
+<div class = "alert alert-info">
+**Your task:**
+ 
+Use the function `anova` to contrast the linear regression models that describe the residual variance. Do this in this sequence:
+
+* Contrast the one variance term per `Nutrient` model to the one variance term per `Treatment` model.
+
+* Contrast the best of the two models above to the `Nutrient`–`Treatment` combination model.
+</div>
+
+
+```{r VarIndModComp, eval = TRUE}
+# Contrast the per `Nutrient` model vs. per `Treatment` model.
+anova(gls.Nut.ieno, # the `Nutrient`. model
+      gls.Tre.ieno # the `Treatment`. model
+      )
+# Which is the best model?
+## based on the Log-likelihood ratio test, the `Nutrient` model is better than the `Treatment`s model [the test is significant and has lowed AIC]
+
+# Contrast the per `Nutrient`/`Treatment` model vs. the `Nutrient`&`Treatment` model
+anova(gls.Nut.ieno, # the `Nutrient`. model
+      gls.NutTre.ieno # the `Treatment` and `Nutrient`. model
+      )
+# Which is the best model?
+## based on the Log-likelihood ratio test, the `Treatment` and `Nutrient` model is better than the `Nutrient` alone model [the test is significant and has lowed AIC]
+```
+
+The comparisons above show that the model with the lowest (=best) AIC is one where residual variances can vary by `Treatment` and `Nutrient`.
+
+*How would you describe that your model needs to allow the residual variances to vary by `Treatment` and `Nutrient` in a scientific paper?*. You would say that a variance structure that controls for both changes among nutrients and algal enrichment is considerably better than the constant variance in the linear regression model (L=214.4, *P*<0.0001).
+
+## Is all this effort worth it?
+
+By now, you have invested quite some time figuring out the best way to model the residual variance so that the model does not have heterogeneity in the residuals. *but have you succeeded?*
+
+<div class = "alert alert-info">
+**Your task:**
+ 
+Test if we still have heterogeneity in the residuals. For this:
+
+* Plot the normalised residuals against the fitted values.
+
+* Plot the normalised residuals against each of the predictors.
+
+* Is there homogeneity of variances now?
+</div>
+
+```{r VarIndHetTest, eval = TRUE}
+# Extract the the normalised residuals using the `residuals()` function and the `type="normalised"` argument. (see ?residuals.gls to read the difference between residual types)
+gls.NutTre.NorRes <- resid(gls.NutTre.ieno, # model to extract the residuals from
+                           type = "normalized") # type of residuals?
+
+# Plot the normalised residuals against the fitted values.
+plot(y = gls.NutTre.NorRes, # Normalised residuals
+     x= fitted(gls.NutTre.ieno), # Extract the fitted value form the best model
+     main = "Residuals vs Fitted", # figure title
+     ylab="Normalized residuals", # y-label text
+     xlab="fitted values") # x-label text
+# add a horizontal line at zero
+abline(h = 0, # location of the line
+       lty = 2, # Line type
+       lwd = 2, # Line width
+       col = "red" #line colour
+       ) 
+
+# Plot the normalised residuals against the Biomass.
+plot(y = gls.NutTre.NorRes, # Normalised residuals
+     x= ieno$Biomass, # Extract the fitted value form the best model
+     main = "Residuals vs Biomass", # figure title
+     ylab="Normalized residuals", # y-label text
+     xlab="Biomass") # x-label text
+# add a horizontal line at zero
+abline(h = 0, # location of the line
+       lty = 2, # Line type
+       lwd = 2, # Line width
+       col = "red" #line colour
+       ) 
+
+# Plot the normalised residuals against the Treatment
+boxplot( gls.NutTre.NorRes ~ # Normalised residuals
+           ieno$Treatment, # Extract the fitted value form the best model
+         main = "Residuals vs Treatment", # figure title
+         ylab="Normalized residuals", # y-label text
+         xlab="Treatment") # x-label text
+# add a horizontal line at zero
+abline(h = 0, # location of the line
+       lty = 2, # Line type
+       lwd = 2, # Line width
+       col = "red" #line colour
+       ) 
+
+# Plot the normalised residuals against the Nutrient
+boxplot( gls.NutTre.NorRes ~ # Normalised residuals
+           ieno$Nutrient, # Extract the fitted value form the best model
+         main = "Residuals vs Nutrient", # figure title
+         ylab="Normalized residuals", # y-label text
+         xlab="Nutrient") # x-label text
+# add a horizontal line at zero
+abline(h = 0, # location of the line
+       lty = 2, # Line type
+       lwd = 2, # Line width
+       col = "red" #line colour
+       ) 
+
+# Is there homogeneity of variances now?
+## Comparing the plots above to `plot(gls.ieno)`, it is clear that the residuals are more homogeneous now. 
+```
+
+## Model selection
+
+With the model ready, it is time to talk about model selection. This requires understanding concepts such as maximum likelihood (ML) and restricted maximum likelihood (REML). As discussed before, ML is a technique to find the most likely function that explains observed data. This is done iteratively by sampling the possible parameter space and assumes that the selected parameters are fixed parameters that are known without uncertainty.
+
+However, the realisation that the variance estimator given by ML are biased (that is, over-or under-estimates the true variance) means that we need a new approach to assess the most likely parameters. REML works by first getting regression residuals for the observations modelled by the fixed-effects portion of the model, ignoring at this point any variance components. 
+
+The last point to consider here is that ML estimates are unbiased for the fixed effects but biased for the random effects. In contrast, the REML estimates are biased for the fixed effects and unbiased for the random effects.
+
+**All this is to say that you define the best random structure using a REML approach and the best-fixed effects using an ML approach**, especially if using a model comparison approach.
+
+We discussed the protocol for model selection in mixed modelling during class, which also applies to GLS. In short, the process is an iterative evaluation process based on the sequential removal of parameters and contrast between the full and reduced model. Once you have an adequate variance structure, the process follows these steps:
+
+1) Build a generalised linear regression model that contains as many explanatory variables and their interactions as possible. This model needs to have the appropriate variance structure you selected in the steps above. **However, this model needs to specify `method = "ML"`**.
+
+2) You need to specify a reduced model, where you remove one variable (e.g., the one with the least significant *t*-statistic; or the most complex interactions). You also need to specify `method = "ML"` in this reduced model. **This model needs to have the same random structure as the model defined above**.
+
+3) Now, it is time to find the optimal fixed component. You have three tools to find the optimal fixed component: the *t*-statistic, the *F*-statistic, and the likelihood ratio test. Here, you will use likelihood ratio tests - that is why you need to specify `method = "ML"` in the step above. The likelihood ratio tests will contrast the full and reduced model using the `anova()` function. If the contrast is not significant, you can remove the term. If the contrast is significant, you retain the model with the lowest AIC.
+
+4) Repeat the process above until you can not remove any other fixed component, **OR** all fixed components are significant.
+
+5) Reapply the model that was found in the step above, and refit it with REML estimation (`method = "REML"`).
+
+6) Apply a graphical model validation, checking for homogeneity, Normality, and independence. If no problems are highlighted, **you are done!!** If problems are identified, consider adding non-significant terms to see if this improves the model validation graphs.
+
+
+<div class = "alert alert-info">
+**Your task:**
+ 
+To finish, you will now select the best set of fixed effects on this model. For this, you will use a stepwise model comparison approach following the first four steps of the procedure described above.
+
+</div>
+
+
+```{r FixedEffSel, eval = TRUE}
+
+# Build a generalized linear regression model with the appropriate variance structure and method = "ML"
+gls.ieno.ML1 <- gls(Concentration ~ Biomass*Treatment*Nutrient, # The regression object
+                   data = ieno, # The object with the data 
+                   weights = varIdent(form =~ 1 | Treatment*Nutrient),
+                   method = "ML" # use a maximum likelihood approach 
+                   )
+anova(gls.ieno.ML1)
+
+# Reduced the generalized linear regression model above by removing the 3-way interaction.
+# Use the Update function for this
+gls.ieno.ML2 <- update(gls.ieno.ML1, ". ~ . -Biomass:Treatment:Nutrient")
+anova(gls.ieno.ML2)
+
+# contrast full and reduced model
+anova(gls.ieno.ML1, # full model
+      gls.ieno.ML2  # reduced model
+      )
+
+# Do we need a 3-way interaction?
+## The ANOVA function indicates that the three-way interaction can be dropped (the two models are not significantly different, so no need to overcomplicate). Also, the reduced model has a lower AIC.
+
+# Reduced the generalized linear regression model above by removing the Biomass:Treatment
+# this is the least significant 2-way interaction .
+gls.ieno.ML3 <- update(gls.ieno.ML2, ". ~ . -Biomass:Treatment")
+anova(gls.ieno.ML3)
+
+# contrast full and reduced model
+anova(gls.ieno.ML2, # full model
+      gls.ieno.ML3  # reduced model
+      )
+
+# Do we need the Biomass:Treatment 2-way interaction?
+## The ANOVA function indicates that the Biomass:Treatment interaction can be dropped (the two models are not significantly different, so no need to overcomplicate). Also, the reduced model has a lower AIC.
+
+# Reduced the generalized linear regression model above by removing the Biomass:Nutrient
+# this is the least significant 2-way interaction .
+gls.ieno.ML4 <- update(gls.ieno.ML3, ". ~ . -Biomass:Nutrient")
+anova(gls.ieno.ML4)
+
+# contrast full and reduced model
+anova(gls.ieno.ML3, # full model
+      gls.ieno.ML4  # reduced model
+      )
+
+# Do we need the Biomass:Treatment 2-way interaction?
+## The ANOVA function indicates that a model that includes Biomass: Nutrient can be dropped as it is just marginally significantly different so that you can drop the interaction. Also, the reduced model has a lower AIC.
+
+
+# Reduced the generalized linear regression model above by removing the Treatment:Nutrient 2-way interaction
+# this is the last 2-way interaction.
+gls.ieno.ML5a <- update(gls.ieno.ML4, ". ~ . -Treatment:Nutrient")
+anova(gls.ieno.ML5a)
+
+# contrast full and reduced model
+anova(gls.ieno.ML4, # full model
+      gls.ieno.ML5a  # reduced model
+      )
+
+# Do we need the Treatment:Nutrient 2-way interaction?
+## Yes, adding it makes the model fit better the data
+
+# Reduced the generalized linear regression model above by removing Biomass
+# this is the least significant term .
+gls.ieno.ML5b <- update(gls.ieno.ML4, ". ~ . -Biomass")
+anova(gls.ieno.ML5b)
+
+# contrast full and reduced model
+anova(gls.ieno.ML4, # full model
+      gls.ieno.ML5b  # reduced model
+      )
+
+# Do we need the Biomass?
+## The ANOVA function indicates that the Biomass can be dropped (the two models are not significantly different, so no need to overcomplicate). Also, the reduced model has a lower AIC.
+## at this point, all predictors are significant, and we could stop here!
+
+# Reduced the generalized linear regression model above by removing the Treatment:Nutrient 2-way interaction
+# this is the last 2-way interaction.
+gls.ieno.ML6 <- update(gls.ieno.ML5b, ". ~ . - Treatment:Nutrient")
+anova(gls.ieno.ML6)
+
+# contrast full and reduced model
+anova(gls.ieno.ML5b, # full model
+      gls.ieno.ML6  # reduced model
+      )
+
+# Do we need the Treatment:Nutrient? interaction?
+## Yes, adding it makes the model fit better the data
+```
+
+The process above of repeated comparison of nested models resulted in selecting the best fixed-effect structure. That is a model containing `Nutrient`, `Treatment` enrichment, and their interaction (`Treatment:Nutrient).
+
+<div class = "alert alert-info">
+**Your task:**
+ 
+Now you will reapply the best model but use a REML estimation.
+
+With the model implementation above, you will now assess for: residuals' Normality, independence of observations, and homogeneity of variances.
+
+Can Normality, independence, and homogeneity be safely assumed?
+
+</div>
+
+
+```{r GLSRefit, eval = TRUE}
+# Build your final model
+gls.ieno.Final <- gls(Concentration ~ Treatment * Nutrient, # Best fixed effect combination
+                      weights = varIdent(form = ~ 1 | Treatment*Nutrient), # the selected variance structure
+                      method = "REML", # the inference method
+                      data = ieno) # the source dataset
+
+# Assess Homogeneity of variances
+# extract the residuals
+E <- resid(gls.ieno.Final, # the gls model
+           type = "pearson") # the residual type
+
+# extract the fitted values
+Fit <- fitted(gls.ieno.Final)
+
+# Plot Homogeneity of variances
+plot(x = Fit, # fitted values
+     y = E, # Normalized Residuals 
+     pch = 19, # make the points filled points
+     xlab = "Fitted values", ylab = "Residuals", # x and Y axes labels
+     main = "Residuals versus fitted values") # main figure legend
+# add a horizontal line
+abline(h = 0, # set a horizontal line at zero
+       col = "red", # make the line red
+       lwd = 2, # set the line width
+       lty = 2 # set the line type
+       )
+
+# Assess normality of the residuals
+# make a qqplot of the residuals (use qqnorm)
+qqnorm(y = E, # the Normalized Residuals object  
+       pch = 19) # make the dots filled circles
+# Add the trend line
+qqline(E, # the Normalized Residuals object
+       col = "red", # make the line red
+       lwd = 2, # set the line width
+       lty = 2 # set the line type
+       )
+
+# Assess independence of the observations
+# boxplot of residuals vs predictors
+boxplot(E ~ ieno$Treatment * ieno$Nutrient , # Normalized Residuals vs. Treatment
+        pch = 19, # make the points filled points
+        xlab = "Fitted values", ylab = "Treatment (Treatment*Nutrient)", # x and Y axes labels
+        main = "Residuals versus predictors") # main figure legend
+# add a horizontal line
+abline(h = 0, # set a horizontal line at zero
+       col = "red", # make the line red
+       lwd = 2, # set the line width
+       lty = 2 # set the line type
+       )
+
+# Can you safely assume Normality, independence, and homogeneity?
+##Yes, the residuals are close to normally distributed. There is no trend in the residuals compared to the predictors or the fitted values.
+```
+
+Assuming that everything is OK, we can now proceed to the last step and present the relevant output of the final model.
+
+<div class = "alert alert-info">
+**Your task:**
+ 
+Using the `summary()` function, answer the following questions:
+
+* Which factor or combination of these has the largest effect?
+
+* Which factor or combination of these has the largest variance?
+
+* Are all predictors significantly different from zero as a 5% level?
+
+* Why is the interaction term significant?
+
+</div>
+
+```{r FinalOut, eval = TRUE}
+# Use the `summary()` function to get an overview of the effects
+summary(gls.ieno.Final)
+
+# Which combination of has the largest effect?
+sort(abs(coef(gls.ieno.Final)[-1]),
+     decreasing = T)
+## TreatmentNoAlgae:NutrientNO3
+
+#Which combination of predictors has the largest variance (see the Variance function output)?
+## Algae*NH4 
+
+#Are all predictors significantly different form zero as a 5% level?
+coef(summary(gls.ieno.Final))
+## YEs!! 
+
+# Why is the interaction term significant?
+## Because the observations exposed to algae treatment and NH4 enrichment have the highest values.
+```
+
+## Final Points
+
+Here you have focused on developing a model that addresses one of the main problems in linear regressions: Heterogeneity in the variance. For this, you used a generalised least squares (GLS) modelling framework, which is essentially a weighted linear regression. This framework allows using the predictors at hand to model the residual variability.
+
+It would help if you remembered that the best way to select the best variance structure and fixed-effects is based on model comparisons. However, choosing the best variance structure is based on GLS models fitted using restricted maximum likelihood. In contrast, fixed effects selection uses models that are fitted using maximum likelihood.
+
+One last point, these are linear regressions!.  Therefore, after all your efforts addressing the heterogeneity of variances are done, you still need to check if it fulfils the linear regression assumptions. That means checking for homogeneity of variances, Normality of residuals, independence of observations, linearity in the relations, and no collinearity amongst predictors.  

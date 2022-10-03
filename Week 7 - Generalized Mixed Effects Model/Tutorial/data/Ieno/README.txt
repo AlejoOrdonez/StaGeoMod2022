@@ -1,0 +1,1 @@
+MU: Repetition UnitMesocosm: Replication unitAbundance: Species richnessBiomass: [mg] of the Polychaeta Hediste diversicolorTreatment: Algae/NoAlgaeNutrient: NO3 [nitrate-nitrogen], NH4 [Ammonium-nitrogen], PO3 [phosphate-phosphorus]Concentration: [mg-1 per l]

@@ -1,0 +1,619 @@
+---
+title: "Generalized Linear/Additive Mixed-Effect Models (GLMMs)"
+author: '"YOUR NAME HERE"'
+date: "`r Sys.Date()`"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, eval = F)
+require(nlme)
+require(lme4)
+require(MASS)
+require(mgcv)
+```
+
+# **The Set-up**
+
+## *Learning objectives.*
+1.	Implement as Generalized Linear/Additive Mixed-Effect Models model that considers the spatial structure in the Data `R`. 
+2.	Determine the fit of a Generalized Linear/Additive Mixed-Effect Models.
+3.	Reduce a Generalized Linear/Additive Mixed-Effect Model to the minimum adequate number of predictors using a stepwise procedure.
+
+## *Before you start*
+The practical will be run using *RStudio cloud* to avoid individual machine troubleshooting. This means you **need** to have an account for *RStudio cloud*.
+
+However, remember to have [`R`](https://cran.r-project.org) and [R-studio](http://www.rstudio.com/) in your/room computer so you can work on the project after class.
+
+**You should have also **
+1. Read chapter 5 and 13 of Zuur mixed effect models book.
+1. Read chapter 19  of Crawley the R book.
+2. Done the Tutorial for this week.
+
+## *The way it's going to be run*
+
+In this 3h practical you will to implement what you have learned in the class about Regression Analyses in `R`.
+
+You will be building and **R-Markdown** document during the class. **R-Markdown** documents allows you to combine your code, its results, and your prose commentary into a single document. If you manage to produce a document your code works. The resulting file (a html) is what you will hand-in at the end of the practical.
+
+This 3h practical is divided into seven parts (24 tasks in total). Also try to write your own `R`-code and run it **DO NOT COPY THE CODE OF SOMEONE ELSE**. Writing your code and figuring out why it does not work is the best way to understand the dynamics of the `R` language and the tasks you are doing. Also, you have an excellent teaching assistant resource - ask him and/or me all the questions you have.
+
+The final document will have three classes of boxes
+
+<div class="alert alert-info">
+<p class="text-center"; style = "font-size: 20px">
+The text in the blue filled box marked as <strong>Your task</strong> states what you need to do
+</p>
+</div>
+
+```{r }
+#
+# The code in the window marked like this shows where you need to write your code
+#
+
+```
+
+<div class="alert alert-success">
+<p class="text-center"; style = "font-size: 20px">
+The text in the green filled box marked as <strong>Question</strong> phrases a question, and where you will place the answer to the <strong>question</strong> is marked as ***PLACE YOUR ANSWER HERE**. </p>
+</div>
+
+## About the data you will use.
+
+The data to be used in this week practical is a combination of the biodiversity data  from the [Biowide](https://ecos.au.dk/forskningraadgivning/temasider/biowide) project, which aimed at collecting biodiversity data from 130 terrestrial sampling sites across Denmark. The dataset contains data for Plants (vascular plants and bryophytes), fungi (lichens and macrofungi), gastropods, and arthropods. You can get the [biodiversity data](https://www.gbif.org/dataset/cd4eb3ec-0a18-42b4-bda4-155716ddd7b1#description) from the Danish Biodiversity Information Facility. For further information on the project check the publication.
+
+Although environmental variables were collected as part of Biowide, this data is not available for our use. The data on environmental variables included in the table you will use comes from multiple Geospatial datasets I complied for this course.
+
+Here you will focus on the flowing variables:
+
+**1) decimalLongitude**: East-West position in decimal-degrees of a sample site coming from [Biowide](https://ecos.au.dk/forskningraadgivning/temasider/biowide).
+
+**2) decimalLatitude**: North-South position in decimal-degrees of a sample site coming from [Biowide](https://ecos.au.dk/forskningraadgivning/temasider/biowide). 
+
+**3) Log.S.AllGrp**: The total species richness of a sample site (sum of the unique species of all sampled groups in a site) coming from [Biowide](https://ecos.au.dk/forskningraadgivning/temasider/biowide).
+
+**4) AgrBasMp**: Density of agricultural land cover types as defined by [BASEMAP](https://envs.au.dk/en/research-areas/society-environment-and-resources/land-use-and-gis/basemap).
+
+**5) WetLndBasMp**: Density of Wetlands cover types as defined by [BASEMAP](https://envs.au.dk/en/research-areas/society-environment-and-resources/land-use-and-gis/basemap).
+
+**6) Slope30mAgg**: the maximum rate of change in value from that cell to its neighbours estimated based on the [SRTM-30m DEM](https://www2.jpl.nasa.gov/srtm/).
+
+**7) NDVI**: Normalized difference vegetation index, a simple graphical indicator that can be used to analyse vegetation greenness and has strong relation with productivity [Copernicus Global Land Service](https://land.copernicus.eu/global/products/ndvi).
+
+**8) Mean Annual Temperature (MAT)**: Annual average of temperatures  coming the [CHELSA-climatologies](https://chelsa-climate.org) ..
+
+**9) Dis2Cost**: Distance in km of a sampled site to the coast estimated by me using Denmark high resolution contour map coming form the Database of Global Administrative Areas [GADAM](https://gadm.org).
+
+**10) HII**: [Human Influence Index](https://sedac.ciesin.columbia.edu/data/set/wildareas-v2-human-influence-index-geographic), a measurement of the anthropogenic impacts on the environment.
+
+**11) PrecSea**: Seasonality of precipitation measured as the variability of monthly values (using the CV) coming the [CHELSA-climatologies](https://chelsa-climate.org).
+
+
+## 1) The first step: Loading the data
+
+<div class = "alert alert-info">
+**Your task:**
+
+Load the data in *Biowide_AllSppRich.csv*, located in the files of the project
+
+Use `read.csv` to load the file - The file is comma-separated
+
+Save the object as an object named `DK.Biodiv`.
+</div>
+
+```{r LoadData}
+# Read the file and save it as an object named `DK.Biodiv`
+DK.Biodiv <- _________("_________", # file name
+                      stringsAsFactors = TRUE # Make the categorical variables Factors
+                      )
+# Use the function head to print the five first rows
+_________(_________)
+```
+
+## 2) Building a regression.
+
+<div class = "alert alert-info">
+**Your task:**
+
+Use the function `glm()` to build  model with only *ONE* **continuous** predictor. Here, **DO NOT** use either `decimalLongitude` and `decimalLatitude` as predictors. **Remember** to include the adequate `family`for the class of `S.AllGrp`.
+
+</div>
+  
+```{r glmMod1}
+DK.Biodiv.lm <- ___(_________ ~ _________, #  select only ONE continuous** predictor.
+                    data = _________, # data frame with the data
+                    family = "_________" # error distribution
+                    )
+# Print the summary of DK.Biodiv.lm
+_________(_________)
+```
+
+## 3) Check your regression.
+
+<div class = "alert alert-info">
+**Your task:**
+
+* Evaluate graphically the assumptions of your reduced linear model (`DK.Biodiv.lm`).
+</div>
+  
+```{r glmModDiagFig}
+# define a 2x2 plotting space
+par(mfrow=c(2,2))
+# Evaluate graphically the assumptions of your reduced linear model
+_________(_________)
+```
+
+<div class="alert alert-success">
+**Question:** Are the following assumptions meet??
+
+1) Homogeneity of variances?
+At first glance it appears that the residuals are homogeneous.
+
+2) Normality of residuals?
+The qq-plot would appear to show that the residuals are normal.
+
+3) Observations with large leverage?
+While observations 94, 115 and 13 are of interest none of them are above the Cook's distance that indicates outliers (0.125) - to see only the distances plot `plot(DK.Biodiv.lm, which=4)`
+</div>
+
+<div class = "alert alert-info">
+**Your task:**
+
+* Using a box-plot, evaluate if there is homogeneity if variances between sites sampled on different regions. For this, you will:
+  1) Extract the *Deviance* residuals from `DK.Biodiv.lm`, saving these as an object named `DK.Biodiv.lm.Res`. Remember to define the Type of residuals you would like to extract.
+  2) Plot the residuals by region (`landsdele`).
+
+</div>
+
+```{r glmModResidualsByReg}
+# Extract the *Deviance* residuals
+DK.Biodiv.lm.Res <- _________(object = _________, # The regression
+                              type = "_________" # the type of residuals which should be returned 
+                              )
+# Plot the residuals by region as a boxplot
+_________(_________~_________, # A formula specifying the variable to pot and the grouping factors
+          data = _________) # Data Frame with the data
+```
+
+<div class="alert alert-success">
+**Question:** Is there Homogeneity of variances across regions?.
+
+No, The average and variability of the residuals differers between regions.
+</div>
+
+
+## 4) Setting the Scene for the mixed effect Random intercept model
+
+<div class = "alert alert-info">
+**Your task:**
+
+Use the function `glm()` to build  model with the predictor you selected in `DK.Biodiv.lm` AND `landsdele`, as a predictor. Here add the categorical predictors as additive term. **Remember** to include the adequate `family`for the class of `S.AllGrp`.
+
+</div>
+  
+```{r glmMod2}
+DK.Biodiv.lm2 <- glm(_________ ~ _________ + _________, #  the Equations defining the response and additive combination of predictors
+                    data = _________,
+                    family = "_________")
+# Print the summary of DK.Biodiv.lm2
+_________(_________)
+```
+
+<div class="alert alert-success">
+**Question:** how much has the Model performance improved (i.e., **deviance explained**) by adding the categorical term?.
+
+The model with the categorical term now explains ~13% of the deviance while one with out it explains only `8%
+</div>
+
+<div class="alert alert-success">
+**Question:** how much has adding the categorical term costed in terms of degrees of freedom?.
+
+By adding region as a categorical predictor, you lost four (4) degrees of freedom, 1- Number of regions. 
+</div>
+
+## 5) Building a random intercept model
+
+<div class = "alert alert-info">
+**Your task:**
+
+* Build a Generalized linear Mixed effects model that includes "region"as random intercept. For this, use the function `glmer` of the package `lme4`. Remember that in `lme4`, random effects are added defined as `(1 | X)`, and added as a predictor in your function.
+ </div>
+ 
+```{r glmRandInter}
+DK.Biodiv.RndInt <- ____(_________ ~ _________ _ _________, #  the Equations defining the response and additive combination of predictors
+                         data = _________,
+                         family = "_________")
+# Print the summary of DK.Biodiv.RndInt
+_________(_________)
+```
+
+<div class="alert alert-success">
+**Question:** How did the addition of a random intercepts change the parameter estimates in `DK.Biodiv.RndInt` when compared to those in `DK.Biodiv.lm`?.
+
+The parameters and their SE only changed slightly, with the largest change taking place in the Intercept SE.
+</div>
+
+<div class="alert alert-success">
+**Question:** how much has the Model performance improved (i.e., **deviance explained**) when compared to the original model by adding the regions as a random intercept?.
+
+The model with regions as a random intercept explains ~13% of the deviance (the same as the model with it as a categorical predictor) while one with out it explains only `8%
+</div>
+
+<div class="alert alert-success">
+**Question:** how much has adding the categorical term costed in terms of degrees of freedom?.
+
+By adding region as a random intercept, you lost ONE (1) degrees of freedom, even as five different random slopes are estimated. 
+</div>
+
+
+<div class = "alert alert-info">
+**Your task:**
+
+* Extract the random intercepts from the `DK.Biodiv.RndInt` model. For this, you will use the function `random.effects` of the package `nlme`.
+ </div>
+
+```{r glmRandInterGet}
+ # Extract the random intercepts
+ _________(_________)
+```
+
+<div class="alert alert-success">
+**Question:** Make an interpretation of the random intercept extracted in the task above?.
+
+These indicate how much will species richness increase of decrease when the predictors are evaluated at their mean level. 
+Namely, that *Midtjylland* and *Nordjylland* will have a lower overall species richness that other parts of Denmark under the same "average" environmental conditions.
+
+</div>
+
+<div class = "alert alert-info">
+**Your task:**
+
+* Generate a prediction for your random intercept model, taking into consideration the effect of "region". For this, you will:
+  1) Generate a new object to be used for predicting your model. This new object, named `TempPred` will have 100 values between the minimum and maximum of your selected predictor.
+  2) Create a new object names `TempPredReg` where the values in `TempPred` are paired to a sequence of 100 times the string name of each region.
+  3) Use `DK.Biodiv.RndInt` to generate a prediction for each predictor/region combination in `TempPredReg`. 
+  4) Append the predicted values to `TempPredReg` as a variable named `S.AllGrp`.
+</div>
+
+```{r PredglmRandInter}
+# 1) Generate a new object with sequential values for the predictor.
+TempPred <- seq(from = _________, # the starting values
+                to = _________, # the end value
+                length.out = ____) # number of object in between
+
+# 2) pair sequential values with regions names
+TempPredReg <- data.frame(Slope30mAgg = _________, # sequential predictors values
+                          landsdele = rep(_________, # Values to repeat
+                                          each = 100) # number of times
+                          )
+# 3/4) generate a prediction for each predictor/region combination
+TempPredReg$S.AllGrp <- _______(_________, # Model
+                                newdata = _________, # A data frame in which to look for variables with which to predict.
+                                type = "_________" # the type of prediction required
+                                )
+
+# Plot a box-plot of the predicted values by region
+_________(_________ = _________~_________, # A formula stating the variable to plot and grouping variable 
+          data = _________ # a data.frame (or list) from which the variables in formula should be taken
+         )
+```
+<div class="alert alert-success">
+**Question:** Based on the figure above, is there any difference in the species richness over the different Danish regions?.
+
+Yes, *Midtjylland* and *Nordjylland* will have a lower overall species richness that other parts of Denmark.
+
+</div>
+
+div class = "alert alert-info">
+**Your task:**
+
+* Generate a visualization for the prediction for your random intercept model, taking into consideration the effect of "region". For this, you will:
+
+  1) Plot the **OBSERVED** change in richness (`S.AllGrp`) as a function of the predictor as a scatter plot.
+  2) Add a line (using the function `lines()` and the data in `TempPredReg` ) for each of the region specific predictions.
+</div>
+
+```{r Plot PredglmRandInter}
+# plot the observed Richness Vs predictor 
+plot(_________ ~ _________,
+     data = _________,
+     pch = 19,
+     col = _________)
+# Add the predictors per Region
+for (i in _________){
+  lines(_________ ~ _________, # A formula stating the variable to plot and grouping variable 
+        data = _________,
+        col = _________,
+        lwd = 2)
+}
+```
+<div class="alert alert-success">
+**Question:** Based on the figure above, is there any difference in the species richness over the different Danish regions?.
+
+Yes, *Midtjylland* and *Nordjylland* will have a lower overall species richness that other parts of Denmark across the range of values for the predictor.
+
+</div>
+
+## 6) Setting the Scene for the mixed effect Random slope model
+
+<div class = "alert alert-info">
+**Your task:**
+
+Use the function `glm()` to build  model with the predictor you selected in `DK.Biodiv.lm` AND `landsdele`, as a predictor. Here add the categorical predictors as full interaction term  (X_1_ * X_2_). **Remember** to include the adequate `family`for the class of `S.AllGrp`.
+
+</div>
+  
+```{r glmMod3}
+DK.Biodiv.lm3 <- ___(_________ ~ _________ _ _________, #  the Equations defining the response and additive combination of predictors
+                    data = _________,
+                    family = "_________")
+# Print the summary of DK.Biodiv.lm3
+_________(_________)
+```
+
+<div class="alert alert-success">
+**Question:** how much has the Model performance improved (i.e., **deviance explained**) by adding the categorical term?.
+
+The model with the categorical term now explains ~16% of the deviance while one with out it explains only 8%
+</div>
+
+<div class="alert alert-success">
+**Question:** how much has adding the categorical term costed in terms of degrees of freedom?.
+
+By adding region as a categorical predictor, you lost 24 degrees of freedom [Number of regions + (Number of regions X predictor combination)-1]. 
+</div>
+
+## 7) Building a random slope model
+
+<div class = "alert alert-info">
+**Your task:**
+
+* Build a Generalized linear Mixed effects model that includes "region"as random slope For this, use the function `glmer` of the package `lme4`. Remember that in `lme4`, random effects are added defined as `(X2 | X1)`, and added as a predictor in your function.
+ </div>
+ 
+```{r glmRandSlope}
+DK.Biodiv.RndSlope <- _____(_________ ~ _________ _ _________, #  the Equations defining the response and additive combination of predictors
+                            data = _________,
+                            family = "_________")
+# Print the summary of DK.Biodiv.RndSlope
+_________(_________)
+```
+
+<div class="alert alert-success">
+**Question:** How did the addition of a random slopes change the parameter estimates in `DK.Biodiv.RndSlope` when compared to those in `DK.Biodiv.lm`?.
+
+The parameters and their SE changed , with the largest change taking place in the slope.
+</div>
+
+<div class="alert alert-success">
+**Question:** how much has the model performance improved (i.e., **deviance explained**) when compared to the original model by adding the regions as a random intercept?.
+
+The model with regions as a random slope explains ~14.5% of the deviance (the same as the model with it as a categorical predictor) while one with out it explains only 8%.
+</div>
+
+<div class = "alert alert-info">
+**Your task:**
+
+* Extract the random intercepts and slopes from the `DK.Biodiv.RndSlope` model. For this, you will use the function `random.effects` of the package `nlme`.
+ </div>
+
+```{r glmRandSlopeGet}
+ # Extract the random intercepts
+ _________(_________)
+```
+
+<div class="alert alert-success">
+**Question:** Make an interpretation of the random slopes extracted in the task above?.
+
+These indicate how much will species richness increase of decrease within a region was a function of the predictors. 
+The values show that in *Hovedstaden* diversity decrease as a function of the predictor.
+
+</div>
+
+
+<div class = "alert alert-info">
+**Your task:**
+
+* Generate a prediction for your random slope model, taking into consideration the effect of "region" and plot these predictions. For this, you will:
+  1) Generate a new object to be used for predicting your model. This new object, named `TempPred` will have 100 values between the minimum and maximum of your selected predictor.
+  2) Create a new object names `TempPredReg` where the values in `TempPred` are paired to a sequence of 100 times the string name of each region.
+  3) Use `DK.Biodiv.RndInt` to generate a prediction for each predictor/region combination in `TempPredReg`. 
+  4) Append the predicted values to `TempPredReg` as a variable named `S.AllGrp`.
+  5) Plot the **OBSERVED** change in richness (`S.AllGrp`) as a function of the predictor as a scatter plot.
+  6) Add a line (using the function `lines()` and the data in `TempPredReg` ) for each of the region specific predictions. 
+</div>
+
+```{r PredglmRandSlope}
+# 1) Generate a new object with sequential values for the predictor.
+TempPred <- seq(from = _________, # the starting values
+                to = _________, # the end value
+                length.out = ___) # number of object in between
+
+# 2) pair sequential values with regions names
+TempPredReg <- data.frame(Slope30mAgg = _________, # sequential predictors values
+                          landsdele = rep(_________, # Values to repeat
+                                          each = ___) # number of times
+                          )
+# 3/4) generate a prediction for each predictor/region combination
+TempPredReg$S.AllGrp <- predict(_________, # Model
+                                newdata = _________, # A data frame in which to look for variables with which to predict.
+                                type = "_________" # the type of prediction required
+                                )
+# plot the observed Richness Vs predictor 
+plot(_________ ~ _________,
+     data = _________,
+     pch = 19,
+     col = _________)
+# Add the predictors per Region
+for (i in _________){
+  lines(_________ ~ _________, # A formula stating the variable to plot and grouping variable 
+        data = _________,
+        col = _________,
+        lwd = 2)
+}
+legend("topleft",
+       legend = _________,
+       fill =1:5)
+```
+
+<div class="alert alert-success">
+**Question:** Based on the figure above, is there any difference in the species richness over the different Danish regions?.
+Yes, *Hovedstaden* will have a lower overall higher species richness than any point in Denmark for low values of slope.
+Also, the changes in richness differers between regions, with *Nordjylland* having the slowest changes,and *Sjælland* the fastest changes.
+</div>
+
+
+## 8) Random Intectep or random slope?
+
+<div class = "alert alert-info">
+**Your task:**
+
+* Evaluate if the model with the random intercept or the random slope is the best model. For this, you will use the functions `anova()` and `AIC()`. Remember that the `anova()` test requires you to define the right test.
+
+</div>
+
+```{R RndSlopVsIntr}
+# Anova contrasting the random intercept vs slope models
+anova(_________, # Model 1
+      _________,# Model 2
+      test = "_________") # How to contrast models
+
+# AIC fo the models
+AIC(_________, # Model 1
+    _________) # Model 2
+```
+
+<div class="alert alert-success">
+**Question:** Based on the tests above, which model is best?.
+
+The anova test indicates that the two models are significant different in the explained deviance; and that the Random slope model performs significantly better.
+</div>
+
+## 10) Now with a GAM.
+
+<div class = "alert alert-info">
+**Your task:**
+
+* Build a Generalized Additive model that includes "region"as random intercept. For this, use the function `gam` of the package `mgcv`. Here you will add `landsdele` as a smoother type to random effect (`re`).
+ </div>
+
+```{r GAM1}
+DK.Biodiv.RndGAM <- gam(_________ ~ _________ + _________, #  the Equations defining the response and additive combination of predictors
+                           data = _________,
+                            family = "_________")
+
+# Print the summary of DK.Biodiv.RndGAM
+_________(_________)
+```
+
+<div class = "alert alert-info">
+**Your task:**
+
+* Generate a prediction for your random intercept GAM, taking into consideration the effect of "region" and plot these predictions. For this, you will:
+  1) Generate a new object to be used for predicting your model. This new object, named `TempPred` will have 100 values between the minimum and maximum of your selected predictor.
+  2) Create a new object names `TempPredReg` where the values in `TempPred` are paired to a sequence of 100 times the string name of each region.
+  3) Use `DK.Biodiv.RndInt` to generate a prediction for each predictor/region combination in `TempPredReg`. 
+  4) Append the predicted values to `TempPredReg` as a variable named `S.AllGrp`.
+  5) Plot the **OBSERVED** change in richness (`S.AllGrp`) as a function of the predictor as a scatter plot.
+  6) Add a line (using the function `lines()` and the data in `TempPredReg` ) for each of the region specific predictions. 
+</div>
+
+```{r PredGAM1}
+# 1) Generate a new object with sequential values for the predictor.
+TempPred <- seq(from = _________, # the starting values
+                to = _________, # the end value
+                length.out = ___) # number of object in between
+
+# 2) pair sequential values with regions names
+TempPredReg <- data.frame(Slope30mAgg = _________, # sequential predictors values
+                          landsdele = rep(_________, # Values to repeat
+                                          each = ___) # number of times
+                          )
+# 3/4) generate a prediction for each predictor/region combination
+TempPredReg$S.AllGrp <- predict(_________, # Model
+                                newdata = _________, # A data frame in which to look for variables with which to predict.
+                                type = "_________" # the type of prediction required
+                                )
+# plot the observed Richness Vs predictor 
+plot(_________ ~ _________,
+     data = _________,
+     pch = 19,
+     col = _________)
+# Add the predictors per Region
+for (i in _________){
+  lines(S.AllGrp~Slope30mAgg, # A formula stating the variable to plot and grouping variable 
+        data = _________,
+        col = _________,
+}
+legend("topleft",
+       legend = _________,
+       fill =1:5)
+```
+
+<div class = "alert alert-info">
+**Your task:**
+
+* Build a Generalized Additive model that includes in your smoother both the predictor and "region"as random factor. For this, use the function `gam` of the package `mgcv`. Here you will add `landsdele` as a smoother type to random effect (`re`) and model the Predictor-region interaction as a Tensor product smooth (`te(X, Z, bs = c("A","B"))`).
+ </div>
+ 
+```{r GAM2}
+DK.Biodiv.RndGAM2 <- gam(_________ ~ _________ , #  the Equations defining the response and additive combination of predictors
+                           data = _________,
+                            family = "_________")
+
+# Print the summary of DK.Biodiv.RndGAM
+_________(_________)
+
+```
+
+<div class = "alert alert-info">
+**Your task:**
+
+* Generate a prediction for your random slope GAM, taking into consideration the effect of "region" and plot these predictions. For this, you will:
+  1) Generate a new object to be used for predicting your model. This new object, named `TempPred` will have 100 values between the minimum and maximum of your selected predictor.
+  2) Create a new object names `TempPredReg` where the values in `TempPred` are paired to a sequence of 100 times the string name of each region.
+  3) Use `DK.Biodiv.RndInt` to generate a prediction for each predictor/region combination in `TempPredReg`. 
+  4) Append the predicted values to `TempPredReg` as a variable named `S.AllGrp`.
+  5) Plot the **OBSERVED** change in richness (`S.AllGrp`) as a function of the predictor as a scatter plot.
+  6) Add a line (using the function `lines()` and the data in `TempPredReg` ) for each of the region specific predictions. 
+</div>
+
+```{r PredGAM2}
+# 1) Generate a new object with sequential values for the predictor.
+TempPred <- seq(from = _________, # the starting values
+                to = _________, # the end value
+                length.out = ___) # number of object in between
+
+# 2) pair sequential values with regions names
+TempPredReg <- data.frame(Slope30mAgg = _________, # sequential predictors values
+                          landsdele = rep(_________, # Values to repeat
+                                          each = ___) # number of times
+                          )
+# 3/4) generate a prediction for each predictor/region combination
+TempPredReg$S.AllGrp <- predict(_________, # Model
+                                newdata = _________, # A data frame in which to look for variables with which to predict.
+                                type = "_________" # the type of prediction required
+                                )
+# plot the observed Richness Vs predictor 
+plot(_________ ~ _________,
+     data = _________,
+     pch = 19,
+     col = _________)
+# Add the predictors per Region
+for (i in _________){
+  lines(_________ ~ _________, # A formula stating the variable to plot and grouping variable 
+        data = _________,
+        col = _________,
+        lwd = 2)
+}
+legend("topleft",
+       legend = _________,
+       fill =1:5)
+```
+
+
+
+
+

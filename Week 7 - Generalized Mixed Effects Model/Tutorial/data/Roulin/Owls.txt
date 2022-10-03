@@ -1,0 +1,1 @@
+Nest: Nest IDFoodTreatment: Deprived or SatiatedSexParent: Male/FemaleArrivalTime: HourSiblingNegotiation: calls in the nearest 30-s interval before the arrival of a parentBroodSize: number of nestlingsNegPerChick: SiblingNegotiation/BroodSize
