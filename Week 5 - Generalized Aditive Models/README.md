@@ -1,4 +1,4 @@
-# **StaGeoMod2022 - week 4 -[Generalized Additive Models (GAMs) - ]**
+# **StaGeoMod2022 - week 5 -[Generalized Additive Models (GAMs)]**
 
 ## Objectives of this week.
 
