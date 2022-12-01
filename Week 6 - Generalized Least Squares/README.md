@@ -1,4 +1,4 @@
-# **StaGeoMod2022 week 4 -[Generalized Least Squares (GLSs)]**
+# **StaGeoMod2022 week 6 -[Generalized Least Squares (GLSs)]**
 
 ## Objectives of this week.
 
@@ -13,7 +13,7 @@
   b) temporal/spatial/phylogenetic correlation between observations.
 4.	Reduce a Generalized Least Squares model to the minimum adequate number of predictors using a stepwise procedure.
 
-## Generalized Least Squares (GGLSs) in a nutshell
+## Generalized Least Squares (GLSs) in a nutshell
 
 The generalized least squares (GLS) estimator of the coefficients of a linear regression is a generalization of the ordinary least squares (OLS) estimator. It is used to deal with situations in which the OLS estimator is not BLUE (best linear unbiased estimator) because one of the main assumptions of the Gauss-Markov theorem, namely that of homoskedasticity and absence of serial correlation, is violated. In such situations, provided that the other assumptions of the Gauss-Markov theorem are satisfied, the GLS estimator is BLUE.
 
