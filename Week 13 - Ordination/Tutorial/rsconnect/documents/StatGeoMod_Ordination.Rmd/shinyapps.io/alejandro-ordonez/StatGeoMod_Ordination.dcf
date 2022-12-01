@@ -1,0 +1,14 @@
+name: StatGeoMod_Ordination
+title:
+username:
+account: alejandro-ordonez
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 7503649
+bundleId: 6468915
+url: https://alejandro-ordonez.shinyapps.io/StatGeoMod_Ordination/
+when: 1667421736.86349
+lastSyncTime: 1667421736.86352
+asMultiple: FALSE
+asStatic: FALSE
+ignoredFiles: .RData

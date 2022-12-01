@@ -1,0 +1,1649 @@
+---
+title: "Spatial Interpolation "
+output: learnr::tutorial
+runtime: shiny_prerendered
+---
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, eval = T)
+require("vegan") # - vegan: Community Ecology Statistics including distance matrices  
+require("cluster")# - cluster: Identifying cluster goodness  
+require("ade4")# - ade4: Euclidean distance calculations  
+require("ape")# - ape: PCoA calculation  
+require('learnr') #  learnr
+# Setup
+knitr::opts_chunk$set(echo = FALSE,
+                      message = FALSE,
+                      warning = FALSE)
+gradethis::gradethis_setup()
+tutorial_options(exercise.blanks = TRUE)
+
+# Laod data
+macnally <- read.csv( file = "https://raw.githubusercontent.com/AlejoOrdonez/StaGeoMod2021/main/macnally.csv")
+macnally.clean <- macnally[, -c(1:2, 105:107)]; rownames(macnally.clean) <- macnally$SITE
+macnally.dist <- vegdist(x = macnally.clean, method = "bray")
+Hclus.1 <- hclust(d = macnally.dist, method = "single")
+SingLin.dist <- cophenetic(Hclus.1)
+Hclus.2 <-  hclust(d = macnally.dist, method = "complete")
+CompLin.dist <- cophenetic(Hclus.2)
+Hclus.3 <- hclust(d = macnally.dist,method = "average")
+UPGMA.dist <- cophenetic(Hclus.3)
+Hclus.4 <- hclust(d = macnally.dist,method = "ward.D2")
+Ward.dist <- cophenetic(Hclus.4)
+
+## Ordination
+macnally.dist.Sqrt <- sqrt(macnally.dist)
+# PCoA using cmdscale - see that the number of PCoA assess to be extracted is defined
+#macnally.pcoa.V1 <- cmdscale(d = macnally.dist.Sqrt, k = (nrow(macnally.clean) - 1), eig = TRUE)
+macnally.pcoa.V2 <- pcoa(macnally.dist.Sqrt,correction = "none")
+macnally.MDS.V1 <- metaMDS(comm = macnally.clean, k = 2,distance = "bray",try = 20,trace = 0)
+stressplot.Bct <- sapply(2:20,
+                         function(k){
+                           NMDSTemp <- metaMDS(comm = macnally.dist,k = k, try = 20, trace = 0)
+                           NMDSTemp$stress
+                         })
+macnally.MDS.V4 <- metaMDS(comm = macnally.clean, k = 2,distance = "bray",try = 20,trace = 0)
+```
+
+## Before you start.
+
+Mac Nally (1989) evaluated the maximum abundance (across four seasons) for 102 species of birds for 37 sites [`SITE`] in south-eastern Australia. The data in `macnally.csv` represent the densities of each of the 102-bird species [`V1.` through `V102.`], rather than absolute counts so that no transformation will be necessary. As a result, species with high densities will dominate the dissimilarities between sites.
+
+
+## Distances
+You are working with community data. Therefore you need to use relevant distance metrics when estimating the difference between sites. Remember that the objective of clustering is to recognise discontinuous subsets in an environment that is sometimes discrete (as in taxonomy)
+ but most often perceived as continuous in ecology.
+
+Note that most clustering methods are computed from association matrices, which stresses the importance of choosing an appropriate association coefficient. This means the type of data you use will define the best distance/association coefficient to be used. When dealing with community data, you can use some of the dissimilarity metrics commonly used in community ecology (e.g. Bray-Curtis, Jaccard, or Sorensen). As the data here is not presence-absence but rather densities, it is not recommended to use Jaccard or Sorensen dissimilarity. This makes Bray-Curtis dissimilarities a better approach.
+
+As you have community data, the best distance matrix to use is Bray-Curtis dissimilarities. Also, with the housekeeping done, you can now use the `vegdist()` function (from the `vegan` package) to estimate the differences between sites. Remember that you need to set the `method` argument to the correct distance metric; in this case: `bray`. Here, you save the distance matrix as an object called `macnally.Dist.
+
+<div class="alert alert-info">
+  **Your task:**
+  
+Estimate the Bray-Curtis dissimilarities between sampled sites.
+</div>
+
+```{r BrayDist, exercise=TRUE}
+# Estimate the  dissimilarities between sampled sites.
+macnally.dist <- vegdist(x = macnally.clean, # the Community data matrix 
+                         method = "_______" # defie the Dissimilarity index to use.
+                         )
+# See the Output
+head(_______)
+```
+```{r BrayDist-solution, exercise.reveal_solution=F}
+# Estimate the  dissimilarities between sampled sites.
+macnally.dist <- vegdist(x = macnally.clean, # the Community data matrix 
+                         method = "bray" # defie the Dissimilarity index to use.
+                         )
+# See the Output
+head(macnally.dist)
+```
+
+```{r BrayDist-check}
+grade_code()
+```
+
+
+## Hierarchical Clustering Based on Links - Single Linkages, Complete Linkages, and Averages 
+
+Now that you have a distance matrix, you can explore different clustering algorithms. Here, you start with some Hierarchical Clustering Based on Links. you explore the three basic algorithms:  
+
+1. Single Linkage Agglomerative Clustering.  
+2. Complete Linkage Agglomerative Clustering.  
+3. Average Agglomerative Clustering.  
+
+All these are implemented using the `hclust()` function by changing the method argument for each. You may want to look at the `hclust()` help file (using `?hclust`). 
+
+<div class="alert alert-info">
+  **Your task:**
+  
+Here, you will both build and plot a dendrogram based on a Single Linkage approch.
+</div>
+
+```{r Dend1a, exercise=TRUE}
+# Single linkage
+Hclus.1 <- hclust(d = macnally.dist, # A dissimilarity structure.
+                  method = "_______") # Agglomeration method to be used.
+
+# Plot the Hierarchical cluster (hclust) object.
+plot(x = _______, # An object of the type produced by hclust.
+     main = "Bray Curtis\n Single linkage", # Main title.
+     cex.main = 2, cex = 0.8, cex.axis = 1.2, cex.lab = 1.5 # Define the text sizes.
+     ) 
+```
+```{r Dend1a-solution, exercise.reveal_solution=F}
+# Single linkage
+Hclus.1 <- hclust(d = macnally.dist, # A dissimilarity structure.
+                  method = "single") # Agglomeration method to be used.
+
+# Plot the Hierarchical cluster (hclust) object.
+plot(x = Hclus.1, # An object of the type produced by hclust.
+     main = "Bray Curtis\n Single linkage", # Main title.
+     cex.main = 2, cex = 0.8, cex.axis = 1.2, cex.lab = 1.5 # Define the text sizes.
+     ) 
+```
+```{r Dend1a-check}
+grade_code()
+```
+
+Based on the Single linkage clustering, it is possible to see a consistent gradient of sites, particularly distinguishable on the right-hand cluster. The reason for this is how clusters are put together in a single linkage approach.
+
+<div class="alert alert-info">
+  **Your task:**
+  
+Here, you will both build and plot a dendrogram based on a Complete Linkage approach.
+
+</div>
+
+```{r Dend1b, exercise=TRUE}
+## Complete linkage
+Hclus.2 <-  hclust(d = macnally.dist, # A dissimilarity structure.
+                  method = "_________") # Agglomeration method to be used.
+# Plot the Hierarchical cluster (hclust) object.
+plot(x = _________, # An object of the type produced by hclust.
+     main = "Bray Curtis\n Complete linkage", # Main title.
+     cex.main = 2, cex = 0.8, cex.axis = 1.2, cex.lab = 1.5 # Define the text sizes.
+     ) 
+```
+```{r Dend1b-solution, exercise.reveal_solution=F}
+## Complete linkage
+Hclus.2 <-  hclust(d = macnally.dist, # A dissimilarity structure.
+                  method = "complete") # Agglomeration method to be used.
+# Plot the Hierarchical cluster (hclust) object.
+plot(x = Hclus.2, # An object of the type produced by hclust.
+     main = "Bray Curtis\n Complete linkage", # Main title.
+     cex.main = 2, cex = 0.8, cex.axis = 1.2, cex.lab = 1.5 # Define the text sizes.
+     ) 
+```
+```{r Dend1b-check}
+grade_code()
+```
+
+The Complete linkage clustering tends to place sites within the same habitat in the same groups. One way to look at those is to define the argument `labels` to the plot function.
+
+
+<div class="alert alert-info">
+  **Your task:**
+  
+Here, you will both build and plot a dendrogram based on a UPGMA Average Linkage approach.
+</div>
+
+```{r Dend1c, exercise=TRUE}
+## Average (UPGMA) linkage  
+Hclus.3 <- hclust(d = macnally.dist, # A dissimilarity structure.
+                  method = "_______") # Agglomeration method to be used.
+# Plot the Hierarchical cluster (hclust) object.
+plot(x = _______, # An object of the type produced by hclust.
+     main = "Bray Curtis\n Average", # Main title.
+     cex.main = 2, cex = 0.8, cex.axis = 1.2, cex.lab = 1.5 # Define the text sizes.
+     ) 
+```
+```{r Dend1c-solution, exercise.reveal_solution=F}
+## Average (UPGMA) linkage  
+Hclus.3 <- hclust(d = macnally.dist, # A dissimilarity structure.
+                  method = "average") # Agglomeration method to be used.
+# Plot the Hierarchical cluster (hclust) object.
+plot(x = Hclus.2, # An object of the type produced by hclust.
+     main = "Bray Curtis\n Average", # Main title.
+     cex.main = 2, cex = 0.8, cex.axis = 1.2, cex.lab = 1.5 # Define the text sizes.
+     ) 
+```
+```{r Dend1c-check}
+grade_code()
+```
+
+## Hierarchical Clustering changing the tip names
+
+<div class="alert alert-info">
+  **Your task:**
+ 
+Add the habitat type to the Complete Linkage dendrogram by defining the argument `labels` to the plot function. 
+ 
+</div>
+
+```{r DenPltLab, exercise=TRUE}
+# Plot the Complete Linkage Hierarchical cluster (hclust) object.
+plot(x = _______, # An object of the type produced by hclust().
+     labels = macnally$_______, # A character vector of labels for the leaves of the tree.
+     main = "Bray Curtis\n Complete", # Main title.
+     cex.main = 2, cex = 0.8, cex.axis = 1.2, cex.lab = 1.5 # Define the text sizes.
+     ) 
+```
+```{r DenPltLab-solution, exercise.reveal_solution=F}
+# Plot the Complete Linkage Hierarchical cluster (hclust) object.
+plot(x = Hclus.2, # An object of the type produced by hclust().
+     labels = macnally$HABITAT, # A character vector of labels for the leaves of the tree.
+     main = "Bray Curtis\n Complete", # Main title.
+     cex.main = 2, cex = 0.8, cex.axis = 1.2, cex.lab = 1.5 # Define the text sizes.
+     ) 
+```
+```{r DenPltLab-check}
+grade_code()
+```
+
+Here, you see that while the well-defined groups are clustered together, the mixed habitats are scattered across all groups.
+
+The emerging question is **How can three perfectly valid clustering methods produce such different results when applied to the same data?**
+
+These three different clustering approaches show different patterns that reflect the difference in the philosophy of the methods. First, the dendrogram resulting from a single linkage clustering shows chaining of objects,  which indicates a gradient of composition changes. By comparison, the complete linkage and UPGMA clustering approaches indicate "groups" of composition similarity. However, the result of a UPGMA approach is somehow intermediate to a single and complete linkage.
+
+## Hierarchical Clustering Based on Links - Ward's Minimum Variance
+
+The three options above are the traditional ways to build dendrograms. You can also use a method based on the linear model criterion of least squares (Ward’s Minimum Variance Clustering). Here the goal is to build groups that minimise the within-group sum of squares (the sum of the squared distances among members of a cluster divided by the number of objects). This is the same procedure used to estimate the squared error in an ANOVA.
+
+Like the three methods described above, Ward’s method is implemented in `hclust()`. Still, there are two different implementations:(1) `method = "ward.D2"`, and (2) `method = "ward"`. 
+
+<div class="alert alert-info">
+  **Your task:**
+
+Using `method = "ward.D2"` and a Bray Curtis dissimilarity,  you will now plot the dendrogram resulting from implementing Ward’s clustering to the data.
+
+Also, plot the dendrogram adding the habitat type to the tips of the dendrogram.
+ 
+</div>
+
+```{r WardDend, exercise=TRUE, exercise.lines=20}
+## Ward’s clustering.  
+Hclus.4 <- hclust(d = macnally.dist, # A dissimilarity structure.
+                  method = "_______") # Agglomeration method to be used.
+
+# Plot the Hierarchical cluster (hclust) object.
+plot(x = _______, # An object of the type produced by hclust.
+     main = "Bray Curtis\n Ward’s method ", # Main title.
+     cex.main = 2, cex = 0.8, cex.axis = 1.2, cex.lab = 1.5 # Define the text sizes.
+     ) 
+
+# Plot the Hierarchical cluster (hclust) object, adding the habitat-type 
+plot(x = _______, # An object of the type produced by hclust.
+     labels = macnally$_______, # A character vector of labels for the leaves of the tree.
+     main = "Bray Curtis\n Ward’s method", # Main title.
+     cex.main = 2, cex = 0.8, cex.axis = 1.2, cex.lab = 1.5 # Define the text sizes.
+     ) 
+```
+```{r WardDend-solution, exercise.reveal_solution=F}
+## Ward’s clustering.  
+Hclus.4 <- hclust(d = macnally.dist, # A dissimilarity structure.
+                  method = "ward.D2") # Agglomeration method to be used.
+
+# Plot the Hierarchical cluster (hclust) object.
+plot(x = Hclus.4, # An object of the type produced by hclust.
+     main = "Bray Curtis\n Ward’s method ", # Main title.
+     cex.main = 2, cex = 0.8, cex.axis = 1.2, cex.lab = 1.5 # Define the text sizes.
+     ) 
+
+# Plot the Hierarchical cluster (hclust) object, adding the habitat-type 
+plot(x = Hclus.4, # An object of the type produced by hclust.
+     labels = macnally$HABITAT, # A character vector of labels for the leaves of the tree.
+     main = "Bray Curtis\n Ward’s method", # Main title.
+     cex.main = 2, cex = 0.8, cex.axis = 1.2, cex.lab = 1.5 # Define the text sizes.
+     ) 
+```
+
+```{r WardDend-check}
+grade_code()
+```
+
+Overall, the results above show that the approach you used reflects a conceptual distinction between it and other methods. Specifically, Ward's approach focuses on showing the grouping of sites based on minimising the variance in the distance between elements in a cluster. In contrast, complete/UPGMA is focused on the average distances. 
+
+## Cophenetic Correlation - How good is the clustering of observations?
+
+Up until now, you have created a bunch of dendrograms and compared these among each other. But to define how good they are, you need to consider how good they are at capturing the original differences between sites. For this, you will establish the correlation between the original distances and the cophenetic distances (distance between two objects in a dendrogram).
+
+For this, you estimate the Pearson’s correlation (r) between the original and **cophenetic distances**. This is what you call the **cophenetic correlation**. The method with the highest cophenetic correlation may be seen as producing the clustering model that retains most of the information contained in the dissimilarity matrix. However, this does not necessarily mean that this clustering model is the most adequate for the researcher’s goal.
+
+You can plot their relation between the cophenetic distances and original distance (these plots are called **Shepard-like diagrams**) to check how good is the cluster. You can also estimate the correlation between the original and each of the cophenetic distances. Then you can use these as a measurement of "how good is the clustering?". 
+
+<div class="alert alert-info">
+  **Your task:**
+ 
+Plot the cophenetic vs. original distances for the single linkage approache.
+
+Also, estimate the correlation between the original and the cophenetic distances calculated above for the single linkage, complete linkage, UPGMA, and Ward's clustering approaches. Add these as insert text in each panel.
+ 
+</div>
+
+```{r ShepDiag1, exercise=TRUE, exercise.lines=30}
+# Calculate the cophenetic distance for the single linkage clustering.
+SingLin.dist <- cophenetic(_______)
+# Print the object class of the cophenetic distance
+class(_______)
+
+## Plot the original vs cophenetic for the Single Linkage dendrogram.
+plot(x = _______, # Cophenetic distances.
+     y = macnally.dist, # Original distances.
+     main = 'Cophenetic Correlation\n Single linkage',# Figure main title.
+     pch = 19, col = "lightgrey", cex=1.2 # Define Point type, colour, and size arguments.
+     )
+# Add a 1:1 line
+abline(a = 0, b = 1, # Set the intercept (a) and slope (b).
+       lty = 1, lwd = 2,
+       xpd = F) # Define the line width and type attributes.
+
+# Add a line representing the smoothed relation between the original vs cophenetic distances
+# A Loess model
+SmothMod <- lowess(macnally.dist ~ _______)
+# Add a line with the Loess model
+lines(_______, # The Loess model 
+      lty = 2, col = "red", lwd = 2) # Define the line colour, width, and type attributes.
+
+# Estimate the correlations between original vs cophenetic distances.
+cor.SingLin <- cor(_______, macnally.dist)
+
+# Add the correlation to the figure as a text box
+legend("topleft", # Position the legend?
+       legend = paste("Pearson = ", round(cor.SingLin, 3)), # Legend Text.
+       bty = "n" # Type of box to be drawn around the legend.
+       )
+```
+```{r ShepDiag1-solution, exercise.reveal_solution=F}
+# Calculate the cophenetic distance for the single linkage clustering.
+SingLin.dist <- cophenetic(Hclus.1)
+# Print the object class of the cophenetic distance
+class(SingLin.dist)
+
+## Plot the original vs cophenetic for the Single Linkage dendrogram.
+plot(x = SingLin.dist, # Cophenetic distances.
+     y = macnally.dist, # Original distances.
+     main = 'Cophenetic Correlation\n Single linkage',# Figure main title.
+     pch = 19, col = "lightgrey", cex=1.2 # Define Point type, colour, and size arguments.
+     )
+# Add a 1:1 line
+abline(a = 0, b = 1, # Set the intercept (a) and slope (b).
+       lty = 1, lwd = 2,
+       xpd = F) # Define the line width and type attributes.
+
+# Add a line representing the smoothed relation between the original vs cophenetic distances
+# A Loess model
+SmothMod <- lowess(macnally.dist ~ SingLin.dist)
+# Add a line with the Loess model
+lines(SmothMod, # The Loess model 
+      lty = 2, col = "red", lwd = 2) # Define the line colour, width, and type attributes.
+
+# Estimate the correlations between original vs cophenetic distances.
+cor.SingLin <- cor(SingLin.dist, macnally.dist)
+
+# Add the correlation to the figure as a text box
+legend("topleft", # Position the legend?
+       legend = paste("Pearson = ", round(cor.SingLin, 3)), # Legend Text.
+       bty = "n" # Type of box to be drawn around the legend.
+       )
+```
+
+```{r ShepDiag1-check}
+grade_code()
+```
+<div class="alert alert-info">
+  **Your task:**
+ 
+Plot the cophenetic vs. original distances for the complete linkage approache.
+
+Also, estimate the correlation between the original and the cophenetic distances calculated above for the single linkage, complete linkage, UPGMA, and Ward's clustering approaches. Add these as insert text in each panel.
+ 
+</div>
+
+```{r ShepDiag2, exercise=TRUE, exercise.lines=30}
+# Calculate the cophenetic distance for the complete linkage clustering.
+CompLin.dist <- cophenetic(______)
+# Print the object class of the cophenetic distance
+class(CompLin.dist)
+
+# Plot the original vs cophenetic for the Complete Linkage dendrogram.
+  plot(x = ______, # Cophenetic distances.
+       y = macnally.dist, # Original distances.
+       main = 'Cophenetic Correlation\n Complete linkage'# Figure main title.
+  )
+# Add a 1:1 line
+abline(a = 0, b = 1, # Set the intercept (a) and slope (b).
+       lty = 1, lwd = 2) # Define the line width and type attributes.
+
+# Add a line representing the smoothed relation between the original vs cophenetic distances
+# A Loess model
+SmothMod <- lowess(macnally.dist ~ ______)
+# Add a line with the Loess model
+lines(______, # The Loess model 
+      lty = 2, col = "red", lwd = 2) # Define the line colour, width, and type attributes.
+
+# Estimate the correlations between original vs cophenetic distances.
+cor.CompLin <- cor(______, macnally.dist)
+
+# Add the correlation to the figure as a text box
+legend("topleft", # Where to place the legend box.
+       legend = paste("Pearson = ", round(cor.CompLin, 3)), # Legend Text.
+       bty = "n" # Type of box to be drawn around the legend.
+)
+```
+```{r ShepDiag2-solution, exercise.reveal_solution=F}
+# Calculate the cophenetic distance for the complete linkage clustering.
+CompLin.dist <- cophenetic(Hclus.2)
+# Print the object class of the cophenetic distance
+class(CompLin.dist)
+
+# Plot the original vs cophenetic for the Complete Linkage dendrogram.
+  plot(x = CompLin.dist, # Cophenetic distances.
+       y = macnally.dist, # Original distances.
+       main = 'Cophenetic Correlation\n Complete linkage'# Figure main title.
+  )
+# Add a 1:1 line
+abline(a = 0, b = 1, # Set the intercept (a) and slope (b).
+       lty = 1, lwd = 2) # Define the line width and type attributes.
+
+# Add a line representing the smoothed relation between the original vs cophenetic distances
+# A Loess model
+SmothMod <- lowess(macnally.dist ~ CompLin.dist)
+# Add a line with the Loess model
+lines(SmothMod, # The Loess model 
+      lty = 2, col = "red", lwd = 2) # Define the line colour, width, and type attributes.
+
+# Estimate the correlations between original vs cophenetic distances.
+cor.CompLin <- cor(CompLin.dist, macnally.dist)
+
+# Add the correlation to the figure as a text box
+legend("topleft", # Where to place the legend box.
+       legend = paste("Pearson = ", round(cor.CompLin, 3)), # Legend Text.
+       bty = "n" # Type of box to be drawn around the legend.
+)
+```
+```{r ShepDiag2-check}
+grade_code()
+```
+<div class="alert alert-info">
+  **Your task:**
+ 
+Plot the cophenetic vs. original distances for the UPGMA approache.
+
+Also, estimate the correlation between the original and the cophenetic distances calculated above for the single linkage, complete linkage, UPGMA, and Ward's clustering approaches. Add these as insert text in each panel.
+ 
+</div>
+
+```{r ShepDiag3, exercise=TRUE, exercise.lines=30}
+# Calculate the cophenetic distance for the average/UPGMA clustering.
+UPGMA.dist <- cophenetic(______)
+# Print the object class of the cophenetic distance
+class(UPGMA.dist)
+
+# Plot the original vs cophenetic for the UPGMA dendrogram.
+  plot(x = ______, # Cophenetic distances.
+       y = macnally.dist, # Original distances.
+       main = 'Cophenetic Correlation\n UPGMA'# Figure main title.
+  )
+# Add a 1:1 line
+abline(a = 0, b = 1, # Set the intercept (a) and slope (b).
+       lty = 1, lwd = 2) # Define the line width and type attributes.
+
+# Add a line representing the smoothed relation between the original vs cophenetic distances
+# A Loess model
+SmothMod <- lowess(macnally.dist ~ ______)
+# Add a line with the Loess model
+lines(______, # The Loess model 
+      lty = 2, col = "red", lwd = 2) # Define the line colour, width, and type attributes.
+
+# Estimate the correlations between original vs cophenetic distances.
+cor.CompLin <- cor(______, macnally.dist)
+
+# Add the correlation to the figure as a text box
+legend("topleft", # Where to place the legend box.
+       legend = paste("Pearson = ", round(cor.CompLin, 3)), # Legend Text.
+       bty = "n" # Type of box to be drawn around the legend.
+)
+```
+```{r ShepDiag3-solution, exercise.reveal_solution=F}
+# Calculate the cophenetic distance for the average/UPGMA clustering.
+UPGMA.dist <- cophenetic(Hclus.3)
+# Print the object class of the cophenetic distance
+class(UPGMA.dist)
+
+# Plot the original vs cophenetic for the UPGMA dendrogram.
+  plot(x = UPGMA.dist, # Cophenetic distances.
+       y = macnally.dist, # Original distances.
+       main = 'Cophenetic Correlation\n UPGMA'# Figure main title.
+  )
+# Add a 1:1 line
+abline(a = 0, b = 1, # Set the intercept (a) and slope (b).
+       lty = 1, lwd = 2) # Define the line width and type attributes.
+
+# Add a line representing the smoothed relation between the original vs cophenetic distances
+# A Loess model
+SmothMod <- lowess(macnally.dist ~ UPGMA.dist)
+# Add a line with the Loess model
+lines(SmothMod, # The Loess model 
+      lty = 2, col = "red", lwd = 2) # Define the line colour, width, and type attributes.
+
+# Estimate the correlations between original vs cophenetic distances.
+cor.CompLin <- cor(UPGMA.dist, macnally.dist)
+
+# Add the correlation to the figure as a text box
+legend("topleft", # Where to place the legend box.
+       legend = paste("Pearson = ", round(cor.CompLin, 3)), # Legend Text.
+       bty = "n" # Type of box to be drawn around the legend.
+)
+```
+
+```{r ShepDiag3-check}
+grade_code()
+```
+
+
+<div class="alert alert-info">
+  **Your task:**
+ 
+Plot the cophenetic vs. original distances for the Ward's clustering approache.
+
+Also, estimate the correlation between the original and the cophenetic distances calculated above for the single linkage, complete linkage, UPGMA, and Ward's clustering approaches. Add these as insert text in each panel.
+ 
+</div>
+```{r ShepDiag4, exercise=TRUE, exercise.lines=30}
+# Calculate the cophenetic distance for the Ward clustering.
+Ward.dist <- cophenetic(______)
+# Print the object class of the cophenetic distance
+class(Ward.dist)
+# Plot the original vs cophenetic for the Ward dendrogram.
+  plot(x = ______, # Cophenetic distances.
+       y = macnally.dist, # Original distances.
+       main = 'Cophenetic Correlation\n Ward'# Figure main title.
+  )
+# Add a 1:1 line
+abline(a = 0, b = 1, # Set the intercept (a) and slope (b).
+       lty = 1, lwd = 2) # Define the line width and type attributes.
+
+# Add a line representing the smoothed relation between the original vs cophenetic distances
+# A Loess model
+SmothMod <- lowess(macnally.dist ~ ______)
+# Add a line with the Loess model
+lines(______, # The Loess model 
+      lty = 2, col = "red", lwd = 2) # Define the line colour, width, and type attributes.
+
+# Estimate the correlations between original vs cophenetic distances.
+cor.CompLin <- cor(______, macnally.dist)
+
+# Add the correlation to the figure as a text box
+legend("topleft", # Where to place the legend box.
+       legend = paste("Pearson = ", round(cor.CompLin, 3)), # Legend Text.
+       bty = "n" # Type of box to be drawn around the legend.
+)
+```
+```{r ShepDiag4-solution, exercise.reveal_solution=F}
+# Calculate the cophenetic distance for the Ward clustering.
+Ward.dist <- cophenetic(Hclus.4)
+# Print the object class of the cophenetic distance
+class(Ward.dist)
+# Plot the original vs cophenetic for the Ward dendrogram.
+  plot(x = Ward.dist, # Cophenetic distances.
+       y = macnally.dist, # Original distances.
+       main = 'Cophenetic Correlation\n Ward'# Figure main title.
+  )
+# Add a 1:1 line
+abline(a = 0, b = 1, # Set the intercept (a) and slope (b).
+       lty = 1, lwd = 2) # Define the line width and type attributes.
+
+# Add a line representing the smoothed relation between the original vs cophenetic distances
+# A Loess model
+SmothMod <- lowess(macnally.dist ~ Ward.dist)
+# Add a line with the Loess model
+lines(SmothMod, # The Loess model 
+      lty = 2, col = "red", lwd = 2) # Define the line colour, width, and type attributes.
+
+# Estimate the correlations between original vs cophenetic distances.
+cor.CompLin <- cor(Ward.dist, macnally.dist)
+
+# Add the correlation to the figure as a text box
+legend("topleft", # Where to place the legend box.
+       legend = paste("Pearson = ", round(cor.CompLin, 3)), # Legend Text.
+       bty = "n" # Type of box to be drawn around the legend.
+)
+```
+```{r ShepDiag4-check}
+grade_code()
+```
+
+Based on these plots, it becomes clear that the UPGMA approach is the one that produces cophenetic distances that are both strongly and linearly related to the original distances. You see that this is the signal of the best clustering approach as it accurately represents the original dissimilarities between observations. 
+
+## Gower Distance - How good is the clustering of observations?
+
+Another possible statistic for comparing clustering results is the **Gower distance**, computed as the sum of squared differences between the original dissimilarities and cophenetic distances ($\sum(OrgDist - CophDist)^2$). The clustering method that produces the smallest Gower distance may be seen as the one that provides the best clustering model of the dissimilarity matrix. 
+
+<div class="alert alert-info">
+**Your task:**
+
+Now you will estimate the **Gower distance** for each of the four linkage methods (e.g., Single linkage, Complete linkage, UPGMA, and Ward).
+
+Assess if the cophenetic correlation and Gower distance criteria designate the same clustering result as the best.
+
+</div>
+
+```{r DistCor, exercise=TRUE, exercise.lines=20}
+# Gower distance for the Single linkage clustering
+gow.dist.single <- sum((macnally.dist - ______) ^ 2)
+gow.dist.single
+
+# Gower distance for the Complete linkage clustering
+gow.dist.comp <- sum((macnally.dist - ______) ^ 2)
+gow.dist.comp
+
+# Gower distance for the UPGMA clustering
+gow.dist.UPGMA <- sum((macnally.dist - ______) ^ 2)
+gow.dist.UPGMA
+
+# Gower distance for the Ward clustering
+gow.dist.ward <- sum((macnally.dist - ______) ^ 2)
+gow.dist.ward
+
+```
+```{r DistCor-solution, exercise.reveal_solution=F}
+# Gower distance for the Single linkage clustering
+gow.dist.single <- sum((macnally.dist - SingLin.dist) ^ 2)
+gow.dist.single
+
+# Gower distance for the Complete linkage clustering
+gow.dist.comp <- sum((macnally.dist - CompLin.dist) ^ 2)
+gow.dist.comp
+
+# Gower distance for the UPGMA clustering
+gow.dist.UPGMA <- sum((macnally.dist - UPGMA.dist) ^ 2)
+gow.dist.UPGMA
+
+# Gower distance for the Ward clustering
+gow.dist.ward <- sum((macnally.dist - Ward.dist) ^ 2)
+gow.dist.ward
+
+```
+
+```{r DistCor-check}
+grade_code()
+```
+
+In this case, the cophenetic correlation and Gower distance criteria designate the UPGMA approach as the best linkage method!
+
+## Pruning a Dendrogram/Tree
+
+Now that you have a good candidate for the best linkage algorithm, it is time to start looking for "interpretable clusters". This means you must decide at what level the dendrogram should be cut (it is often practical to find a level where interpretations are made). 
+
+These levels can be defined subjectively by visual examination of the dendrogram, or you can choose them to fulfil some criteria. In any case, adding information on the dendrograms or plotting additional details on the clustering results can be very useful to decide where to "prune" (i.e. "cut") the best tree.
+
+To begin, you can use different predefined cut-offs based on a typical number of groups. For this, you use the `cutree()` function, which gives a vector of group memberships. One way to explore the consequence of alternative "pruning" points is to cut the "best" dendrogram into a different number of groups.
+
+<div class="alert alert-info">
+  **Your task:**
+ 
+Using the best clustering algorithm and the splits done above, add the corresponding group number for tree splits into two (2), three (3), four (4), and five (5) groups.
+
+Do this by defining the argument `labels` to the plot function. 
+ 
+</div>
+
+```{r SplitPLot, exercise=TRUE, exercise.lines=25}
+# Plot the best clustering approach (hclust) object, adding the two groups classification as labels.
+plot(x = _____, # An object of the type produced by hclust.
+     labels = cutree(_____, 2), # A character vector of labels for the tree's leaves.
+     main = "Two groups\n UPGMA", # Main title.
+     cex.main = 2, cex = 0.8, cex.axis = 1.2, cex.lab = 1.5 # Define the text sizes.
+     ) 
+
+# Plot the best clustering approach (hclust) object, adding the three groups classification as labels.
+plot(x = _____, # An object of the type produced by hclust.
+     labels = cutree(_____, 3), # A character vector of labels for the tree's leaves.
+     main = "Three groups\n UPGMA", # Main title.
+     cex.main = 2, cex = 0.8, cex.axis = 1.2, cex.lab = 1.5 # Define the text sizes.
+     ) 
+
+# Plot the best clustering approach (hclust) object, adding the four groups classification as labels.
+plot(x = _____, # An object of the type produced by hclust.
+     labels = cutree(_____, 4), # A character vector of labels for the tree's leaves.
+     main = "Four groups\n UPGMA", # Main title.
+     cex.main = 2, cex = 0.8, cex.axis = 1.2, cex.lab = 1.5 # Define the text sizes.
+     ) 
+
+# Plot the best clustering approach (hclust) object, adding the five groups classification as labels.
+plot(x = _____, # An object of the type produced by hclust.
+     labels = cutree(_____, 5), # A character vector of labels for the tree's leaves.
+     main = "Five groups\n UPGMA", # Main title.
+     cex.main = 2, cex = 0.8, cex.axis = 1.2, cex.lab = 1.5 # Define the text sizes.
+     ) 
+```
+```{r SplitPLot-solution, exercise.reveal_solution=F}
+# Plot the best clustering approach (hclust) object, adding the two groups classification as labels.
+plot(x = Hclus.3, # An object of the type produced by hclust.
+     labels = cutree(Hclus.3, 2), # A character vector of labels for the tree's leaves.
+     main = "Two groups\n UPGMA", # Main title.
+     cex.main = 2, cex = 0.8, cex.axis = 1.2, cex.lab = 1.5 # Define the text sizes.
+     ) 
+
+# Plot the best clustering approach (hclust) object, adding the three groups classification as labels.
+plot(x = Hclus.3, # An object of the type produced by hclust.
+     labels = cutree(Hclus.3, 3), # A character vector of labels for the tree's leaves.
+     main = "Three groups\n UPGMA", # Main title.
+     cex.main = 2, cex = 0.8, cex.axis = 1.2, cex.lab = 1.5 # Define the text sizes.
+     ) 
+
+# Plot the best clustering approach (hclust) object, adding the four groups classification as labels.
+plot(x = Hclus.3, # An object of the type produced by hclust.
+     labels = cutree(Hclus.3, 4), # A character vector of labels for the tree's leaves.
+     main = "Four groups\n UPGMA", # Main title.
+     cex.main = 2, cex = 0.8, cex.axis = 1.2, cex.lab = 1.5 # Define the text sizes.
+     ) 
+
+# Plot the best clustering approach (hclust) object, adding the five groups classification as labels.
+plot(x = Hclus.3, # An object of the type produced by hclust.
+     labels = cutree(Hclus.3, 5), # A character vector of labels for the tree's leaves.
+     main = "Five groups\n UPGMA", # Main title.
+     cex.main = 2, cex = 0.8, cex.axis = 1.2, cex.lab = 1.5 # Define the text sizes.
+     ) 
+```
+
+```{r SplitPLot-check}
+grade_code()
+```
+
+Although it is practical to see where each group is, the plots shown above do not tell you how many groups make sense to have. For this, you will need to use more "quantitative" approaches. 
+
+
+## Fusion Level plots
+
+One of these quantitative approaches to determine how many groups make sense is to graph the Fusion Level Values. Fusion Level Values show the dissimilarity values where the fusion between two branches of a dendrogram occurs. This means plotting the node height (that you can extract from the `height` slot on a `hclust()` created object) and the number of clusters. 
+
+<div class="alert alert-info">
+  **Your task:**
+
+Plot the fusion level values of the best clustering approach. 
+</div>
+
+
+```{r FusionPlt, exercise=TRUE, exercise.lines=20}
+# Plot the fusion level values of the best clustering approach
+plot(x = ______$______, # The clustering height: that is, the value of the criterion associated with the clustering method for the particular agglomeration.
+     y = nrow(______):2, # Fusion Node.
+     type = "S", # type of plot desired? = stair steps.
+     main = "Fusion levels - UPGMA", # Main title.
+     ylab = "k (number of clusters)", # Y-lab label.
+     xlab = "h (node height)", # x-lab label.
+     col = "grey", lwd = 2 # Line piloting arguments. 
+     )
+
+# Use the text() function to define the Fusions level of each brake
+text(x = ______$______, # The clustering height: that is, the value of the criterion associated with the clustering method for the particular agglomeration.
+     y = nrow(macnally):2, # Fusion Node.
+     labels = nrow(macnally):2, # Fusion Node.
+     col = "red", cex = 0.8 # Text colour and size?
+     )
+```
+```{r FusionPlt-solution, exercise.reveal_solution=F}
+# Plot the fusion level values of the best clustering approach
+plot(x = Hclus.3$height, # The clustering height: that is, the value of the criterion associated with the clustering method for the particular agglomeration.
+     y = nrow(macnally):2, # Fusion Node.
+     type = "S", # type of plot desired? = stair steps.
+     main = "Fusion levels - UPGMA", # Main title.
+     ylab = "k (number of clusters)", # Y-lab label.
+     xlab = "h (node height)", # x-lab label.
+     col = "grey", lwd = 2 # Line piloting arguments. 
+     )
+
+# Use the text() function to define the Fusions level of each brake
+text(x = Hclus.3$height, # The clustering height: that is, the value of the criterion associated with the clustering method for the particular agglomeration.
+     y = nrow(macnally):2, # Fusion Node.
+     labels = nrow(macnally):2, # Fusion Node.
+     col = "red", cex = 0.8 # Text colour and size?
+     )
+```
+
+```{r FusionPlt-check}
+grade_code()
+```
+
+Based on the Fusion Level Values, you should cut the dendrogram at four (4) groups - the point where the plot starts to show a steep and increasing slope.
+
+<div class="alert alert-info">
+  **Your task:**
+ 
+Plot the best clustering algorithm defining the corresponding group number based on the number of groups defined above.
+
+Do this by defining the argument `labels` to the plot function. 
+ 
+</div>
+
+```{r BstNbrGrp, exercise=TRUE}
+# Plot the best clustering approach (hclust) object, adding the best-number of groups classification as labels.
+plot(x = ______, # An object of the type produced by hclust.
+     labels = cutree(______, 4), # A character vector of labels for the tree's leaves.
+     main = "Four groups\n UPGMA", # Main title.
+     cex.main = 2, cex = 0.8, cex.axis = 1.2, cex.lab = 1.5 # Define the text sizes.
+     ) 
+```
+```{r BstNbrGrp-solution, exercise.reveal_solution=F}
+# Plot the best clustering approach (hclust) object, adding the best-number of groups classification as labels.
+plot(x = Hclus.3, # An object of the type produced by hclust.
+     labels = cutree(Hclus.3, 4), # A character vector of labels for the tree's leaves.
+     main = "Four groups\n UPGMA", # Main title.
+     cex.main = 2, cex = 0.8, cex.axis = 1.2, cex.lab = 1.5 # Define the text sizes.
+     ) 
+```
+```{r BstNbrGrp-check}
+grade_code()
+```
+
+
+## Choosing the number of clusters
+
+For this practical, you will use six (6) clusters for the final group diagnostic matching the original habitat types and the UPGMA linkage approach.
+
+With this criterion, you can examine if the group memberships are appropriate (i.e. no or few objects misclassified). A silhouette plot is useful here.
+
+<div class="alert alert-info">
+  **Your task:**
+
+Define the optimal number of clusters according to matrix correlation statistics and the `grpdist()` function.
+</div>
+
+```{r FinNbClus, exercise=TRUE, exercise.lines=20}
+# Choose the number of clusters
+k <- _____
+# Prune the UPGMA tree into six groups
+UPGMA.6groups <- cutree(tree = _____, # A tree as produced by hclust.
+                        k = k # Desired number of groups.
+                        )
+# Compute silhouette information according to a given clustering in k clusters
+sil <- silhouette(x = _____, # Vector with k different integer cluster codes.
+                  dist = macnally.dist # Original a dissimilarity object.
+                  )
+# give the names to sil based on of sites
+rownames(sil) <- row.names(macnally.clean)
+
+# Silhouette plot of the final partition
+plot(x = _____, # The silhouette object
+     main = "Silhouette plot - Bray Curtis - UPGMA", # Main tytle
+     cex.names = 0.8, # Size of text
+     col = 2:(k + 1) # Bar colours (one per group)
+     )
+```
+
+```{r FinNbClus-solution, exercise.reveal_solution=F}
+# Choose the number of clusters
+k <- 6
+# Prune the UPGMA tree into six groups
+UPGMA.6groups <- cutree(tree = Hclus.3, # A tree as produced by hclust.
+                        k = k # Desired number of groups.
+                        )
+# Compute silhouette information according to a given clustering in k clusters
+sil <- silhouette(x = UPGMA.6groups, # Vector with k different integer cluster codes.
+                  dist = macnally.dist # Original a dissimilarity object.
+                  )
+# give the names to sil based on of sites
+rownames(sil) <- row.names(macnally.clean)
+
+# Silhouette plot of the final partition
+plot(x = sil, # The silhouette object
+     main = "Silhouette plot - Bray Curtis - UPGMA", # Main tytle
+     cex.names = 0.8, # Size of text
+     col = 2:(k + 1) # Bar colours (one per group)
+     )
+```
+
+```{r FinNbClus-check}
+grade_code()
+```
+
+The silhouette width plot of the UPGMA tree pruned into six groups show that clusters 2, 4, and 6 are the most coherent. In contrast, cluster 3 contains some misclassified objects.
+
+
+## (Non-)Metric Dimensional Scaling of the variation and forest bird assemblages
+
+In this section, you will work on the ordination of observations based on a distance matrix. There are two approaches for this; both focus on organising the objects in a small number of axes. The first approach is focused on preserving the exact dissimilarities among objects is metric dimensional scaling. The second is focused on representing (as well as possible) the ordering relationships in a specified number of axes non-metric multidimensional scaling.
+
+## Metric Dimensional Scaling
+
+In the case of metric dimensional scaling, the objective is to provide a Euclidean representation of a set of objects whose relationships are measured by any dissimilarity measure chosen by the user. Principal Coordinate Analysis (PCoA) represents the relationships among the objects based upon the assessed variables and measured through the defined distance. This would not be possible with ordination approaches based on correlations/covariances (PCA) or the $\chi^2$-distance (CA).
+
+Like PCA and CA, PCoA produces a set of orthogonal axes whose importance is measured by eigenvalues. For representing the relationships among objects, sites or variables, the used distance must be "Euclidean", as this avoids producing negative eigenvalues (you cannot represent negative eigenvalues on real ordination axes since they are complex).
+
+<div class="alert alert-info">
+  **Your task:**
+
+The best first step when building a PCoA is to assess if the distance is Euclidean. For this, you will use the `is.euclid()` function from the `ade4` package.
+
+</div>
+
+```{r iseuclid1, exercise=TRUE}
+# Is macnally.dist Euclidean?
+_______(macnally.dist)
+```
+```{r iseuclid1-solution, exercise.reveal_solution=F}
+# Is macnally.dist Euclidean?
+is.euclid(macnally.dist)
+```
+```{r iseuclid1-check}
+grade_code()
+```
+
+
+The test confirms that `macnally.dist` is **NOT** Euclidean, which is expected as it is built based on the "Bray-Curtis" distance that fails to satisfy the triangle inequality.
+
+To solve this, you can either use a *Lingoes* (adding a constant value to the squared dissimilarities) or *Cailliez* (adding a constant value to the dissimilarities) specification. Alternately, you can use a square root transformation - this is the approach you will use to build the PCoA later on.
+
+<div class="alert alert-info">
+  **Your task:**
+ 
+Make the `macnally.dist` distance matrix Euclidean by using a : 
+
+* Lingoes correction: Adding a constant value to the squared dissimilarities.
+
+* Cailliez correction: Adding a constant value to the dissimilarities.
+
+* Square root transformation: Square root the dissimilarities.
+
+After you do these, assess if these transformed dissimilarity matrices are Euclidean.
+</div>
+
+```{r iseuclid2, exercise=TRUE, exercise.lines=20}
+## Lingoes correction
+macnally.dist.Ling <- sqrt(_____)+1
+# Is it euclidean?
+_____(macnally.dist.Ling)
+
+## Cailliez correction
+macnally.dist.Cail <- _____+1
+# Is it euclidean?
+_____(macnally.dist.Cail)
+
+## Sqrt correction
+macnally.dist.Sqrt <- sqrt(_____)
+# Is it euclidean?
+_____(macnally.dist.Sqrt)
+```
+```{r iseuclid2-solution, exercise.reveal_solution=F}
+## Lingoes correction
+macnally.dist.Ling <- sqrt(macnally.dist)+1
+# Is it euclidean?
+is.euclid(macnally.dist.Ling)
+
+## Cailliez correction
+macnally.dist.Cail <- macnally.dist+1
+# Is it euclidean?
+is.euclid(macnally.dist.Cail)
+
+## Sqrt correction
+macnally.dist.Sqrt <- sqrt(macnally.dist)
+# Is it euclidean?
+is.euclid(macnally.dist.Sqrt)
+```
+
+```{r iseuclid2-check}
+grade_code()
+```
+
+
+Now that `macnally.dist` has been made Euclidean, it is possible to build a PCoA to define a series of ordination axes. For this, you use the function `cmdscale()` from the `vegan` package, or the function `pcoa()` from the `ape` package. The axes of a PCoA can be interpreted as those of a PCA or CA. Therefore, the proximity of objects in the ordination represents their similarity in the sense of the association measure used.
+
+
+<div class="alert alert-info">
+  **Your task:**
+ 
+Build a PCoA to using your the Euclidean distances based on the Sqrt correction (`macnally.dist.Sqrt`).
+
+For this, use the function `pcoa()` from the `ape` package.
+</div>
+
+```{r PCoAV2, exercise=TRUE}
+# PCoA using pcoa - see that the number of PCoA assess to be extracted is defined
+macnally.pcoa.V2 <- pcoa(__________,# An Euclidean distance matrix. 
+                         correction = "none" # How to correct the distance matrix?
+                         )
+
+# Print the structure of the object created with the pcoa() function.
+str(macnally.pcoa.V2)
+```
+```{r PCoAV2-solution, exercise.reveal_solution=F}
+# PCoA using pcoa - see that the number of PCoA assess to be extracted is defined
+macnally.pcoa.V2 <- pcoa(macnally.dist.Sqrt,# An Euclidean distance matrix. 
+                         correction = "none" # How to correct the distance matrix?
+                         )
+
+# Print the structure of the object created with the pcoa() function.
+str(macnally.pcoa.V2)
+```
+
+```{r PCoAV2-check}
+grade_code()
+```
+
+You built a PCoA with 36-PCoA axes. The question is now how many ordination axes are meant to display and interpret. For this, you need to examine the eigenvalues and decide how many axes are worth representing and displaying based on the amount of variance explained. 
+
+## Meaningful Axes in a PCoA
+
+The decision can be completely arbitrary (for instance, interpret the number of axes necessary to represent 75% of the variance in the data) or assisted by one of several procedures. One of these procedures consists of computing a broken stick model, which randomly divides a stick of unit length into the same number of pieces as there are PCoA eigenvalues. The pieces are then put in order of decreasing lengths and compared to the eigenvalues. One interprets only the axes whose sum of eigenvalues are larger than the cumulative proportion predicted by the broken stick model (or PCoA eigenvalues are larger than the length of the corresponding piece of the stick).
+
+<div class="alert alert-info">
+  **Your task:**
+
+Plot the cumulative relative eigenvalues/variance of the PCoA (as a barplot) and the respective Cumulative broken stick fractions (as an added line).
+
+Define the LAST PCoA axis where the observed cumulative variance is larger than that of a broken stick model
+ 
+</div>
+
+```{r CumeigeValPlt, exercise=TRUE, exercise.lines=30}
+# Extract the Cumulative relative eigenvalues/variance.
+macnally.CumulEig <- _________$ values$Cumul_eig
+
+## Plot the cumulative eigenvalues/variance. 
+macnally.barplot <- barplot(_________) 
+
+## Add the y-axes names
+text(x = as.numeric(_________)-0.5, # X-axis location.
+     y = rep(0, length(macnally.CumulEig)), # Y-axis location.
+     labels = paste(1:length(macnally.CumulEig), "PCoA", sep = "_"), # Text
+     srt = 45, xpd = NA, cex = 0.5, # Text arguments: angle (srt), plot in the full area (xpd), size of the text
+     pos = 1 # Position specifier for the text.
+     )
+
+# Add the Broken Stick expectation as a line
+
+# Extract the Cumulative broken stick fractions
+macnally.CumulBrStick <-_________$ values$Cumul_br_stick
+
+# Add the Cumulative broken stick fractions as a line
+lines(x = macnally.barplot, # X-axis position.
+      y = _________, # Y-axis = Cumulative broken stick fractions
+      type = "o", # type of plot desired = overplotted points and lines
+      col = "red" # colour
+      )
+
+## Define the LAST PCoA axis where the observed cumulative variance is larger than that of a broken stick model
+max(which(_________>_________))
+```
+```{r CumeigeValPlt-solution, exercise.reveal_solution=F}
+# Extract the Cumulative relative eigenvalues/variance.
+macnally.CumulEig <- macnally.pcoa.V2$ values$Cumul_eig
+
+## Plot the cumulative eigenvalues/variance. 
+macnally.barplot <- barplot(macnally.CumulEig) 
+
+## Add the y-axes names
+text(x = as.numeric(macnally.barplot)-0.5, # X-axis location.
+     y = rep(0, length(macnally.CumulEig)), # Y-axis location.
+     labels = paste(1:length(macnally.CumulEig), "PCoA", sep = "_"), # Text
+     srt = 45, xpd = NA, cex = 0.5, # Text arguments: angle (srt), plot in the full area (xpd), size of the text
+     pos = 1 # Position specifier for the text.
+     )
+
+# Add the Broken Stick expectation as a line
+
+# Extract the Cumulative broken stick fractions
+macnally.CumulBrStick <-macnally.pcoa.V2$ values$Cumul_br_stick
+
+# Add the Cumulative broken stick fractions as a line
+lines(x = macnally.barplot, # X-axis position.
+      y = macnally.CumulBrStick, # Y-axis = Cumulative broken stick fractions
+      type = "o", # type of plot desired = overplotted points and lines
+      col = "red" # colour
+      )
+
+## Define the LAST PCoA axis where the observed cumulative variance is larger than that of a broken stick model
+max(which(macnally.CumulEig>macnally.CumulBrStick))
+```
+
+```{r CumeigeValPlt-check}
+grade_code()
+```
+
+
+
+Based on the results above, it is clear that at least 10 PCoA-axes are needed. These would represent ~63% of the variability in the data.
+
+## Ploting a PCoA
+
+Remember that ordinations are not statistical tests but heuristic procedures with no hypothesis being tested. So, the goal here is to describe the relative position of observations in a reduced space. With that in mind, you now build biplots of sites and variables for the first two PCoA axes. you can either use a PCoA built using the `cmdscale()` or `pcoa()` functions. 
+
+<div class="alert alert-info">
+  **Your task:**
+
+Using `macnally.pcoa.V2` (that is the output of using the `pcoa()` function), you will now create the biplot for the PCoA using the function `biplot.pcoa()` from the `ape` package.
+</div>
+
+
+```{r PCoAV2plot, exercise=TRUE}
+# Biplots based on pcoa
+biplot.pcoa(x = ________, # Output object from pcoa
+            Y = macnally.clean, # Variables to be projected onto the ordination plot
+            main = "PCoA Biplot\n Response variables Projected as in PCA" # Main title
+            )
+# Add a vertical and horizontal doted line at 0.
+abline(h = 0, v = 0, lty = 3)
+```
+```{r PCoAV2plot-solution, exercise.reveal_solution=F}
+
+# Biplots based on pcoa
+biplot.pcoa(x = macnally.pcoa.V2, # Output object from pcoa
+            Y = macnally.clean, # Variables to be projected onto the ordination plot
+            main = "PCoA Biplot\n Response variables Projected as in PCA" # Main title
+            )
+# Add a vertical and horizontal doted line at 0.
+abline(h = 0, v = 0, lty = 3)
+```
+
+```{r PCoAV2plot-check}
+grade_code()
+```
+
+
+The plot above show how the different sites (in black) and species (in red) are arranged in the PCoA space. Like with a PCA, the interpretation of sites relative positions is based on the position in the represented PCoA space. The farther left/right a site is, the more the site is mainly composed of species aligned with that axis.
+
+
+## Merging clustere and ordination analyses
+
+You can also use the clustering results generated in the first section to define the group composition with the PCoA `biplot()` function. For this, you will also use the `ordihull()` function from the `vegan` package to view how the "clusters" defined using classification analyses match the position of each site in a reduced space. 
+
+
+<div class="alert alert-info">
+  **Your task:**
+ 
+Using the  PCoA object generated using either the `cmdscale()` OR the  `pcoa()` functions, group the observations based on the six (6) clusters defined using an average clustering. 
+
+For this, use the `ordihull()` function of the `vegan` package to add polygons that enclose each cluster.
+ 
+</div>
+
+```{r ObsByClust2, exercise=TRUE, exercise.lines=20}
+# Plot the PCoA space generated using the pcoa() function. 
+biplot(x = ________, # Output object from pcoa
+       main = "PCoA with species weighted averages" # Main title
+       )
+
+# Add a vertical and horizontal doted line at 0.
+abline(h = 0, v = 0, lty = 3)
+
+# Plot polygons grouping observations by cluster.
+macnally.pcoa.V1 <- cmdscale(d = macnally.dist.Sqrt,
+                             k = (nrow(macnally.clean) - 1), eig = TRUE)
+ordihull(ord = ________, # A result from an ordination.
+         choices = c(1, 2), # Axes shown.
+         groups = cutree(________, 6), # Factor giving the groups for which the graphical item is drawn
+         draw = "polygon", # ow should objects be represented on the plot? (lines or polygon )
+         col = 1:6 # Colour for each group.
+         )
+```
+```{r ObsByClust2-solution, exercise.reveal_solution=F}
+# Plot the PCoA space generated using the pcoa() function. 
+biplot(x = macnally.pcoa.V2, # Output object from pcoa
+       main = "PCoA with species weighted averages" # Main title
+       )
+
+# Add a vertical and horizontal doted line at 0.
+abline(h = 0, v = 0, lty = 3)
+
+# Plot polygons grouping observations by cluster.
+macnally.pcoa.V1 <- cmdscale(d = macnally.dist.Sqrt,
+                             k = (nrow(macnally.clean) - 1), eig = TRUE)
+ordihull(ord = macnally.pcoa.V1, # A result from an ordination.
+         choices = c(1, 2), # Axes shown.
+         groups = cutree(Hclus.3, 6), # Factor giving the groups for which the graphical item is drawn
+         draw = "polygon", # ow should objects be represented on the plot? (lines or polygon )
+         col = 1:6 # Colour for each group.
+         )
+```
+
+```{r ObsByClust2-check}
+grade_code()
+```
+
+## Non-metric dimensional Scaling
+
+The goal of NMDS is to represent the original position of communities in multidimensional space as accurately as possible using a reduced number of dimensions that can be easily plotted and visualised.
+
+Like PCoA, NMDS can produce ordinations of objects from any dissimilarity matrix. However, NMDS is not an eigenvalue technique, and it does not maximise the variability associated with individual axes of the ordination. As a result, plots may arbitrarily be rotated or inverted. This also means that the results have to be considered within the context of the predefined number of axes. For a given and small number of axes (e.g. m = 2 or 3), NMDS often achieves a less deformed representation of the dissimilarity relationships among objects than a PCoA in the same number of dimensions. However, NMDS is a compute-intensive, iterative technique exposed to the risk of suboptimal solutions. Indeed, the stress function often reaches a local minimum larger than the global, true minimum.
+
+## Executing NMDS
+
+NMDS can be performed in `R` with the elegant function `metaMDS()` of the `vegan` package. `metaMDS()` accepts raw data or dissimilarity matrices. A dissimilarity index needs to be provided using the argument `distance` if raw data is provided.
+
+<div class="alert alert-info">
+  **Your task:**
+ 
+Using the raw community data in `macnally.clean`, you will build an NMDS with two dimensions,  using 20 random starts.
+</div>
+
+```{r NMDSv1, exercise=TRUE}
+# NMDS using the raw data matrix
+set.seed(99) # To ensure the results match those below
+macnally.MDS.V1 <- metaMDS(comm = ___________, # Community data. 
+                           k = 2, # Number of dimensions.
+                           distance = "bray", # Dissimilarity index used?
+                           try = ___________, # Minimum numbers of random starts?
+                           trace = 0 # Added to avoid printing the procedure
+                           )
+macnally.MDS.V1
+
+```
+```{r NMDSv1-solution, exercise.reveal_solution=F}
+# NMDS using the raw data matrix
+set.seed(99) # To ensure the results match those below
+macnally.MDS.V1 <- metaMDS(comm = macnally.clean, # Community data. 
+                           k = 2, # Number of dimensions.
+                           distance = "bray", # Dissimilarity index used?
+                           try = 20, # Minimum numbers of random starts?
+                           trace = 0 # Added to avoid printing the procedure
+                           )
+macnally.MDS.V1
+```
+
+```{r NMDSv1-check}
+grade_code()
+```
+
+With `trace = 1`, you would see each iteration of the NMDS until a solution is reached (i.e. stress was minimised after some number of reconfigurations of the points in 2 dimensions). You can increase the number of default iterations using the argument `trymax`, which may help alleviate issues of non-convergence.
+
+If you print the object created using `metaMDS()`, you will see a value called stress that denotes the squared differences between original and new distances. 
+
+<div class="alert alert-info">
+**Your task:**
+  
+Extract the stress value for your two axes NMDS. 
+  
+You can extract this value using the subscript `stress`. 
+ 
+</div>
+
+```{r NMDSstress, exercise=TRUE}
+# Extract the from the NMDS
+macnally.MDS.V1$________
+```
+```{r NMDSstress-solution, exercise.reveal_solution=F}
+# Extract the from the NMDS
+macnally.MDS.V1$stress
+```
+
+```{r NMDSstress-check}
+grade_code()
+```
+
+As a rule of thumb, an NMDS ordination with a stress value around or above 0.2 is deemed suspicious, and a stress value approaching 0.3 indicates that the ordination is arbitrary. Stress values equal to or below 0.1 are considered fair, while values equal to or below 0.05 indicating a good fit. Allowing the algorithm to ordinate in more dimensions can reduce the stress value. However, allowing more than three dimensions makes interpretations more challenging.
+
+To visualise what is measured in the "stress" metric, you can use **Shepard-plots**, which show scatter around the regression between the interpoint distances in the final configuration (i.e. the distances between each pair of communities) against their original dissimilarities. Large scatter around the line suggests that original dissimilarities are not well preserved in the reduced number of dimensions. Looks pretty good in this case.
+
+<div class="alert alert-info">
+  **Your task:**
+ 
+Fit and Shepard Plot for your Non-metric Multidimensional Scaling using the `stressplot()` function.
+
+</div>
+
+```{r StressPlot, exercise=TRUE}
+# Shepard Plot
+_________(object = macnally.MDS.V1, # The metaMDS model
+           pch = 19 , lty = 2# Point and line arguments
+           )
+```
+```{r StressPlot-solution, exercise.reveal_solution=F}
+# Shepard Plot
+stressplot(object = macnally.MDS.V1, # The metaMDS model
+           pch = 19 , lty = 2# Point and line arguments
+           )
+```
+
+```{r StressPlot-check}
+grade_code()
+```
+
+In the example here, the stress value is `r round(macnally.MDS.V1$stress, 3)` - that is borderline fair. However, increasing the number of axes cold improve the stress value. 
+
+## How many Dimensions? -1 
+
+Plotting the observed stress values against the number of dimensions used in a series of NMDS runs can guide selecting an appropriate number of dimensions. One way to do this is to plot the stress values of several runs of an NMDS algorithm allowing for different axes/dimensions numbers. These are Shepard stress plots. As an example, you can do this for 19 different configurations (That is, from 2 to 20 axes) 
+
+<div class="alert alert-info">
+  **Your task:**
+
+Define the stress value for 19 different NMDS configurations.
+ 
+</div>
+
+
+```{r NMDSV2, exercise=TRUE, exercise.lines=30}
+# Define the stress value for 19 different configurations From 2 to 20 groups
+stressplot.Bct <- sapply(2:20,
+                         function(k){
+                            NMDSTemp <- _______(comm = macnally.dist, # Dissimilarities
+                                                k = _______, # Number of dimensions.
+                                                try = 20, # Minimum numbers of random starts?
+                                                trace = 0 # Added to avoid printing the procedure
+                                                )
+                            NMDSTemp$stress # Extract the from the NMDS object.
+                           })
+
+## plot the Shepard stress plot
+plot(x = 2:20, # Number of axes
+     y = _______, # Stress value
+     type = "o", # Plot type
+     pch = 19, # Type of point.
+     col = "red", # Colour fo the point.
+     ylab = "Stress", # Y-axis label.
+     xlab = "Number of dimensions"# X-axis label.
+     )
+
+# Add the 0.1 critical value line
+abline(h = 0.1, # The y-value(s) for horizontal line(s).
+       lty = 3, lwd = 2 # Line width and type arguments.
+       )
+# Add the 0.05 critical value line
+abline(h = 0.05, # The y-value(s) for horizontal line(s).
+       lty = 4, lwd = 2 # Line width and type arguments.
+       )
+
+# Add a legend indicating the line type for each critical value
+legend("topright", # Position the legend?
+       lty = c(3,2), # The type of lines for each class.
+       legend = c(0.1,0.5), # The Text for each class in in the legend.
+       title = "Critical Values" # Main title
+       )
+```
+```{r NMDSV2-solution, exercise.reveal_solution=F}
+# Define the stress value for 19 different configurations From 2 to 20 groups
+stressplot.Bct <- sapply(2:20,
+                         function(k){
+                            NMDSTemp <- metaMDS(comm = macnally.dist, # Dissimilarities
+                                                k = k, # Number of dimensions.
+                                                try = 20, # Minimum numbers of random starts?
+                                                trace = 0 # Added to avoid printing the procedure
+                                                )
+                            NMDSTemp$stress # Extract the from the NMDS object.
+                           })
+
+## plot the Shepard stress plot
+plot(x = 2:20, # Number of axes
+     y = stressplot.Bct, # Stress value
+     type = "o", # Plot type
+     pch = 19, # Type of point.
+     col = "red", # Colour fo the point.
+     ylab = "Stress", # Y-axis label.
+     xlab = "Number of dimensions"# X-axis label.
+     )
+
+# Add the 0.1 critical value line
+abline(h = 0.1, # The y-value(s) for horizontal line(s).
+       lty = 3, lwd = 2 # Line width and type arguments.
+       )
+# Add the 0.05 critical value line
+abline(h = 0.05, # The y-value(s) for horizontal line(s).
+       lty = 4, lwd = 2 # Line width and type arguments.
+       )
+
+# Add a legend indicating the line type for each critical value
+legend("topright", # Position the legend?
+       lty = c(3,2), # The type of lines for each class.
+       legend = c(0.1,0.5), # The Text for each class in in the legend.
+       title = "Critical Values" # Main title
+       )
+```
+
+```{r NMDSV2-check}
+grade_code()
+```
+
+## How many Dimensions? - 2 
+In the illustrated case, attempting an ordination with one or two NMDS axes yields unacceptably high stress, whereas three to five dimensions seems adequate (stress below 0.1). However, only after six axes are used, the stress levels are so that you can consider the ordination to have a good fit (stress below 0.05). Adding more dimensions after six can lead to drops in the stress value, but the subsequent gains are very small.
+
+<div class="alert alert-info">
+  **Your task:**
+ 
+Plot, as a barplot, the relative change in stress as a function of the number of used axes.
+ 
+</div>
+
+```{r StrChng, exercise=TRUE, exercise.lines=20}
+## Define the change in stress as the number of axes increase
+StressChng <- stressplot.Bct[1:18] - stressplot.Bct[2:19]
+## Plot the relative change in stress
+StressChngBrPlt <- barplot(height = _________, # matrix of values describing the bars.
+                           names.arg = paste(2:18, 3:20, sep = "to"), # A vector of names to be plotted below each bar.
+                           xlab = "Change in dimensions", # X-axis label.
+                           ylab = "Change in stress",# y-axis label.
+                           las = 2 # Axis text orientation.
+                           )
+# Add a line showing the change in cumulative stress 
+lines(x = _________, # X-axis position.
+      y = _________, # Cumulative stress.
+      type = "b", # Type of plot.
+      pch = 19, # Point type.
+      col = "red", #Point/line colour.
+      lwd = 3) # Line Arguments.
+```
+```{r StrChng-solution, exercise.reveal_solution=F}
+## Define the change in stress as the number of axes increase
+StressChng <- stressplot.Bct[1:18] - stressplot.Bct[2:19]
+## Plot the relative change in stress
+StressChngBrPlt <- barplot(height = StressChng, # matrix of values describing the bars.
+                           names.arg = paste(2:18, 3:20, sep = "to"), # A vector of names to be plotted below each bar.
+                           xlab = "Change in dimensions", # X-axis label.
+                           ylab = "Change in stress",# y-axis label.
+                           las = 2 # Axis text orientation.
+                           )
+# Add a line showing the change in cumulative stress 
+lines(x = StressChngBrPlt, # X-axis position.
+      y = StressChng, # Cumulative stress.
+      type = "b", # Type of plot.
+      pch = 19, # Point type.
+      col = "red", #Point/line colour.
+      lwd = 3) # Line Arguments.
+```
+
+```{r StrChng-check}
+grade_code()
+```
+
+When the stress plots of the first and final NMDS are compared, it is clear that the first configuration performed OK but had a larger scatter around the trend-line than the configuration with six (6) axes.
+
+<div class="alert alert-info">
+  **Your task:**
+ 
+Build the optimal NMDS using the minimum number of axes that make the stress be below 0.05.
+
+Compare the stress plot of the NMDS using the optimal number of axes to one using only two (2) axes. Here, add the stress value for each configuration to the main figure title as text.
+
+</div>
+
+
+```{r NMDSBest, exercise=TRUE, exercise.lines=25}
+# Define the Number of axes to use
+kUse <- min(which(stressplot.Bct<0.05))
+
+# Print the stress value for the selected number of axes. 
+stressplot.Bct[_______]
+
+# Build the final NMDS
+macnally.MDS.V3 <- metaMDS(comm = macnally.dist, # Dissimilarities
+                           k = _______+1, # Number of dimensions.
+                           try = 20, # Minimum numbers of random starts?
+                           trace = 0 # Added to avoid printing the procedure
+                           )
+
+# Make a stressplot of the final NMDS 
+# Add the stress value to the figure main title.
+stressplot(object = _______,
+           main = paste0("NMDS with 6 axes\n Stress =",
+                          round(macnally.MDS.V3$stress,3)))
+
+# Make a stressplot of the NMDS  with 2 axes.
+# Add the stress value to the figure main title.
+stressplot(object = macnally.MDS.V1,
+           main = paste0("NMDS with 2 axes\n Stress =",
+                          round(macnally.MDS.V1$stress,3))
+           )
+```
+```{r NMDSBest-solution, exercise.reveal_solution=F}
+# Define the Number of axes to use
+kUse <- min(which(stressplot.Bct<0.05))
+
+# Print the stress value for the selected number of axes. 
+stressplot.Bct[kUse]
+
+# Build the final NMDS
+macnally.MDS.V3 <- metaMDS(comm = macnally.dist, # Dissimilarities
+                           k = kUse+1, # Number of dimensions.
+                           try = 20, # Minimum numbers of random starts?
+                           trace = 0 # Added to avoid printing the procedure
+                           )
+
+# Make a stressplot of the final NMDS 
+# Add the stress value to the figure main title.
+stressplot(object = macnally.MDS.V3,
+           main = paste0("NMDS with 6 axes\n Stress =",
+                          round(macnally.MDS.V3$stress,3)))
+
+# Make a stressplot of the NMDS  with 2 axes.
+# Add the stress value to the figure main title.
+stressplot(object = macnally.MDS.V1,
+           main = paste0("NMDS with 2 axes\n Stress =",
+                          round(macnally.MDS.V1$stress,3))
+           )
+```
+
+```{r NMDSBest-check}
+grade_code()
+```
+
+
+## PLoting an NDMS
+
+Now that the optimal number of axes has been defined, you can plot the NMDS space. This, like in PCA or PCoA, is done using the `plot()` function. 
+
+<div class="alert alert-info">
+  **Your task:**
+
+Build an NMDS with three (3) axes, as it is a fair representation that makes the visualisation simpler.
+
+After that, plot the position of the site across the combinations of axes.
+</div>
+
+```{r NMDSPlot, exercise=TRUE, exercise.lines=30}
+## Build the NMDS with 3 axes
+macnally.MDS.V4 <- metaMDS(comm = macnally.clean, # Community data. 
+                           k = 3, # Number of dimensions.
+                           distance = "bray", # Dissimilarity index used?
+                           try = 20, # Minimum numbers of random starts?
+                           trace = 0 # Added to avoid printing the procedure
+                           )
+
+# plot the first and second  NMDS axes
+plot(____________, # The NMDS object 
+     display = c("species", "sites"), # Display "sites" AND "species".
+     choices = c(____________, ____________), # Axes shown
+     type = "p", # Plot type: "p" for points, "t" for text, and "n" for axes only.
+     main = c("NMDS axes 1 and 2") # main Title
+     )
+
+# Plot the first and third two NMDS axes
+plot(____________, # The NMDS object 
+     display = c("species", "sites"), # Display "sites" AND "species".
+     choices = c(____________, ____________), # Axes shown
+     type = "p", # Plot type: "p" for points, "t" for text, and "n" for axes only.
+     main = c("NMDS axes 1 and 3") # main Title
+     )
+
+# Plot the second and third two NMDS axes
+plot(____________, # The NMDS object 
+     display = c("species", "sites"), # Display "sites" AND "species".
+     choices = c(____________, ____________), # Axes shown
+     type = "p", # Plot type: "p" for points, "t" for text, and "n" for axes only.
+     main = c("NMDS axes 2 and 3") # main Title
+     )
+
+```
+```{r NMDSPlot-solution, exercise.reveal_solution=F}
+## Build the NMDS with 3 axes
+macnally.MDS.V4 <- metaMDS(comm = macnally.clean, # Community data. 
+                           k = 3, # Number of dimensions.
+                           distance = "bray", # Dissimilarity index used?
+                           try = 20, # Minimum numbers of random starts?
+                           trace = 0 # Added to avoid printing the procedure
+                           )
+
+# plot the first and second  NMDS axes
+plot(macnally.MDS.V4, # The NMDS object 
+     display = c("species", "sites"), # Display "sites" AND "species".
+     choices = c(1, 2), # Axes shown
+     type = "p", # Plot type: "p" for points, "t" for text, and "n" for axes only.
+     main = c("NMDS axes 1 and 2") # main Title
+     )
+
+# Plot the first and third two NMDS axes
+plot(macnally.MDS.V4, # The NMDS object 
+     display = c("species", "sites"), # Display "sites" AND "species".
+     choices = c(1, 3), # Axes shown
+     type = "p", # Plot type: "p" for points, "t" for text, and "n" for axes only.
+     main = c("NMDS axes 1 and 3") # main Title
+     )
+
+# Plot the second and third two NMDS axes
+plot(macnally.MDS.V4, # The NMDS object 
+     display = c("species", "sites"), # Display "sites" AND "species".
+     choices = c(2, 3), # Axes shown
+     type = "p", # Plot type: "p" for points, "t" for text, and "n" for axes only.
+     main = c("NMDS axes 2 and 3") # main Title
+     )
+
+
+```
+
+```{r NMDSPlot-check}
+grade_code()
+```
+
+Like in the PCoA example above, to see if you can distinguish between habitats (`HABITAT`) based on the bird composition, you can plot NMDS space, colour coding each point by habitat. This requires a bit of coding, so you extract the NMDS scores using the `points` subscript on an object created with the `metaMDS()` function, and then plot these as you would do with a scatter plot using `HABITAT` to set the colours of each point.
+
+
+<div class="alert alert-info">
+  **Your task:**
+ 
+Plot each pairwise combination of axes from the 3-axes NMDS, group the observations based on `HABITAT`, as this variable is a surrogate of the overall composition of species. 
+
+For this, use the `ordihull()` function of the `vegan` package to add polygons that enclose each habitat.
+ 
+</div>
+
+```{r NMDSHabi, exercise=TRUE, exercise.lines=20}
+## Plot axis based on Pair List
+  plot(macnally.MDS.V4$______[,c(1,2)], # Which to axis to plot.
+       pch = 19, # Type of point.
+       col = factor(macnally$______), #Give the point colours based on the habitat.
+       main = "NMDS axes 1 an 2")
+
+## Add a polygon for the habitats
+ordihull(ord = macnally.MDS.V4$______[, c(1,2)], # An ordination object
+         groups = factor(macnally$______), # Factor giving the groups for
+         draw = "polygon", # What to draw? lines or polygons?
+         col = 1:length(unique(macnally$______)), # colours based on the Habitat.
+         label = F)
+legend("bottomleft", # Position the legend?
+       fill = 1:length(unique(macnally$______)), #The type of colours  for each class.
+       legend = unique(macnally$______), # # The Text for each class in in the legend
+       title = "Habitat types", # Main title
+       xpd=NA,
+       cex=0.5) 
+```
+
+```{r NMDSHabi-solution, exercise.reveal_solution=F}
+## Plot axis based on Pair List
+  plot(macnally.MDS.V4$points[,c(1,2)], # Which to axis to plot.
+       pch = 19, # Type of point.
+       col = factor(macnally$HABITAT), #Give the point colours based on the habitat.
+       main = "NMDS axes 1 an 2")
+
+## Add a polygon for the habitats
+ordihull(ord = macnally.MDS.V4$points[, c(1,2)], # An ordination object
+         groups = factor(macnally$HABITAT), # Factor giving the groups for
+         draw = "polygon", # What to draw? lines or polygons?
+         col = 1:length(unique(macnally$HABITAT)), # colours based on the Habitat.
+         label = F)
+legend("bottomleft", # Position the legend?
+       fill = 1:length(unique(macnally$HABITAT)), #The type of colours  for each class.
+       legend = unique(macnally$HABITAT), # # The Text for each class in in the legend
+       title = "Habitat types", # Main title
+       xpd=NA,
+       cex=0.5) 
+```
+
+```{r NMDSHabi-check}
+grade_code()
+```
+
+
