@@ -1,0 +1,542 @@
+---
+title: "Spatial Interpolation "
+author: '"YOUR NAME HERE"'
+date: "`r Sys.Date()`"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, eval = T)
+
+
+```
+
+# **The Set-up**
+
+## **Learning objectives.**
+1. Load, create, manipulate, and save `Spatial*` and `Raster*` object types in `R`.
+2. Perform Non-Geostatistical interpolations in `R`.
+3. Perform Geostatistical interpolations in `R`.
+
+## *Before you start*
+The practical will be run using *RStudio cloud* to avoid individual machine troubleshooting. This means you **need** to have an account for *RStudio cloud*.
+
+However, remember to have [`R`](https://cran.r-project.org) and [R-studio](http://www.rstudio.com/) in your/room computer so you can work on the project after class.
+
+**You should have also **
+1. Read chapter 8 of Bivand Applied Spatial Data Analysis with R
+
+## *The way it's going to be run*
+
+In this 3h practical you will to implement what you have learned in the class about Regression Analyses in `R`.
+
+You will be building and **R-Markdown** document during the class. **R-Markdown** documents allows you to combine your code, its results, and your prose commentary into a single document. If you manage to produce a document your code works. The resulting file (a html) is what you will hand-in at the end of the practical.
+
+## Assessment.
+Submit your knitted `R-markdown` file (the HTML) via BrightSpace - **Before the next practical!**
+**The assessment is a Pass/Fail depending on how you write and annotate the code - You need to show us you know what you are doing and NOT copying someone else's code.**
+
+# Some basics on interpolation
+
+Almost any variable of interest measured in the field has spatial autocorrelation (i.e., systematic spatial variation in a variable). That can be a problem in statistical tests as it violates a core assumption for most (if not all) statistical tests - independence of observations. However,  spatial autocorrelation is a handy feature when the goal is to predict values at locations where no measurements have been made. You can generally safely assume that values at nearby areas will be similar (positively spatially autocorrelated). Several spatial interpolation techniques are geostatistical (Kriging, co-kriging), and others focus on using the location of the network of observations and/or distances between these.
+
+This exercise will focus on generating maps of temperature and precipitation for Denmark at a 1km resolution. Weather-station data from the Danish Meteorological Institute (DMI; https://www.dmi.dk/), collected between 1970 and 2000, will be the baseline information.
+
+
+# Interpolating Denmark's weather station data - Generating your own enviormnetal predictors.
+
+## Packages
+
+Before you start doing any analysis, it is necessary to install and load these packages: 
+
+1. `maptools`: Tools for Handling Spatial Objects
+2. `sp`: Classes and Methods for Spatial Data
+3. `rgdal`: Bindings for the 'Geospatial Data Abstraction Library
+4. `raster`: Handling geospatial information in raster format  
+5. `dismo`: Functions for cross-validation procedures
+6. `gstat`: Spatial and Spatio-Temporal Geostatistical Modelling
+7. `automap`: Automatic kriging interpolation package
+8. `fields`: Tools for thin plate spline model
+
+## Weather station data
+
+The first step when doing spatial interpolation is defining the location of the network of observations to use. Here, the network of weather stations owned and managed by DMI will be used. The file `Stations.csv` contains information on the Name, Type, and Location (Lat-Long-Elevation) of DMI owned stations. I extracted this table from the public data available at <https://bit.ly/2WeEvTq>
+
+Now load the data in `Stations.csv`, and examine the information in the data.frame.
+
+```{r loadData}
+# Location of All the Weather stations
+DMI.Stations <- read.csv("https://raw.githubusercontent.com/AlejoOrdonez/StaGeoMod2021/main/StationsWithClim.csv")
+# Print the names of the Variables in DMI.Stations
+names(DMI.Stations)
+# Print the dimensions in DMI.Stations
+dim(DMI.Stations)
+```
+
+You will see that the data.frame is composed of 211 stations (rows), for which a unique id (`StationId`), a station name (`Name`), Station Type (`StationType`), and multiple positional information is available (`Country`, `Latitude`, `Longitude`, `StationHeightabvMSL.m`).
+
+With this information, it is now possible to make a map showing the location of the weather stations in Denmark.
+
+```{r BuidlSpatPntDtFrm}
+# Load the required library (sp)
+library(sp)
+# Transform the data.frame into a SpatialPointsDataFrame
+DMI.Stations.Shp <- SpatialPointsDataFrame(coords = DMI.Stations[, c("Longitude", "Latitude")],
+                                           data = DMI.Stations, 
+                                           proj4string = CRS("+proj=longlat +datum=WGS84 +no_defs"), 
+                                           match.ID = TRUE)
+
+# Load the required library (maptools)
+library(maptools)
+# Load a world map
+data(wrld_simpl)
+
+# Plot the location of the weather stations
+plot(DMI.Stations.Shp, 
+   pch = 19, cex = 0.5, col = "red")
+# Plot the World map
+plot(wrld_simpl, add = T)
+# Add a bounding box and some tick marks to define the latitude-longitude point
+box(); axis(1, labels = NA); axis(2, labels = NA);  axis(3, labels = NA); axis(4, labels = NA)
+```
+
+The map shows the location of DMI stations. These are located both within Denmark and Greenland. The odd point in the ocean is due to the quality of the world vector. Here only stations within Denmark will be used, which means using the `Country` variable in `DMI.Stations` or `DMI.Stations.Shp` to extract the locations in the region of interest.
+
+```{r OnlyDKData}
+# Define those observations within Denmark
+DK.Sites <- which(DMI.Stations.Shp$Country == "DNK") # DNK is the ISO code for Denmark
+# Generate a SpatialPointsDataFrame only for the weather stations in Denmark
+DMI.DK.Shp <- DMI.Stations.Shp[DK.Sites, ]
+# Print a summary of DMI.DK.Shp
+summary(DMI.DK.Shp)
+```
+
+You can now plot a new map using the `DMI.DK.Shp` object to confirm that the extraction was correct. But this time use the fine resolution map for Denmark you can get using the e `getData()` function from the `raster` package
+
+```{r FineResDKMap}
+# Load the required package (raster)
+library(raster)
+
+# Get the country administrative boundaries for Denmark, Sweden, and Germany. 
+Denmark <- getData('GADM', country = 'DNK', level = 0, path = './Data')
+# Print the summary of Sweden.2
+summary(Denmark)
+
+# Plot the location of all the Weather stations
+plot(DMI.DK.Shp,
+     pch = 19, cex = 0.5, col = "red")
+# Plot the World map
+plot(Denmark, add = T)
+# Add a bounding box and some tick marks to define the latitude-longitude point
+box(); axis(1, labels = NA); axis(2, labels = NA);  axis(3, labels = NA); axis(4, labels = NA)
+```
+
+
+## Exploring the climatic information at the weather station sites.
+
+Temperature (measured in C as Mean Annual Temperature, MAT) and precipitation (measures in mm*yr-1 as Total Annual Precipitation, TAP) information for the weather station sites is included in the `StationsWithClim.csv` file, that has been transformed into the `DMI.Stations.Shp` and `DMI.DK.Shp` objects. The values in the file correspond to the average Mean Annual Temperature and Total Annual Precipitation for the 1970 to 2000 period.
+
+However, here you will **ONLY** use the data for Mean Annual Temperature.
+
+As a first step, plot the change in Mean Annual Temperature across the stations in Denmark. For this, first rank the stations according to the variable's value and then build a scatter plot with `StationId` in the X-Axis and the evaluated climate variable (Mean Annual Temperature) in the Y-axis.
+
+```{r ExprMAT}
+### sort the MAT values 
+MAT.OrderVct <- sort(DMI.DK.Shp$MAT.C)
+### Plot the MAT values
+plot(MAT.OrderVct,
+     ylab = "Mean Annual Temperature (C)", 
+     las = 1, 
+     xlab = "Stations",
+     pch = 19, 
+     main = "Mean Annual Temperature (C)")
+
+```
+
+The figure above shows that there are no stations with "extreme" values or deviate from the regions' trend of observations. These figures further indicate that the observed climatic space is well constrained. For those interested in exploring the data further, I encourage you to assess how Mean Annual Temperature (C) and Annual precipitation (mm) change as a function of latitude and the Mean Annual Temperature (C) vs. Annual precipitation (mm) climate space.
+
+The question now is *how do these values look on a map?*. You can do this in two ways. The approach you will use here is to plot the `SpatialPointsDataFrame` using the `spplot()` function of the `sp` package.
+
+```{r SPpltoMATPnt}
+#### Plot the MAT values using the spplot() function
+spplot(obj = DMI.DK.Shp,
+       zcol = 'MAT.C', 
+# make sure a colour key is added to the figure
+       colourkey = T, 
+# Determine the colour using a blue to red hcl colour palette  
+       col.regions = hcl.colors(n = 100,
+                                    palette = "Blue-Red"), 
+# This adds the Polygon to the figure
+       sp.layout = list("sp.polygons", Denmark, fill = "lightgray"), 
+# Type and size of the points
+       pch = 20, cex = 2, 
+       main = "Mean Annual Temperature (C)")
+```
+
+
+It is possible to stop here with the visualisation of the climatic values across the evaluated Weather stations. However, you can improve the visualisation by changing the projection of plotted `Spatial*` objects from a georeferenced system to a projected system. Doing this will also help the interpolation process later on, as distances between sites will be comparable (all measures will be in meters [m]).  For this, both `DMI.DK.Shp` and the shoreline `SpatialPolygonsDataFrames` (i.e., `Denmark`, '`Sweden.2`, and `Germany.2`) need to be projected to planar coordinates, using the commonly used coordinate reference system for Denmark ("UTM-32") and the `spTransform()` function of the `sp` package.
+
+```{r UTMRepro}
+# Define the PROJ string
+## proj4string of the Lambert azimuthal equal-area projection - the proj* string is <+proj=laea>
+DK.UTM <- "+proj=utm +zone=32 +datum=WGS84 +units=m +no_defs +type=crs"
+
+## Project the Weather station locations
+DMI.DK.Shp.Proj <- spTransform(x = DMI.DK.Shp,
+                               CRSobj = CRS(DK.UTM))
+## Project the Denmark Map
+Denmark.Proj <- spTransform(x = Denmark, 
+                            CRSobj = CRS(DK.UTM))
+#Denmark2.Proj  <- spTransform(x = wrld_simpl[wrld_simpl$NAME=="Denmark",], 
+#                            CRSobj = CRS(DK.UTM))
+
+```
+## Interpolation - NULL model
+
+From this moment on, the focus will be to interpolate (estimate for locations not sampled) the Mean Annual Temperature values. The simplest way would be to take the mean of all observations, which can be considered a “Null-model”. You can then compare such a model to the other approaches implemented later on. To assess how good is the interpolation, the Root Mean Square Error ($RMSE = \sqrt{\sum_{i = 1}^N (( \hat{x}_i -x_i)^2)/N}$; where $\hat{x}_i$ is the prediction for the i^th^ observation, and $N$ is the number of values estimated) will be used as an evaluation statistic.
+
+```{r RMSEFnc}
+## Build a function for the Root Mean Square Error
+RMSE.Fnc <- function(observed, predicted) {
+  sqrt(mean((predicted - observed)^2,
+            na.rm = TRUE))
+}
+```
+
+Now, the null model is estimated by assigning the mean across all weather stations as the "predicted value" to all sampled sites. Then, you will evaluate the RMSE value for this NULL-model, which is the one "all interpolation" approach would need to beat!
+
+```{r NullModRMSE}
+## Null MAT - Assign the mean across weather stations as the predicted MAT 
+DMI.DK.Shp.Proj$Null.MAT <- mean(DMI.DK.Shp.Proj$MAT.C,
+                                 na.rm = T)
+
+# Estimate the Root Mean Square Error for the NULL-MAT model using the RMSE.Fnc function created above
+null.RMSE.MAT <- RMSE.Fnc(observed = DMI.DK.Shp.Proj$MAT.C, 
+                          predicted = DMI.DK.Shp.Proj$Null.MAT)
+# Print the RMSE
+null.RMSE.MAT
+
+```
+
+With the Null model, you have a benchmark to beat. Think of this as the same as when you execute a model selection procedure. You define the perforce of a model with **NO** predictors as the benchmark to decide if your models are doing a good job.
+
+## Interpolation - Inverse Distance interpolation (IDW)
+
+Inverse distance weighting (IDW) is a non-geostatistical method for spatial interpolation with a known scattered set of points. The technique makes the explicit assumption that things that are close to one another are more alike than those that are farther apart. To predict a value for any unmeasured location, IDW uses the measured values surrounding the prediction location. The measured values closest to the prediction location have more influence on the predicted value than those farther away. IDW assumes that each measured point has a local influence that diminishes with distance. It gives greater weights to points closest to the prediction location, and the weights decrease as a function of distance; hence the name inverse distance weighted.
+
+A a `gstat` object (created using the `gstat()` function of the `gstat` package) and the `interpolate()` function of the `raster` package can be used for this. The `gstat` object should be specified using an “intercept only” model (`. ~1`) - in the case of spatial data, this means that only the positions (‘x’, and ‘y’ coordinates) are used in the definition of the model. A possibility when implementing an IDW using a `gstat` object is that you can define a maximum number of points (here, ten for simplicity). Also, you can specify the “inverse distance power” (the rate at which the weights decrease is dependent on the distance between points) with the `idp` argument (here, it is set to zero such that all ten neighbours are equally weighted). 
+
+```{r IDW}
+# Load the Library
+library(gstat)
+
+# Create a gstat object for MAT
+gs.MAT <- gstat(formula = MAT.C ~ 1, # Formula
+# Note that NA values in DMI.DK.Shp.Proj has been removed as the interpolate function below doe not allow NA values
+                locations = DMI.DK.Shp.Proj[!is.na(DMI.DK.Shp.Proj$MAT.C), ], 
+ # define the Neighbourhood (5 points)
+                nmax = 10, 
+# set the inverse distance power top Zero
+                set = list(idp = 0))
+
+## The interpolate() function needs a raster template into which values are predicted - here you use the 1km Raster
+DK.Rast1km <- raster(Denmark.Proj, res = 1000) # why 1000? because the units are m
+
+# interpolate 
+IDW.MAT.1km <- interpolate(object = DK.Rast1km, # The raster template
+                           model = gs.MAT # The gstat model
+                           )
+IDW.MAT.1km <- mask(x = IDW.MAT.1km,  # The IDW interpolated raster
+                    mask = Denmark.Proj # The Spatial object used to "mask" the IDW interpolated raster 
+                    )
+plot(IDW.MAT.1km, # The "masked" the IDW interpolated raster
+     col = hcl.colors(n = 100, palette = "Blue-Red"),
+     main = c("Mean Annual Temperature. (C)\nIDW results"))
+```
+
+The quality of the prediction can be evaluated using a cross-validation approach. For this you will use a 5-fold cross-validation is used using the `kfold()` function of the package `dismo`. The objective here is to define to which fold does an observation belong. 
+
+```{r IDWCrosVal}
+## Evaluate with 5-fold cross validation.
+set.seed(5132015)
+# Load the required library (dismo)
+library(dismo)
+# using the `kfold()` function of the package `dismo` each observation is placed into a cross validation fold.
+
+kf <- kfold(x = DMI.DK.Shp.Proj,# The spatial object used to define the train/test dataset 
+            k = 5 # Number of groups
+            )
+## Build a vector to store the Root Mean Square Errors
+RMSE.IDW.MAT <- rep(NA, 5)
+# Loop across the five k-folds
+for (k in 1:5) {
+# Create a Test Data.frame
+   test <- DMI.DK.Shp.Proj[kf == k, ]
+# Create a Train Data.frame
+   train <- DMI.DK.Shp.Proj[kf != k, ]
+# build a gstat model for the interpolation
+   gs <- gstat(formula = MAT.C~1,
+               locations = train[!is.na(train$MAT.C), ], 
+# define the Neighbourhood (5 points)
+               nmax = 10, 
+# set the inverse distance power top Zero
+               set = list(idp = 0))
+# Note that you can use the predict method to get predictions for the locations of the test points instead of generating new maps using interpolate 
+   p <- predict(gs, test)
+   RMSE.IDW.MAT[k] <- RMSE.Fnc(test$MAT.C,
+                               p$var1.pred)
+}
+# print the Root Mean Square Error for each fold
+RMSE.IDW.MAT
+#The Mean Root Mean Square Error
+mean(RMSE.IDW.MAT)
+## How much of an improvement over the null model is seen
+(RMSE.IDW.MAT.Imp <- 1 - (mean(RMSE.IDW.MAT) / null.RMSE.MAT))
+```
+
+The IDW interpolation of Mean Annual Temperature is approximately ~52% better than the Null-model.
+
+## Interpolation - Thin-plate spline model (TPS)
+
+Thin plate splines (TPS) are a non-geostatistical technique for data interpolation and smoothing. The name thin-plate spline refers to a physical analogy involving the bending of a thin sheet of metal. Just as the metal has rigidity, the TPS fit resists bending, implying a penalty involving the smoothness of the fitted surface. In the physical setting, the deflection is in the z-direction, orthogonal to the plane. To apply this idea to the problem of coordinate transformation, one interprets the lifting of the plate as a displacement of the x or y coordinates within the plane as a polynomial function of $2*(K = 3)$ parameters (as implemented in the `Tps()` function of the `fields` package. As a technique, it was the approach used by WorldClim V1.4.
+
+The implementation of the method is straightforward using the `Tps()` function of the `fields` package. Below, the process is shown for both Mean Annual Temperature. 
+
+```{r TPS}
+# Load the required library (fields)
+library(fields)
+
+# Estimate a thin plate spline model for MAT
+# Build the thin plate model
+TPS.MAT <- Tps(x = coordinates(DMI.DK.Shp.Proj), # Matrix of independent variables
+               Y = DMI.DK.Shp.Proj$MAT.C # Vector of dependent variables
+               )
+TPS.MAT
+# Generate a prediction of the model using the `interpolate()` function from the raster package.
+TPS.MAT.Pred <- interpolate(object = raster(DK.Rast1km), # Baseline Raster* object.
+                            model = TPS.MAT # The TPS model to generate new predictions.
+                            )
+# Mask out all the areas outside the landmass of Denmark
+TPS.MAT.Pred <- mask(x = TPS.MAT.Pred, # The interpolated raster
+                     mask = Denmark.Proj # An spatial object to crop the oceans.
+                     )
+# Plot the TPS model
+plot(TPS.MAT.Pred,
+     col = hcl.colors(n = 100, palette = "Blue-Red"), 
+     main = 'Mean Annual Temperature (C)\nTPS results')
+```
+
+As for Nearest Neighbour interpolation and IDW, the quality of the prediction is determined based on a 5-fold cross-validation procedure. This is done first for Mean Annual Temperature and shows an ~58% improvement from the Null model.
+
+```{r TPSCrosVal}
+## Evaluate with 5-fold cross validation for MAT.
+set.seed(5132015)
+# using the `kfold()` function of the package `dismo` each observation is placed into a cross validation fold.
+kf <- kfold(x = DMI.DK.Shp.Proj, # The spatial object used to define the train/test dataset 
+            k = 5 # Number of groups
+            )
+## Build a vector to store the Root Mean Square Errors
+RMSE.TPS.MAT <- rep(NA, 5)
+# Loop across the five k-folds
+for (k in 1:5) {
+# Create a Test Data.frame
+   test <- DMI.DK.Shp.Proj[kf == k, ]
+# Create a Train Data.frame
+   train <- DMI.DK.Shp.Proj[kf != k, ]
+# build a Tps model for the interpolation
+   Tps.mod <- Tps(x = coordinates(train), # Matrix of locations
+                  Y = train$MAT.C, # Vector of response variables on the locations
+                  verbose = F)
+# Note that you can use the predict method to get predictions for the locations of the test points instead of generating new maps using interpolate 
+  p <- predict(Tps.mod, coordinates(test))
+  RMSE.TPS.MAT[k] <- RMSE.Fnc(test$MAT.C,
+                              p)
+}
+# print the Root Mean Square Error for each fold
+RMSE.TPS.MAT
+#The Mean Root Mean Square Error
+mean(RMSE.TPS.MAT)
+## How much of an improvement over the null model is seen
+(RMSE.TPS.MAT.Imp <- 1 - (mean(RMSE.TPS.MAT) / null.RMSE.MAT))
+```
+
+
+## Interpolation - Geostatistical interpolation - Kriging
+
+You can use kriging techniques to describe and model spatial patterns, predict values at unmeasured locations, and assess the uncertainty associated with a predicted value at the unmeasured locations. This widely applied geostatistical interpolation method interpolate the variable of interest to the unknown location using a model that describes the spatial behaviour of the phenomenon of interest. Kriging assumes that at least some of the spatial variation observed in natural phenomena can be modelled by random processes with spatial autocorrelation. Therefore, this approach requires explicitly modelling the spatial autocorrelation (via the correlogram/semivariogram).
+
+The functions to execute a Kriging interpolation are part of the `gstat` package. These include the functions: `variogram` to estimate the covariance between observations, `fit.variogram` to estimate the experimental variogram (the mathematical model describing the semivariogram), and `krige` to execute a Kriging interpolation based on a specified function, and a variogram.
+
+Before starting, it is necessary to ensure no duplicate locations, as Kriging does work under these conditions. You can evaluate this using the `zerodist()` function from the `sp` package.
+
+```{r NoOverObs}
+## Test for Zero distance between points
+zerodist(DMI.DK.Shp.Proj)
+## Remove duplicate points
+DMI.DK.Shp.Proj2 <- DMI.DK.Shp.Proj[-zerodist(DMI.DK.Shp.Proj)[, 1], ]
+## Test for Zero distance between points
+zerodist(DMI.DK.Shp.Proj2)
+```
+
+Now with a dataset without duplicates, the first step in Kriging is generating a variogram. The first one will be for Mean Annual Temperature.
+
+```{r VargrSetup}
+# Generating a gstat for MAT
+MAT.gstat <- gstat(formula = MAT.C~1,
+                   locations = DMI.DK.Shp.Proj2[!is.na(DMI.DK.Shp.Proj2$MAT.C), ])
+
+# Generating a variogram for MAT
+MAT.Variog <- variogram(MAT.gstat, 
+# cut-off = spatial separation distance up to which point pairs are included
+# Here 200000m (200km) as this the the distance until which most of the observations are 
+                       cutoff = 200000)
+plot(MAT.Variog)
+```
+
+The plot above indicates the Spherical trend for Mean Annual Temperature.
+
+The question is, which are the best initial values to generate your experimental variograms. Suppose you have a good idea of these values based on the sample variogram. In that case, the experimental variogram for Mean Annual Temperature can be fitted using the `fit.variogram()` function of the `gstat` package. An alternative is to use the `autofitVariogram()` function of the `automap` package to automatically fitting a variogram to the data on which it is applied. You will use this approach below. 
+
+```{r Automap}
+# Load the required library(automap)
+library(automap)
+# Generate the Experimental variogram model for MAT
+MAT.Exp.Variog <-autofitVariogram(formula = MAT.C~1,
+                                  input_data = DMI.DK.Shp.Proj2[!is.na(DMI.DK.Shp.Proj2$MAT.C), ], 
+                                  model = c("Sph", "Exp", "Gau", "Nug", "Lin"))
+MAT.Exp.Variog
+
+```
+
+Based on the output above, the experimental variogram model for the Mean Annual Temperature is Spherical. One way to assess the fit of the experimental variogram is to plot both the variogram and the model. As seen below, the models appear to fit the data relatively well.
+
+```{r VargrPlot}
+# Plot the MAT variogram and the model plot
+plot(MAT.Variog, 
+     MAT.Exp.Variog[[2]], 
+     main = "MAT - Experimental Variogram")
+
+```
+
+Now, all the parts to implement a kriging interpolation for Mean Annual Temperature are available.You will use the `krige()` function of the `gstat` package, using as inputs the formula, locations, experimental variogram, and a new `SpatialGrid` to define the space where the interpolation will take place.
+
+```{r krigingGstat}
+# Create a Spatial grid as a template
+DK.SpaGrid.1km <- DK.Rast1km
+DK.SpaGrid.1km[] <- 1
+# Mask out the ocean 
+DK.SpaGrid.1km <- mask(DK.SpaGrid.1km,
+                       Denmark.Proj)
+## transform to a Spatial grid
+DK.SpaGrid.1km <- as(DK.SpaGrid.1km,
+                     'SpatialGridDataFrame')
+
+# use the krige function of gstat, that needs a  model, data, prediction space, and variogram
+Pred.gstat.MAT<- krige(formula = MAT.C~1,
+                       locations = DMI.DK.Shp.Proj2[!is.na(DMI.DK.Shp.Proj2$MAT.C), ], 
+                       newdata = DK.SpaGrid.1km, 
+                       model = MAT.Exp.Variog[[2]])
+head(Pred.gstat.MAT)
+## Plot the predicted values
+spplot(obj = Pred.gstat.MAT,
+       zcol = "var1.pred", 
+       col.regions = hcl.colors(n = 100, palette = "RdBu"), 
+       main = 'Mean Annual Temperatiure (C)\nKriging result')
+```
+
+These predictions can be transformed into a `raster` object using the `raster()` function for a single layer or the `brick()` function for multiple layers. Doing this would facilitate the contrast to other models.
+
+```{r KirgBrik}
+# Transform the SpatialGridDataFrame of MAT kriging predictions to a RasterBrick
+Krig.MAT.Brick <- brick(Pred.gstat.MAT)
+Krig.MAT.Brick
+## Plot the Raster
+par(oma = c(0.5, 0.5, 2, 0.5))
+plot(Krig.MAT.Brick,
+     main = c('Prediction Mean', "Prediction Variance"),
+     col = hcl.colors(n = 100, palette = "Blue-Red"))
+mtext('Mean Annual Temperatiure (C)',
+      outer = T, cex = 1.2, font = 2)
+```
+
+Last, a cross-validation assessment of the RMSE of the Kriging interpolation can be done using either an n-fold or a leave one out approach. This can be done automatically using either the `krige.cv()` function of the `gstat` package, or the `autoKrige()` function of the `automap` package. Below, the implementation of the `krige.cv()` function is presented.
+
+```{r KrigCross}
+### MAT Kriging Cross-validation
+Cros.Val.MAT<- krige.cv(formula = MAT.C~1,
+                        locations = DMI.DK.Shp.Proj2[!is.na(DMI.DK.Shp.Proj2$MAT.C), ], 
+                        nfold = 5,  # Define the number of folds
+                        model = MAT.Exp.Variog[[2]])
+# Print the Cross-validation OBJECT
+Cros.Val.MAT
+
+# Estimate the RMSE for each of the Cross-validated fold
+RMSE.Kig.MAT <- sapply(1:5 , function(i){
+  RMSE.Fnc(observed = DMI.DK.Shp.Proj2[!is.na(DMI.DK.Shp.Proj2$MAT.C), ][Cros.Val.MAT$fold == i, ]$MAT.C,
+           predicted = Cros.Val.MAT$var1.pred[Cros.Val.MAT$fold == i])
+})
+# print the Root Mean Square Error for each fold
+RMSE.Kig.MAT
+#The Mean Root Mean Square Error
+mean(RMSE.Kig.MAT)
+## How much of an improvement over the null model is seen
+(RMSE.Kig.MAT.Imp <- (1 - (mean(RMSE.Kig.MAT) / null.RMSE.MAT)))
+```
+
+## Comparision across methods 
+
+The question now is which method to use?. One way to assess this is to determine which one has a more considerable increase in the RMSE when compared to a Null Expectation.
+
+```{r RMSESum}
+RMSE.sum <- data.frame(Model = c("IDW", "TPS", "OK"), 
+# Relative Increase in MAT prediction performance when compared to the Null Model [null.RMSE.MAT]
+                        MAT.Imp = c(RMSE.IDW.MAT.Imp, 
+                                    RMSE.TPS.MAT.Imp,
+                                    RMSE.Kig.MAT.Imp)
+                )
+RMSE.sum
+```
+
+Based on this table, the best interpolation technique for Mean Annual Temperature is the Ordinary Kriging approach, followed by the Thin-Plate Spline approach.
+
+Another way to generate a prediction is to use a weighted ensemble model, where each model RMSE is used to "weight" its' forecast. This allows leveraging the output of multiple techniques while also considering how well they perform. The first step in generating the ensemble model is to create a vector of weights based on the RMSE scores for each method.
+
+```{r RMSEW}
+# Generate a Data.frame with the average cross-validation RMSE Values
+RMSE.w <- data.frame(Model = c("IDW", "TPS", "OK"), 
+           MAT.RMSE = c(mean(RMSE.IDW.MAT),
+                        mean(RMSE.TPS.MAT),
+                        mean(RMSE.Kig.MAT)))
+# Generate a Data.frame with Weighs (The proportion of the sum of RMSE)
+RMSE.w <- data.frame(Model = c("IDW", "TPS", "OK"), 
+                     MAT.RMSE = RMSE.w[, 2]/sum(RMSE.w[, 2]))
+RMSE.w
+```
+
+With these weights vectors, it is possible to generate an ensemble model by multiplying each prediction by the weights of the model type. For this, the first step is developing a `RasterStack` with the forecasts for each model.
+
+```{r}
+# Generate a RasterStack with the MAT predictions
+MAT.Stack <- stack(IDW.MAT.1km, 
+                   TPS.MAT.Pred, 
+# the 1 subscript is to only extract the predictions
+                   Krig.MAT.Brick[[1]])
+# Give names to the layers
+names(MAT.Stack) <- c("IDW" , "TPS", "Krig")
+MAT.Stack
+```
+
+With the `RasterStack`s generated above, it is possible to make an ensemble model by multiplying each prediction by its weight and then summing across models.
+
+```{r}
+# Generate an ensemble prediction for MAT
+MAT.Ensembl <- sum(MAT.Stack*RMSE.w$MAT.RMSE)
+plot(MAT.Ensembl, 
+     col = hcl.colors(n = 100, palette = "Blue-Red"), 
+     main = c('Mean Annual Temperatiure (C)\n Ensemble result'))
+
+```
+
