@@ -1,0 +1,752 @@
+---
+title: "Classification"
+subtitle: "Statistical and Geospatial Modelling"
+author: "Alejandro Ordonez"
+output: 
+  html_document:
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE,
+                      fig.height = 10, fig.width = 10, fig.align = "center",
+                      eval = F)
+```
+
+# Instructions
+
+# **The Set-up**
+
+## *Learning objectives.*
+1. Import and use satellite images as raster files  `R`.
+2. Learn the bases of raster-based analysis and manipulations in `R`.
+3. Implement and interpret Hierarchical clustering analysis in `R`.
+4. Implement and interpret Non-Hierarchical clustering analysis in `R`.
+
+
+## *Before you start*
+The practical will be run using *RStudio cloud* to avoid individual machine troubleshooting. This means you **need** to have an account for *RStudio cloud*.
+
+However, remember to have [`R`](https://cran.r-project.org) and [R-studio](http://www.rstudio.com/) in your/room computer so you can work on the project after class.
+
+**You should have also **
+1. Read chapter 3 and 4 of Borcard et al (2018) Numerical Ecology book.
+
+
+## *The way it's going to be run*
+
+In this 3h practical you will to implement what you have learned in the class about Classification in `R`.
+
+The practical will be run using *RStudio cloud* to avoid individual machine troubleshooting. This means you **need** to have an account for *RStudio cloud*.
+
+However, remember to have `R` (https://cran.r-project.org) and R-studio (http://www.rstudio.com/) in your/room computer so you can work on the project after class.
+
+**One important thing**, this time around you have to create your own R-markdown file. The reason is so you start getting you ready for putting together the final project.
+
+## The Setup
+
+During the next few weeks you will work with satellite information data coming from the Landsat-8 program (<https://www.usgs.gov/landsat-missions/landsat-8>). One of my goals is to give you hands-on experience with the type of analyses you can do with the information coming from remote sensors. However, the tutorial will **NOT** teach you how to get this data - I did so on week-9 Tutorial/Practical.
+
+## Assessment.
+Submit your knitted `R-markdown` file (the HTML) via BrightSpace - **Before the next practical!**
+**The assessment is a Pass/Fail based on how you write and annotate the code - You need to show us you know what you are doing and NOT copying someone's code.**
+
+# Before you start.
+
+Identifying the suitable satellite images for a specific project remains a challenging task, as ` there are numerous sources of remotely sensed data from satellites. Exceptionally high spatial resolution data is available as (costly) commercial products (for an example, see <https://www.planet.com>). Lower spatial resolution data is freely available from NASA, ESA, and other organisations. In this practical, rather than focusing on identifying the most adequate satellite imagery, you will use freely available from the Landsat-8 program. For this practical, you will use a cloud-free composite image from Landsat-8 with eleven bands. All Landsat image scenes have a unique product ID and metadata. You can find the information on Landsat sensor, satellite, location on Earth (WRS path, WRS row) and acquisition date from the product ID.
+
+# Unsupervised Classification of satellite images
+
+## Data exploration and visualisation
+
+Your first goal here will be to access and explore the provided satellite images with `R`.
+
+The first step, like always, is to load the satellite image data into `R`. For this, you will use the `raster` or `terra` packages. To ensure you have it on your computer, install it using either the GUI or type the instruction `install.packages("raster", dependencies ==T)` or `install.packages("terra", dependencies ==T)` in the console.
+
+Once you know you have the `raster`/`terra` packages on your computer, you need to load it  using the `library()` function.
+
+With this, you are ready to start the analysis of Landsat-8 satellite information.
+
+The first step is to load the Landsat image contained in the file `Aarhus_2019_utm_L8.tif` into `R`. Before you do so, it is essential to know that `Aarhus_2019_utm_L8.tif` is a *geoTIFF* image. These types of files are different from a regular image as it has associated geospatial information (e.g., projection, coordinate systems, ellipsoids, datums - remember your GIS course).
+
+For loading satellite images into `R`, you need to use the function `raster`, which is part of the `raster` R-package. Remember that if you need help using the function `raster`, you can type and execute `?raster`. 
+
+<div class="alert alert-info">
+**Your task:**
+
+Load the *Aarhus_2019_utm_L8.tif*, located in located in R-Studio cloud data [see the Files tab in the lower right window] as an object named `landsat.1BND`.
+
+Then print the `landsat.1BND` object.
+</div>
+
+```{r ReadData1}
+# Use `raster()` to load the file and save it as an object named Landsat.1BND.
+landsat.1BND <- 
+
+# Print the output of the Landsat.1BND object.
+
+```
+
+Note that the code above only loads a single Landsat layer (band). To load all the layers simultaneously, you should use the `stack()` function. This creates a `RasterStack` that you could consider as an analogue to an `array`.
+
+<div class="alert alert-info">
+**Your task:**
+
+Load **ALL** the bands from the *Aarhus_2019_utm_L8.tif*, located in located in R-Studio cloud data [see the Files tab in the lower right window] as an object named `landsat8`.
+
+Then print the `landsat8` object.
+</div>
+
+```{r ReadData2}
+# Use `stack()` to load the file and save it as an object named Landsat8.
+landsat8 <- 
+
+# Print the output of the Landsat8 object.
+
+```
+
+Printing the `landsat8` object shows you that this is a `RasterLayer` with seven (7) layers (`nlayers`) that correspond to different bands of the light spectrum:
+
+* Band 1 Coastal Aerosol (0.43 - 0.45 µm). 
+
+* Band 2 Blue (0.450 - 0.51 µm).
+
+* Band 3 Green (0.53 - 0.59 µm).
+
+* Band 4 Red (0.64 - 0.67 µm).
+
+* Band 5 Near-Infrared (0.85 - 0.88 µm). 
+
+* Band 6 SWIR 1(1.57 - 1.65 µm).
+
+* Band 7 SWIR 2 (2.11 - 2.29 µm).
+
+<div class="alert alert-info">
+**Your task:**
+
+Using the `names()` function, Now change the names of the bands in `landsat8` as: Band 1 = "Coastal"; Band 2 = "Blue"; Band 3 = "Green"; Band 4 = "Red"; Band 5 = "NIR"; Band 6 = "SWIR11"; Band 6 = "SWIR12". 
+
+This process is the same as you will do with a `vector`/`data.frame` where you define the names as  `names(Vact.ob) <- c('a', 'b', 'c')`:
+</div>
+
+```{r LYRnames}
+# Print the current names of Landsat8.
+
+# Change the names of Landsat8 using the names() function to 'Coastal','blue', 'green', 'red', 'NIR', 'SWIR1', 'SWIR
+
+# Print the new names of Landsat8.
+
+```
+
+## Ploting `raster` objects
+
+With the satellite information saved as an object (`landsat8`), you can now plot it to see what is represented here. For this, you will use the function `plot` and specify the band of interest as you would in an object of the class `list` (that is, using double square-brackets `rastFile[[nlayer]]`). For example, to plot the 'Blue' band in `landsat8` you will execute `plot(landsat8[["blue"]])` or `plot(landsat8[[1]]`.
+
+
+<div class="alert alert-info">
+**Your task:**
+
+Plot each of the `landsat8` layers individually. That is, use the `plot()` function once each time for the bands.
+</div>
+
+```{r RastPerBand,eval = TRUE}
+# Set a plotting space of 3-rows and 2-columns
+par(mfcol=c(3,3))
+
+# Plot the first band - using the "TEXT string" to define the band to plot
+
+# Plot the second band - using the "TEXT string" to define the band to plot
+
+# Plot the third band - using the "TEXT string" to define the band to plot
+
+# Plot the fourth band - using the "layer NUMBER" to define the band to plot
+
+# Plot the fifth band - using the "layer NUMBER" to define the band to plot
+
+# Plot the sixth band - using the "layer NUMBER" to define the band to plot
+
+# Plot the sixth band - using the "layer NUMBER" to define the band to plot
+
+```
+
+The approach above is cumbersome and clumsy but give you a sense of how to plot individual layers. You could have done the same as above by running `plot(landsat8)`. This can also be implemented on a selection of the `RasterStack` layers by selecting which ones to plot inside the double square brackets (`rastFile[[nlayer1:nlayer2]]`). 
+
+
+<div class="alert alert-info">
+**Your task:**
+
+Plot four (4) layers of the `RasterStack` (the RGB+NRI spectrum) in a single visualization panel using the `plot()` function.
+
+Also, explore changing the color scheme of your plot by using the argument `col`. Here you will use two color schemes:
+
+* A grey color scheme.
+
+* A Red-Yellow-Blue (`RdYlBu`) color scheme using a hue-chroma-luminance (HCL) colors.
+
+</div>
+
+```{r RGBlayerPlt, eval  = TRUE}
+par(oma=c(1,1,3,1))
+# Plot the RGB spectrum using a grey color scheme.
+
+# Give the plot a title using the mtext function.
+
+# Plot the RGB spectrum using a Red-Yellow-Blue color scheme.
+
+# Give the plot a title using the mtext function.
+
+```
+
+The difference in shading and range of legends between the different bands is because various surface features reflect the incident solar radiation differently.
+
+Each layer represents how much incident solar radiation is reflected for a particular wavelength range. For example, vegetation reflects more energy in NIR than other wavelengths and thus appears brighter. In contrast, water absorbs most of the energy in the NIR wavelength, and it seems dark.
+
+<div class="alert alert-info">
+**Your task:**
+
+Now plot the four (4) layers of the `RasterStack` representing the RGB+NRI spectrum again. However, this time make sure that the range of each panel goes between 0 and 1.
+
+To ensure the color ramps in all maps range between 0 and 1, use the argument `zlim` when plotting each raster.
+You can use either a grey or Red-Yellow-Blue color scheme.
+
+</div>
+
+
+```{r RGBlayer0.1.rng, eval  = TRUE}
+par(oma=c(1,1,3,1))
+# Plot the RGB spectrum using a grey color scheme.
+
+# Give the plot a title using the mtext function.
+
+# Plot the RGB spectrum using a Red-Yellow-Blue color scheme.
+
+# Give the plot a title using the mtext function.
+
+```
+
+## Combining bands: composite plots of `raster` objects
+
+Satellite images are often combined into a "composite" to create plots that reveal more information. A simple composition is to merge them into a true (or natural) color image. These images look similar to a standard photograph (vegetation in green, water blue, etc.). For this, you need bands in the red, green and blue regions. For this Landsat image, band-4 (red), band-3 (green), and band-2 (blue) can be used. You can use the `plotRGB()` function to combine them into a single composite.
+
+<div class="alert alert-info">
+**Your task:**
+
+Now plot a true color image of the region of interest using the `plotRGB()` function.
+
+Be sure to plot these in the right order: red (band 4), green (band 3), and blue (band 2).
+
+</div>
+
+
+```{r Truecol}
+# Generate a temporary RasterStack with the layers in the right order Red-Green-Blue. Save it as an object named landsatRGB.
+landsatRGB <- 
+
+# Use the plotRGB() function to make the true color composites - these follow a RGB order
+
+```
+
+
+That last figure looks a bit dark. Luckily the `plotRGB()` function has a few tricks that can help you enhance your visualization. By defining the `stretch` argument to either `"lin"` or `"hist"` you can stretch the values to increase the image's contrast. These approaches redistribute the pixel values along the histogram for each displayed band in a linear fashion (`lin`) or by matching the brakes of a histogram (`hist`). 
+
+<div class="alert alert-info">
+**Your task:**
+
+Now plot a true color image of the region of interest using the `plotRGB()` function specifying both a linear and histogram stretch
+</div>
+
+
+```{r TrueColStrch}
+# define the plotting space
+par(mfrow = c(1,2),
+    mar = rep(1,4))
+
+# Use the plotRGB() function with a LINEAR stretch to make the true color composites - these follow an RGB order
+
+# Use the plotRGB() function with a  HISTOGRAM stretch to make the true color composites - these follow an RGB order
+```
+
+These look better, and now it is easy to visualize different areas. 
+
+Another popular image visualization method in remote sensing is known as "false color" images, in which NIR, red, and green bands are combined in this order. This representation makes it easy to see the vegetation (in red), which is very popular in ecological analyses.
+
+<div class="alert alert-info">
+**Your task:**
+
+Now plot a false color image of the region of interest using the `plotRGB()` function.
+
+Be sure to plot these in the right order: NIR (band 4), red (band 3), and green (band 2).
+
+Here set the `stretch` argument to `"linear"` so the contrast improves.
+
+</div>
+
+```{r FalseColStrch}
+# Generate a temporary RasterStack with the layers in the right order Red-Green-Blue. Save it as an object named Landsat.NriRG.
+landsat.NriRG <- 
+
+# Use the plotRGB() function with a linear stretch to make the false color composites - these follow an RGB order
+
+```
+
+<div class="alert alert-success">
+**Question:** Where do you think you can see vegetation in this plot?
+*PLACE YOUR ANSWERE HERE*
+</div>
+
+## Assessing the relation between bands
+
+Looking at a scatter-plot matrix between bands can help explore relationships between raster layers. For example, you can assess these relations by plotting the reflection in one band against reflection in another (e.g., red vs NRI). 
+
+<div class="alert alert-info">
+**Your task:**
+
+Using the `pairs()` function of the `raster` package, you will plot the reflection of the red band on NRI. 
+</div>
+
+
+```{r Band constrast}
+# Plot the relation between the red on NRI layers in a RasterStack using the pairs() function.
+
+```
+
+The relation between NIR and red is unique due to its triangular shape. Vegetation reflects highly in the NIR range than red and creates the upper corner close to the NIR (*y*) axis. Water absorbs energy from all the bands and occupies the location close to the origin. The furthest corner is created due to highly reflecting surface features like bright soil or concrete.
+
+The `raster` package supports many mathematical operations. These operations are generally performed per pixel (grid cell). Map algebra with Raster objects flows the same rules of algebraic operation that `R`-objects do, but focuses on bands in a `RasterStack` (`landsat8[[1]] + landsat8[[2]]`) or individual `RasterLayers` (`landsatFCC + landsatRGB`).
+
+<div class="alert alert-info">
+**Your task:**
+
+Subset the original `landsat8` `RasterStack` into a new `RasterStacks` named `landsatFCC` that contains the NIR, red, green bands (in that order).
+</div>
+
+```{r LandSatSub}
+# Subset the original `Landsat8` `RasterStack` into a raster stack consisting of the NIR, red, green bands. Name this object landsatFCC 
+landsatFCC <- 
+```
+
+Using the two `RasterStack`s generated above, you will now use "raster algebra" to generate a series of Vegetation indices.
+
+In general terms, vegetation indices are dimensionless radiometric measures, which combine information from different channels of the electromagnetic spectrum to enhance the vegetation signal. They measure the spatial and temporal variation of the plant's photosynthetic activity. Due to their simplicity, vegetation indices are widely used. The most commonly used vegetation indices include Normalized Difference Vegetation Index (**NDVI**), Enhanced Vegetation Index (**EVI**), and Difference Vegetation Index (**DVI**). Here you will focus on the Normalized Difference Vegetation Index (**NDVI**), which makes use of the red and near-infra-red bands since the energy reflected in these wavelengths is related to the amount of vegetation cover on the ground surface.
+
+Specifically, NDVI is the difference in the amount of visible and near-infra-red light reflected from plants on Earth's surface. Mathematically, this translates into $NDVI=\frac{(NIR-Red)}{(NIR+Red)}$; meaning that by design, the NDVI itself varies between -1.0 and +1.0.
+
+This information makes it possible to estimate NDVI using the `landsat8` or `landsatFCC` `RasterStacks`.
+
+<div class="alert alert-info">
+**Your task:**
+
+You will use the information in `landsatFCC` to estimate the evaluated region's Normalized Difference Vegetation Index (**NDVI**).
+
+</div>
+
+
+```{r NDVI}
+# Extract the near-infra-red band.
+NIRBnd <- 
+
+# Extract the red band.
+RedBnd <- 
+
+# Estimate NDVI as NDVI=(NIR-Red)/(NIR+Red).
+NDVI <- 
+
+# Plot the NDVI.
+
+```
+
+Just as with other `R`-objects, you can explore the distribution of values within our raster using the `hist()` function, which produces a histogram. Histograms are often useful in identifying outliers and lousy data values in our raster data.
+
+
+<div class="alert alert-info">
+**Your task:**
+
+Plot the histogram of the NDVI `RasterLayer` object created above using the `hist()` function.
+
+</div>
+
+```{r HistPlot}
+# Plot the histogram of NDVI using the hist() function.
+
+```
+
+You can apply basic rules to estimate the spatial extent of different Earth surface features based on the idea that NDVI values are standardized and ranges between -1 to +1. So high values are vegetation, intermediate areas might be open areas, and low values can be water. 
+
+Looking at the histogram, you could say that the highest values (values above 0.4) are vegetation. You can visualize this by mathematically masking the NDVI using the logical test.
+
+<div class="alert alert-info">
+**Your task:**
+
+Using a logical create a mask of the NDVI RasterLayer so that it marks as true (or 1) the highest values (values above 0.4).
+
+Use this mask to remove all areas that are not vegetated.
+
+</div>
+
+```{r NDVImask}
+# Create a mask of the NDVI RasterLayer for values above 0.4. Name this raster raster NDVImask.
+NDVImask <-
+
+# plot the NDVImask.
+
+# Using NDVImask and map algebra operations mask the non-vegetation values from the NDVI RasterLayer. Name this new object NDVIVeg.
+NDVIVeg <- 
+
+# plot the NDVImask.
+
+```
+
+<div class="alert alert-success">
+**Question** Which color do "vegetated areas (those the highest values) have?.
+*PLACE YOUR ANSWERE HERE*
+</div>
+
+## Hierarchical clustering
+
+In hierarchical clustering the idea is to generate a system of grouping according to a hierarchy, or levels and orders.In the field of machine learning, hierarchical classification is sometimes referred to as instance space decomposition,which splits a complete multi-class problem into a set of smaller classification problems.
+
+Here you will first generate a series of hierarchical classifications, and then determine how good they are into generate five (5) unique clusters.
+
+The first step to do your classification is to extract the `NDVI` raster and save these into a vector. This is because the classification function used to define classes work on a vector of values, **NOT** on the cells in a raster.
+
+<div class="alert alert-info">
+**Your task:**
+
+Using the function `getValues()`, extract the values in the `NDVI` raster and save these into a vector.
+
+To know how to use the function type `?getValues`.
+
+</div>
+
+```{r GetVal1}
+# Using the function `getValues()` extract the values in the `NDVI` into an object named NDVIVctv.
+NDVIVct <- 
+
+# Just to be on the safe side turn NA into -1
+
+# Check the stricture of the vector with the raster data.
+
+```
+
+Using the vector created with the test above, you can now perform a Hierarchical classification using four (4) different approaches:
+
+1) Single linkage.
+2) Complete linkage.
+3) Average linkage.
+4) Ward’s hierarchical clustering.
+
+<div class="alert alert-info">
+**Your task:**
+
+Using the function `hclust()`,  you will now generate a series of hierarchical classifications based on on the **Euclidean** distance of NDVI values. For this, you will:
+
+1) Create a object named `NDVIVctRndSmp` where you extract 100 values from `NDVIVct`.
+
+2) Create a Object names `NDVI.Dist`, based on the `Euclidean` distance of NDVI values in `NDVIVctRndSmp`. use the `dist()` function to estimate this distance.
+
+3) Use the function `hclust()` and the adequate `method` to create a
+  * Single linkage classification.
+  * Complete linkage classification..
+  * Average linkage classification.
+  * Ward’s hierarchical classification.
+
+4) Plot each of these classifications.
+</div>
+
+```{r HIerClust1}
+# It is important to set the seed generator for repeatability.
+set.seed(25)
+# Extract 100 values from NDVIVct using the sample() function
+NDVIVctRndSmp <- 
+  
+# Estimate the euclidean Distance Matrix based on NDVI values using the dist() function
+NDVI.Dist <- 
+
+# Single linkage classification.
+Hclus.Single <- 
+# Plot Single classification. 
+
+# Complete linkage classification.
+Hclus.Complete <- 
+# Plot Complete classification. 
+
+# Average linkage classification.
+Hclus.Average <- 
+# Plot Average classification. 
+
+# Ward’s hierarchical classification.
+Hclus.Ward <- 
+# Plot Ward’s hierarchical classification. 
+
+```
+
+The goal of any tree is that it represents the original dissimilarity matrix. To assess this you will look at the relation between original dissimilarities and cophenetic distances (that is the distance in the tree).
+
+<div class="alert alert-info">
+**Your task:**
+
+For each of the four hierarchical clustering implementations estimate the relation between original euclidean distances, and the the cophenetic distances. For this, you will:
+
+1) Estimate the cophenetic distance for each tree using the `cophenetic()` function.
+2) Plot the relation between cophenetic distance and the euclidean distances estimated in `NDVI.Dist`.
+3) Estimate the Pearson’s r correlation between euclidean and each cophenetic distances.
+</div>
+
+
+```{r CophDist}
+
+# Single linkage classification cophenetic distance.
+Cophe.Single <- 
+## Correlation Single classification cophenetic distance vs euclidean distances.
+
+# Plot Single classification cophenetic distance vs euclidean distances. 
+
+# Complete linkage classification cophenetic distance.
+Cophe.Complete <- 
+## Correlation Complete classification cophenetic distance vs euclidean distances.
+
+# Plot Complete classification cophenetic distance vs euclidean distances. 
+
+# Average linkage classification cophenetic distance.
+Cophe.Average <-
+## Correlation Average linkage classification cophenetic distance vs euclidean distances.
+
+# Plot Average linkage classification cophenetic distance vs euclidean distances. 
+
+# Ward’s hierarchical classification cophenetic distance.
+Cophe.Ward <- 
+## Correlation Ward’s classification cophenetic distance vs euclidean distances.
+
+# Plot Ward’s classification classification cophenetic distance vs euclidean distances. 
+
+```
+
+<div class="alert alert-success">
+**Question:** Which method is the best in describing the original distances?
+*PLACE YOUR ANSWERE HERE*
+</div>
+
+Now that you have a best classification approach you will see which observations cluster together.
+
+<div class="alert alert-info">
+**Your task:**
+
+For the best hierarchical clustering model you will pot the hierarchical model, and then plot over it the division into five clusters using the `rect.hclust()` function.
+</div>
+
+```{r Hclus5class}
+# Plot the best hierarchical clustering model
+
+# plot over it boxes showing the splint into five clusters using the rect.hclust() function.
+ClusClass <- 
+# Check which observations where clustered in each class
+
+```
+
+The problem with the hierarchical clustering model you have created is that it only encompasses a handful of observations (distance matrices increase exponential in size as you add observations), and these can not be extrapolated into the full domain.
+
+## k-means Non-hierarchical clustering
+
+In non-hierarchical clustering (called unsupervised classification in GIS applications), you use only predictors and do not supply any response data. In the context of satellite images, you only use reflectance data, and you do not identify any pixel as belonging to a particular class beforehand. This approach may seem odd, but it can be useful when you do not have much prior knowledge of a study area or a broad knowledge of the distribution of land cover classes of interest but no specific ground data. Here you will use k-means to groups pixels with similar spectral characteristics into groups. 
+
+Here you will perform unsupervised classification on a spatial subset of the NDVI `RasterLayer.` For this, you will use the k-means approach. 
+
+The first step to do your classification is to extract the `NDVI` raster and save these into a vector. This is because the classification function used to define classes work on a vector of values, **NOT** on the cells in a raster.
+
+<div class="alert alert-info">
+**Your task:**
+
+Using the function `getValues()`, extract the values in the `NDVI` raster and save these into a vector.
+
+To know how to use the function type `?getValues`.
+
+</div>
+
+```{r GetVal}
+# Using the function `getValues()` extract the values in the `NDVI` into an object named NDVIVctv.
+NDVIVct <- 
+
+# Just to be on the safe side turn NA into -1
+NDVIVct[is.na(NDVIVct)]<- -1
+
+# Check the stricture of the vector with the raster data.
+
+```
+
+Using the vector created with the test above, you can now perform a `kmeans` clustering and inspect the output. Remember that `kmeans` need a vector with **NO** empty cells as an input. That means NO `NAs` are allowed in the input vector. Also, you will need to specify the number of classes with the `centers` argument and the `algorithm` to estimate the groups. Here, you will use the Lloyd algorithm. If in doubt about how to use a function, remember that you look at the examples in the help file you get when typing `?means`.
+
+<div class="alert alert-info">
+**Your task:**
+
+Using the `kmeans` function, classify the vector named `NDVIVct` into five (5) classes using 500 iterations, ten random sets, and the `"Lloyd"` method.
+</div>
+
+```{r K.means}
+# It is important to set the seed generator for repeatability because the `kmeans()` function initiates the centers in random locations.
+set.seed(99)
+# Impalement the kmeans() function with the criteria defined in the task:
+# you want to create five clusters, allow 500 iterations, use ten random sets, and use "Lloyd" method
+kmncluster <- 
+  
+# kmeans returns an object of class "kmeans"
+
+```
+
+If you check the length `NDVIVct` and compare it to the size of the cluster slot in `kmncluster`, you will see these are are they the same.
+
+<div class="alert alert-info">
+**Your task:**
+
+Compare the length of `NDVIVct` to the cluster slot size in `kmncluster`.
+
+Are these the same length?
+</div>
+
+
+```{r LengthCom}
+# length of `NDVIVct` 
+
+# length of the clusters vector
+
+# Compare the length of the input and out-put vectors?
+
+```
+
+<div class="alert alert-success">
+**Question:** Are the input and output the same length?
+*PLACE YOUR ANSWERE HERE*
+</div>
+
+
+The cell values of `kmncluster$cluster` indicate the cluster label for the corresponding pixel, which ranges between 1 to 5 (corresponding to the input number of cluster you provided in the `kmeans` function). You can now use this vector to convert the `kmncluster$cluster` values back to a `RasterLayer` of the same dimension as the `NDVI`. For this, you will use the `setValues` function. Look how this function is set up using `?setValues` 
+
+<div class="alert alert-info">
+**Your task:**
+
+Use the `setValues` function to convert the `kmncluster$cluster` values back into a `RasterLayer`.
+
+Plot the k-means classified NDVI `RasterLayer` using a highly contrasting color scheme.
+
+</div>
+
+```{r kmeansRast}
+# Use the ndvi object to set the cluster values to a new raster using the setValues() function
+knr <- 
+
+#Plot the k-means classified NDVI using a highly contrasting color scheme.
+
+```
+
+You can see that `knr` is a `RasterLayer`, but you do not know which cluster (1-5) belongs to what land cover class (and if it does belong to a class that you would recognize). 
+
+<div class="alert alert-info">
+**Your task:**
+
+Plot the `NDVI` and `knr` side-by-side using a unique and contrasting color for each cluster in `knr`.
+
+Try to assess which might be vegetation and areas that are not?
+
+</div>
+
+
+```{r ClassComp}
+par(mfrow = c(1,2))
+# Plot the NDVI values
+
+# Plot the k-means classified NDVI using a highly contrasting color scheme.
+
+```
+
+## Analysing the classification output - Spectral profiles
+
+To finish, look at the spectral profiles (that is, the average reflectance for a class) of each generated class. For this, you will plot the value for pixels representing a specific earth surface feature. Such profiles constitute the basis for image analysis. You can extract spectral values from any multi-spectral data set using the `extract()` function. Here you will use the classification just created and extract the values for each class. 
+
+To start, you will select 100 points within each class as this makes things run fast and standardize the analyses across classes (not all classes have the same number of cells).  You will use the `getValues()` function to extract **ALL** the cells ID for each class in `knr` (that is, the location indexes in the `RasterLayer`), and the `sample` function to randomly select 100 points.
+
+<div class="alert alert-info">
+**Your task:**
+
+Create a `list` with each slot being the random sample of points within a class. 
+
+Use the sample function to extract 100-random points from each class and store these in the list created above.
+
+</div>
+
+```{r RandSelc}
+# It is important to set the seed generator for repeatability because the `kmeans()` function initiates the centers in random locations.
+set.seed(25)
+
+# Create a `list`  where each slot is a band
+Knr.RndPnt <- list(Class1 = , # a random sample of 100 point for class 1.
+                   Class2 = , # a random sample of 100 point for class 2.
+                   Class3 = , # a random sample of 100 point for class 3.
+                   Class4 = , # a random sample of 100 point for class 4.
+                   Class5 =  # a random sample of 100 point for class 5.
+                   )
+```
+
+To extract the `landsat8` and `NDVIReclas` values after selecting the 100-random points, you need to define the coordinates of these. For this, you will use the indexes generated above and sample the list of coordinates from the `knr` `RasterLayer`. A vital point to know is that applying the function `coordinates()` to a `RasterLayer` lists the center coordinate of all the grids in that object.
+
+<div class="alert alert-info">
+**Your task:**
+
+Get the coordinates for each random point selected above, and store these in a list.
+
+</div>
+
+```{r CoordGet}
+# get the coordinates for each point selected in th step above 
+Knr.Rndcoord <- list(Class1 = , # Coordinates for class 1
+                     Class2 = , # Coordinates for class 2
+                     Class3 = , # Coordinates for class 3
+                     Class4 = , # Coordinates for class 4
+                     Class5 = # Coordinates for class 5
+                     )
+```
+
+You can extract spectral values from any multi-spectral data set using the `extract()` function. So now extract the values for the six (6) bands in `landsat8` and the `NDVI` values. Using these, generate a plot where the x-axis is the band number, and their value is the average for each band across all 100 points sampled. 
+
+<div class="alert alert-info">
+**Your task:**
+
+Get the data for each of the six bands in the `landsat8` object and the `NDVI` values for the points selected in the task above.
+
+Once you have extracted these values for each class, estimate the bands/NDVI means.
+
+</div>
+
+
+```{r BandRnd}
+# get the bands for each point selected in the step above 
+SpectProf <- list(Class1 = cbind(, # Get the six bands values.
+                                 ), # Get the NDVI values.
+                  Class2 = cbind(, # Get the six bands values.
+                                 ), # Get the NDVI values.
+                  Class3 = cbind(, # Get the six bands values.
+                                 ), # Get the NDVI values.
+                  Class4 = cbind(, # Get the six bands values.
+                                 ), # Get the NDVI values.
+                  Class5 = cbind(, # Get the six bands values.
+                                 ) # Get the NDVI values.
+                  )
+
+# Now estimate the bands/NDV means
+SpectProf.Means <- 
+
+```
+
+<div class="alert alert-info">
+**Your task:**
+
+Now that the Mean-band values are estimated for each land class, you can plot the spectral profiles. Do this either as a line plot or a  bar plot.
+
+</div>
+
+```{r SpePorfPlt}
+
+```
+
+## Final points
+
+This has been a practical focus on working with satellite images as `raster` files and using classification techniques to group these into classes. There is much more that could be done here. For example, instead of defining the number of groups beforehand, you could assess a possible number of groups utilizing a cluster analysis. I leave that the keen student.  

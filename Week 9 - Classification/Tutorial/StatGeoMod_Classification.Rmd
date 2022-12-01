@@ -1,0 +1,341 @@
+---
+title: "Classification"
+output: learnr::tutorial
+runtime: shiny_prerendered
+---
+
+```{r setup, include=FALSE}
+#Load packages
+library(raster)
+library(vegan)
+library(learnr)
+# Setup
+knitr::opts_chunk$set(echo = FALSE,
+                      message = FALSE,
+                      warning = FALSE)
+gradethis::gradethis_setup()
+tutorial_options(exercise.blanks = TRUE)
+
+# Load the data
+landsat5 <- stack("Data/centralvalley-2011LT5_Sml.tif")
+NDVI <- raster("Data/centralvalley-2011NDVI_Sml.tif")
+NDVIVct <- getValues(NDVI)
+set.seed(99)
+kmncluster <- kmeans(x = na.omit(getValues(NDVI)),centers = 5, iter.max = 500,nstart = 10, algorithm ="Lloyd")
+knr <- setValues(NDVI, kmncluster$cluster)
+set.seed(25)
+Knr.RndPnt <- lapply(1:5, function(i){ sample(which(getValues(knr)==i),100)})
+Knr.Rndcoord <- lapply(Knr.RndPnt, function(i){coordinates(knr)[i,]})
+SpectProf <- lapply(Knr.Rndcoord,function(i){cbind(extract(landsat5,i),extract(NDVI,i))})
+SpectProf.Means <- lapply(SpectProf,function(i){apply(i,2,mean)}) 
+```
+
+## Unsupervised Classification of satellite images
+
+Identifying the suitable satellite images for a specific project remains a challenging task, as ` there are numerous sources of remotely sensed data from satellites. Exceptionally high spatial resolution data is available as (costly) commercial products (for an example, see <https://www.planet.com>). Lower spatial resolution data is freely available from NASA, ESA, and other organisations. In this practical, rather than focusing on identifying the most adequate satellite imagery, you will use freely available from the Landsat-5 program. For this practical, you will use a cloud-free composite image from Landsat-5 with six bands. All Landsat image scenes have a unique product ID and metadata. You can find the information on Landsat sensor, satellite, location on Earth (WRS path, WRS row) and acquisition date from the product ID.
+
+## k-means Non-hierarchical clustering - 1
+
+In non-hierarchical clustering (called unsupervised classification in GIS applications), you use only predictors and do not supply any response data. In the context of satellite images, you only use reflectance data, and you do not identify any pixel as belonging to a particular class beforehand. This approach may seem odd, but it can be useful when you do not have much prior knowledge of a study area or a broad knowledge of the distribution of land cover classes of interest but no specific ground data. Here you will use k-means to groups pixels with similar spectral characteristics into groups. 
+
+Here you will perform unsupervised classification on a spatial subset of the NDVI `RasterLayer.` For this, you will use the k-means approach. 
+
+The first step to do your classification is to extract the information from  the `NDVI` raster and save these into a vector. This is because the classification function used to define classes work on a vector of values, **NOT** on the cells in a raster.
+
+<div class="alert alert-info">
+**Your task:**
+
+Using the function `getValues()`, extract the values in the `NDVI` raster and save these into a vector.
+
+To know how to use the function type `?getValues`.
+
+</div>
+
+```{r GetVal, exercise=TRUE, exercise.lines=10}
+# Using the function `getValues()` extract the values in the `NDVI` into an object named NDVIVctv.
+NDVIVct <- getValues(NDVI)
+
+# Check the stricture of the vector with the raster data.
+str(NDVIVct)
+```
+
+Using the vector created with the test above, you can now perform a `kmeans` clustering and inspect the output. Remember that `kmeans` need a vector with **NO** empty cells as an input. That means NO `NAs` are allowed in the input vector. Also, you will need to specify the number of classes with the `centers` argument and the `algorithm` to estimate the groups. Here, you will use the Lloyd algorithm. If in doubt about how to use a function, remember that you look at the examples in the help file you get when typing `?means`.
+
+<div class="alert alert-info">
+**Your task:**
+
+Using the `kmeans` function, classify the vector named `NDVIVct` into five (5) classes using 500 iterations, ten random sets, and the `"Lloyd"` method.
+</div>
+
+```{r Kmeans, exercise=TRUE, exercise.lines=15}
+# It is important to set the seed generator for repeatability because the `kmeans()` function initiates the centres in random locations.
+set.seed(99)
+
+# Impalement the kmeans() function with the criteria defined in the task:
+# you want to create five clusters, allow 500 iterations, use ten random sets, and use "Lloyd" method
+kmncluster <- kmeans(x = na.omit(NDVIVct), # numeric matrix of data to classify.
+                     centers = 5, #How many clusters?
+                     iter.max = 500, # Which is the maximum number of iterations allowed?
+                     nstart = 10, # How many random sets should be chosen?
+                     algorithm ="Lloyd" # Which algorithm to use when looking at the optimal solution.
+                     )
+
+# kmeans returns an object of class "kmeans"
+str(kmncluster)
+```
+
+If you check the length `NDVIVct` and compare it to the size of the cluster slot in `kmncluster`, you will see these are are they the same.
+
+<div class="alert alert-info">
+**Your task:**
+
+Compare the length of `NDVIVct` to the cluster slot size in `kmncluster`.
+
+Are these the same length?
+</div>
+
+
+```{r LengthCom, exercise=TRUE, exercise.lines=10}
+# length of `NDVIVct` 
+length(NDVIVct)
+
+# length of the clusters vector
+length(kmncluster$cluster )
+
+# are these the same length?
+length(NDVIVct) == length(kmncluster$cluster )
+## YES!! they are the lengths are the same length
+```
+
+## k-means Non-hierarchical clustering - 2
+
+The cell values of `kmncluster$cluster` indicate the cluster label for the corresponding pixel, which ranges between 1 to 5 (corresponding to the input number of cluster you provided in the `kmeans` function). You can now use this vector to convert the `kmncluster$cluster` values back to a `RasterLayer` of the same dimension as the `NDVI`. For this, you will use the `setValues` function. Look how this function is set up using `?setValues` 
+
+<div class="alert alert-info">
+**Your task:**
+
+Use the `setValues` function to convert the `kmncluster$cluster` values back into a `RasterLayer`.
+
+Plot the k-means classified NDVI `RasterLayer` using a highly contrasting colour scheme.
+
+</div>
+
+```{r kmeansRast, exercise=TRUE, exercise.lines=10}
+# Use the ndvi object to set the cluster values to a new raster
+knr <- setValues(x = NDVI, # a Template Raster
+                 values = kmncluster$cluster) # the values to add
+
+#Plot the k-means classified NDVI using a highly contrasting colour scheme.
+plot(knr, # The k-means RasterLayer.
+     main = "K-means 5-class classifiction", # Main title.
+     col = c("#e41a1c", "#377eb8", "#4daf4a", "#984ea3", "#ff7f00") # A contrasting colour scheme.
+     )
+```
+
+You can see that `knr` is a `RasterLayer`, but you do not know which cluster (1-5) belongs to what land cover class (and if it does belong to a class that you would recognise). 
+
+<div class="alert alert-info">
+**Your task:**
+
+Plot the `NDVI` and `knr` side-by-side using a unique and contrasting colour for each cluster in `knr`.
+
+Try to assess which might be vegetation and areas that are not?
+
+</div>
+
+
+```{r ClassComp, exercise=TRUE, exercise.lines=10}
+par(mfrow = c(1,2))
+# Plot the NDVI values
+plot(NDVI, #Object to plot.
+     col = rev(terrain.colors(10)), # Which colours to use?
+     main = 'Landsat-NDVI'# Main title
+     )
+
+# Plot the k-means classified NDVI using a highly contrasting colour scheme.
+plot(knr, # The k-means RasterLayer.
+     col = c("#e41a1c", "#377eb8", "#4daf4a", "#984ea3", "#ff7f00"),# A contrasting colour scheme.
+     main = 'Unsupervised classification', # Main title
+     )
+```
+
+## Analysing the classification output - Spectral profiles
+
+Now you will look at the spectral profiles (that is, the average reflectance for a class) of each generated class. For this, you will plot the value for pixels representing a specific earth surface feature. Such profiles constitute the basis for image analysis. You can extract spectral values from any multi-spectral data set using the `extract()` function. Here you will use the classification just created and extract the values for each class. 
+
+To start, you will select 100 points within each class as this makes things run fast and standardise the analyses across classes (not all classes have the same number of cells).  You will use the `getValues()` function to extract **ALL** the cells ID for each class in `knr` (that is, the location indexes in the `RasterLayer`), and the `sample` function to randomly select 100 points.
+
+<div class="alert alert-info">
+**Your task:**
+
+Create a `list` with each slot being the random sample of points within a class. 
+
+Use the sample function to extract 100-random points from each class and store these in the list created above.
+
+</div>
+
+```{r RandSelc, exercise=TRUE, exercise.lines=10}
+# It is important to set the seed generator for repeatability because the `kmeans()` function initiates the centres in random locations.
+set.seed(25)
+
+# Create a `list`  where each slot is a band
+Knr.RndPnt <- list(Class1 = sample(which(getValues(knr) == 1),100), # a random sample of 100 point for class 1.
+                   Class2 = sample(which(getValues(knr) ==2),100), # a random sample of 100 point for class 2.
+                   Class3 = sample(which(getValues(knr) == 3),100), # a random sample of 100 point for class 3.
+                   Class4 = sample(which(getValues(knr) == 4),100), # a random sample of 100 point for class 4.
+                   Class5 = sample(which(getValues(knr) == 5),100) # a random sample of 100 point for class 5.
+                   )
+# print the Rnd Points
+Knr.RndPnt
+```
+
+To extract the `landsat5` and `NDVI` values after selecting the 100-random points, you need to define the coordinates of these. For this, you will use the indexes generated above and sample the list of coordinates from the `knr` `RasterLayer`.
+A critical point to know is that applying the function `coordinates()` to a `RasterLayer` lists the centre coordinate of all the grids in that object.
+
+<div class="alert alert-info">
+**Your task:**
+
+Get the coordinates for each random point selected above, and store these in a list.
+
+</div>
+
+```{r CoordGet, exercise=TRUE, exercise.lines=10}
+# get the coordinates for each point selected in th step above 
+Knr.Rndcoord <- list(Class1 = coordinates(knr)[Knr.RndPnt[[1]],], # Coordinates for class 1
+                     Class2 = coordinates(knr)[Knr.RndPnt[[2]],], # Coordinates for class 2
+                     Class3 = coordinates(knr)[Knr.RndPnt[[3]],], # Coordinates for class 3
+                     Class4 = coordinates(knr)[Knr.RndPnt[[4]],], # Coordinates for class 4
+                     Class5 = coordinates(knr)[Knr.RndPnt[[5]],]  # Coordinates for class 5
+                     )
+
+# print the Rnd Coord
+Knr.Rndcoord
+
+```
+
+You can extract spectral values from any multi-spectral data set using the `extract()` function. So now extract the values for the six (6) bands in `landsat5` and the `NDVI` values. Using these, generate a plot where the x-axis is the band number, and their value is the average for each band across all 100 points sampled. 
+
+<div class="alert alert-info">
+**Your task:**
+
+Get the data for each of the six bands in the `landsat5` object and the `NDVI` values for the points selected in the task above.
+
+Once you have extracted these values for each class, estimate the bands/NDVI means.
+
+</div>
+
+
+```{r BandRnd, exercise=TRUE, exercise.lines=15}
+set.seed(25)
+# get the bands for each point selected in the step above 
+SpectProf <- list(Class1 = cbind(extract(landsat5,Knr.Rndcoord[[1]]), # Get the six bands values.
+                                 extract(NDVI,Knr.Rndcoord[[1]])), # Get the NDVI values.
+                  Class2 = cbind(extract(landsat5,Knr.Rndcoord[[2]]), # Get the six bands values.
+                                 extract(NDVI,Knr.Rndcoord[[2]])), # Get the NDVI values.
+                  Class3 = cbind(extract(landsat5,Knr.Rndcoord[[3]]), # Get the six bands values.
+                                 extract(NDVI,Knr.Rndcoord[[3]])), # Get the NDVI values.
+                  Class4 = cbind(extract(landsat5,Knr.Rndcoord[[4]]), # Get the six bands values.
+                                 extract(NDVI,Knr.Rndcoord[[4]])), # Get the NDVI values.
+                  Class5 = cbind(extract(landsat5,Knr.Rndcoord[[5]]), # Get the six bands values.
+                                 extract(NDVI,Knr.Rndcoord[[5]])) # Get the NDVI values.
+                  )
+
+# Now estimate the bands/NDV means
+SpectProf.Means <- lapply(SpectProf, #  The list with the bands/NDVI values for the 100 points by classification class. 
+                          function(i){ # Estimate the Mean accords the selected 100 points.
+                            apply(i,2,mean)}) 
+SpectProf.Means
+```
+
+## Analysing the classification output - Spectral profiles Ploting
+
+<div class="alert alert-info">
+**Your task:**
+
+Now that the Mean-band values are estimated for each land class, you can plot the spectral profiles. Do this either as a line plot.
+
+</div>
+
+```{r SpePorfPlt1, exercise=TRUE, exercise.lines=20}
+# Line plot.
+# You start by creating an empty plot.
+plot.new() # Create / Start a New Plot Frame
+plot.window(ylim=c(-0.2,0.6), xlim = c(1,7)) # Define the plot space extent.
+axis(1, # Add the x-axis.
+     at = 1:7, # Where each tick is placed.
+     labels = c(paste0("Band",1:6),"NDVI") # Name of the bands.
+     ) 
+axis(2,# Add the y-axis.
+     las = 2 # make axis text horizontal?
+     )
+
+# Add the x-axis label.
+mtext("Bands", # x-axis label.
+      side = 1, # On which side of the plot? (1=bottom, 2=left, 3=top, 4=right).
+      outer = T, # Use outer margins?
+      line = -2 # On which MARgin line add the text.
+      ) 
+
+# Add the y-axis label.
+mtext("Reflectance", # y-axis label.
+      side = 2, # On which side of the plot? (1=bottom, 2=left, 3=top, 4=right).
+      outer = T, # Use outer margins?
+      line = -2 # On which MARgin line add the text.
+      ) 
+
+# Now you add a line that show the mean values for a band across classes .
+for (i in 1:5){
+   lines(SpectProf.Means[[i]], # The Mean value per band/NDVI.
+        col = i, # Specify the colour to use.
+        lwd =2 # Specify line width.
+        )}
+# A title to be neat
+title(main="Spectral Profile from Landsat",
+      font.main = 2)
+# A Legend
+legend("topleft",
+       legend= paste("Class -",1:5),
+       cex=0.8, col=1:5,
+       lty = 1, lwd =3,
+       bty = "n")
+```
+## Analysing the classification output - Spectral profiles Ploting-2
+
+<div class="alert alert-info">
+**Your task:**
+
+Now that the Mean-band values are estimated for each land class, you can plot the spectral profiles. Do this either as a bar plot.
+
+</div>
+```{r SpePorfPlt2, exercise=TRUE, exercise.lines=20}
+# as a Bar plot       
+# Turn the list into a table (Bands/NDVI are the variables)- use the do.call() function for this 
+SpectProf.Means2 <- do.call("rbind", # what to do? (add as a string)
+                           SpectProf.Means # The List object on what to do the action
+                           )
+
+# Give the right names to the rows of the table
+colnames(SpectProf.Means2) <- c('blue', 'green', 'red',
+                           'NIR', 'SWIR1', 'SWIR2',"NDVI")
+
+# Use the barplot()
+barplot(SpectProf.Means2, # What object to draw?
+        beside = T, # How should the bas be plotted?
+        col=rep(1:5,7), # Define the colours.
+        xlab = "Bands", # Define the x-axis legend.
+        ylab = "Reflectance" # Define the y-axis legend.
+        )      
+# A title to be neat
+title(main="Spectral Profile from Landsat",
+      font.main = 2)
+# Legend
+legend("topleft", # Where to place the legend.
+       legend= paste("Class -",1:5), # The class names
+       cex  =0.8, # Define the text size
+       fill = 1:5, # Define the colours to fill
+       bty = "n")
+```
+
+## Final points
+
+This has been a practical focus on working with satellite images as `raster` files and using classification techniques to group these into classes. There is much more that could be done here. For example, instead of defining the number of groups beforehand, you could assess a possible number of groups utilising a cluster analysis. I leave that the keen student.  

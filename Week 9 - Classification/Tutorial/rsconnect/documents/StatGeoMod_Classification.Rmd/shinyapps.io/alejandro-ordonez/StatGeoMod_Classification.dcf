@@ -1,0 +1,13 @@
+name: StatGeoMod_Classification
+title: StatGeoMod_Classification
+username:
+account: alejandro-ordonez
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 7472068
+bundleId: 6461105
+url: https://alejandro-ordonez.shinyapps.io/StatGeoMod_Classification/
+when: 1667254401.73618
+lastSyncTime: 1667254401.73619
+asMultiple: FALSE
+asStatic: FALSE
