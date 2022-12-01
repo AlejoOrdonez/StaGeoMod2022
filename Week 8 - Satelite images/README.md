@@ -6,7 +6,7 @@
 2.  Visualize the Multiband infortion using diferent combintions of bands.
 
 
-## Generalized Linear Mixed Effect Models (GLMMs) in a nutshell
+## Landsat Data in R
 
 Landsat is the name of a joint NASA/USGS program that provides repetitive, calibrated, satellite-based observations of the earth at a spatial resolution that enables analysis of man's interaction with the environment. (NASA 2021). Landsat 8 and 9 capture data in 11 different bands, giving Landsat 8 and 9 a spectral resolution that includes visible light, near-infrared, short wave infrared, and thermal infrared bands (USGS 2017).
 
