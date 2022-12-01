@@ -1,4 +1,4 @@
-# **StaGeoMod2022 week 4 -[Generalized Linear Mixed Effect Models Squares (GLMM)]**
+# **StaGeoMod2022 week 7 -[Generalized Linear Mixed Effect Models Squares (GLMM)]**
 
 ## Objectives of this week.
 
