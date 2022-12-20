@@ -32,5 +32,8 @@ Cluster analysis was originated in anthropology by Driver and Kroeber in 1932[1]
 
  Text from Wikipedia <https://en.wikipedia.org/wiki/Cluster_analysis>
 
+## Interactive tutorial
+
+https://alejandro-ordonez.shinyapps.io/StatGeoMod_Classification/
 
 
