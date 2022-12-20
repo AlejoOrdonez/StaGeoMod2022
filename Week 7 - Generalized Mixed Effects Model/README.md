@@ -12,4 +12,6 @@ Where basic statistical methods try to quantify the exact effects of each predic
 
 A mixed model, mixed-effects model or mixed error-component model is a statistical model containing both fixed effects and random effects.These models are useful in a wide variety of disciplines in the physical, biological and social sciences. They are particularly useful in settings where repeated measurements are made on the same statistical units (longitudinal study), or where measurements are made on clusters of related statistical units. Because of their advantage in dealing with missing values, mixed effects models are often preferred over more traditional approaches such as repeated measures analysis of variance.
 
+## Interactive Tutorial
 
+ https://alejandro-ordonez.shinyapps.io/GLMM_Tutorial/
