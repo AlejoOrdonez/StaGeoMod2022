@@ -16,3 +16,7 @@ In Generalized Linear Models (GLMMS) continuous explanatory variables have been 
 Generalized additive models (GAMs) are useful in such cases because they allow you to capture the shape of a relationship between y and x without prejudging the issue by choosing a particular parametric form. Generalized additive models (implemented in `R` by the function `gam()`) extend the range of application of generalized linear models (glm) by allowing non-parametric smoothers in addition to parametric forms, and these can be associated with a range of link functions. All of the error families allowed with glm are available with gam (binomial, poisson, Gamma, etc.).
 
 
+## Interactive tutorial
+
+**Thanks Dr. Noam Ross**
+https://noamross.github.io/gams-in-r-course/
