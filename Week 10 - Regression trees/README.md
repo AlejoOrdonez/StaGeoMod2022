@@ -33,3 +33,6 @@ https://en.wikipedia.org/wiki/Random_forest
 https://support.bccvl.org.au/support/solutions/articles/6000083202-boosted-regression-tree
 
 
+## Interactive tutorial
+
+https://alejandro-ordonez.shinyapps.io/StatGeoMod_RegressionTrees/
