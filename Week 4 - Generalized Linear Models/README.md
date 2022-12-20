@@ -29,3 +29,5 @@ GLMs are linear models because a linear combination of predictors describes the 
 
 With this fresh in your mind, it is time to start developing a GLMs analysis. In this practical, you will focus on executing a Multiple Logistic regression. **IMPORTANT:** This time around, rather than giving you long explanations, I mainly focus on giving you specific tasks for you to undertake. These tasks indicate the usual analyses process of a dataset with presence-absence data. 
 
+## Interactive tuorial
+ https://alejandro-ordonez.shinyapps.io/Week4_LogisicReg_GLMM/
