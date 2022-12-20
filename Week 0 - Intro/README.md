@@ -27,4 +27,6 @@ Also you need to remember that `R` and **RStudio** are two separate pieces of so
 
 Technically, `R markdown` is a variant of another language called **Markdown** and both are a type of *"markup"* language. A markup language simply provides a way of creating an easy to read plain text file which can incorporate formatted text, images, headers and links to other documents. `R markdown` is very easy to learn and when used with **RStudio* even easier to integrate into your workflow to produce feature rich content.0
 
+## Interactive turorial
 
+ https://alejandro-ordonez.shinyapps.io/StatGeoMod_Intro-Interactive/
