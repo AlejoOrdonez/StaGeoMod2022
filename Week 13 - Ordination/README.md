@@ -32,4 +32,7 @@ More technically, MDS refers to a set of related ordination techniques used in i
 
 *Non-metric multidimensional scaling (nMDS)* finds both a non-parametric monotonic relationship between the dissimilarities in the item-item matrix and the Euclidean distances between items, and the location of each item in the low-dimensional space. 
 
+## Interactive Tutorial
+
+https://alejandro-ordonez.shinyapps.io/StatGeoMod_Ordination/
 
