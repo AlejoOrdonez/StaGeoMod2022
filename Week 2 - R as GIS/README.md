@@ -17,3 +17,6 @@ Spatial data are fairly distinct from other types of data in their structure. Th
 
 Of course, there are other tools. ArcGIS is probably the most well-known name in GIS (geographic information systems), but it is proprietary, expensive, and only works with Windows. If you really need it, there are several labs on campus that provide access—see the D-Lab. QGIS provides a free, open-source, cross-platform alternative to ArcGIS. We’ll stick with R today; it’s free, it’s open source, and you are fairly familiar with it. Plus there’s a nice online community of people using R for GIS, so you can (usually/eventually) find solutions when things go wrong. Finally, because you will likely use R for the econometrics in your research, using are for your GIS allows you to minimize the number of programs/scripts required during the course of your analysis
 
+## Interactive tutorials
+ https://alejandro-ordonez.shinyapps.io/GIS_Basics_Part1/
+  https://alejandro-ordonez.shinyapps.io/GIS_Basics_Part2/
