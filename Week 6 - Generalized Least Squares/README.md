@@ -26,13 +26,13 @@ An important point is that the constant variance is linked to the assumption of 
 
 When the assumption of constant variance is not satisfied a possible solution is to transform the data (for example taking log of the response variable and/or the explanatory variables) to achieve constant variance. Another approach is based on generalized or weighted least squares which is an modification of ordinary least squares which takes into account the inequality of variance in the observations. Weighted least squares play an important role in the parameter estimation for generalized linear models.
 
-
-
-
 Text from:
 
 Taboga, Marco (2021). "Generalized least squares", Lectures on probability theory and mathematical statistics. Kindle Direct Publishing. Online appendix. https://www.statlect.com/fundamentals-of-statistics/generalized-least-squares.
 
 http://halweb.uc3m.es/esp/Personal/personas/durban/esp/web/notes/gls.pdf
 
+## Interactive Tutorial
+
+https://alejandro-ordonez.shinyapps.io/GLS_Spatial/
 
